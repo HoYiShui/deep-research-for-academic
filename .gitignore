@@ -1,0 +1,44 @@
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+.eggs/
+.venv/
+venv/
+env/
+ENV/
+.uv/
+.pdm-python/
+
+# ---- Test / lint / coverage cache ----
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+
+# ---- Environment & secrets ----
+.env
+.env.*
+!.env.example
+
+# ---- Jupyter checkpoints (notebooks 本身提交) ----
+.ipynb_checkpoints/
+
+# ---- OS / editors ----
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*~
+
+# ---- Claude Code 本地状态 ----
+.claude/settings.local.json
