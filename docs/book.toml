@@ -1,0 +1,21 @@
+[book]
+title = "Deep Research for Academic 文档"
+authors = ["HoYiShui"]
+language = "zh"
+src = "."
+
+[build]
+build-dir = "book"
+
+[output.html]
+default-theme = "light"
+preferred-dark-theme = "ayu"
+additional-css = ["theme/custom.css"]
+
+[output.html.search]
+enable = true
+limit-results = 30
+
+[output.html.fold]
+enable = true
+level = 1

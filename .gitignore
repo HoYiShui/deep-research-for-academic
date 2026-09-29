@@ -42,3 +42,6 @@ htmlcov/
 
 # ---- Claude Code 本地状态 ----
 .claude/settings.local.json
+
+# ---- mdbook 构建产物 ----
+docs/book/
