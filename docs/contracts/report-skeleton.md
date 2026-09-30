@@ -1,6 +1,6 @@
 # 统一报告骨架
 
-> 参考：`io_deep-research-for-academic.md` §5。此文件为完整 markdown 骨架（实现参考）；
+> 参考：`docs/architecture/01-contract.md` §5。此文件为完整 markdown 骨架（实现参考）；
 > spec 正文只约定语义章节（见 `specs/001-deep-research-agent/spec.md`）。
 
 ## 统一骨架（所有任务共用）

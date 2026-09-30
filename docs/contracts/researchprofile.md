@@ -1,6 +1,6 @@
 # ResearchProfile 契约
 
-> 参考：`io_deep-research-for-academic.md` §2.3。
+> 参考：`docs/architecture/01-contract.md` §2.3。
 
 ResearchProfile 不重复保存研究事实；它定义每类任务需补充哪些字段、如何组织检索与报告。
 

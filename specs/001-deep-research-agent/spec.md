@@ -160,4 +160,4 @@
 - 数据源默认为论文检索、网页搜索、本地知识库三类；具体接入的数据源在 plan 阶段确定。
 - 多智能体职责分解（澄清 / 检索 / 口径归一 / 分析执行 / 撰写 / 审阅）与工作流编排、检查点持久化、进度推送等技术机制属实现方案，在 plan 阶段落地，不作为本 spec 的功能约束。
 - v1 不包含复杂多租户权限体系（面向课题组内使用）。
-- 完整契约参考见 docs/contracts/，端到端用例见 docs/cases/；评测契约见 io_deep-research-evaluation.md（暂不实现）。
+- 完整契约参考见 docs/contracts/，端到端用例见 docs/cases/；评测契约见 docs/architecture/07-evaluation.md（暂不实现）。

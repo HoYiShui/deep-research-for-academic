@@ -1,6 +1,6 @@
 # ResearchBrief 契约
 
-> 参考：`io_deep-research-for-academic.md` §2.2 / §4。语义字段为 spec 层契约；架构对象列为实现参考。
+> 参考：`docs/architecture/01-contract.md` §2.2 / §4。语义字段为 spec 层契约；架构对象列为实现参考。
 
 ## 1. 输入归一化：Query 骨架（7 要素）
 

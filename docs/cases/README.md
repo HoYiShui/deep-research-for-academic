@@ -14,7 +14,7 @@ prompt」跑出来的。记录如下，便于复现与追溯。
 | Harness | Claude Code（CLI/TUI） |
 | 模型 | deepseek v4.1 flash（模型选择配置为 v4-pro，官方后台自动路由到 v4.1 flash） |
 | 产出日期 | 2026-09-29 |
-| 补充参考 | `io_deep-research-for-academic*.md`（系统设计文档；工作流以内联 prompt 为准，文档仅作细节参考） |
+| 补充参考 | `docs/architecture/*.md`（系统设计文档；工作流以内联 prompt 为准，文档仅作细节参考） |
 
 ### 使用的 prompt（原文，逐字保留）
 

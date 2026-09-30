@@ -30,7 +30,7 @@
 "差在哪个章节、哪条结论、哪个证据"。
 
 > 注：这些 case 是**期望输出的完整报告**，不是评测打分用的 `TaskPackage` / `gold_units`
-> （见 `io_deep-research-evaluation.md`）。后续做离线评测时，可由此细化成评测 fixture。
+> （见 `docs/architecture/07-evaluation.md`）。后续做离线评测时，可由此细化成评测 fixture。
 
 ## mdbook 静态展示
 
