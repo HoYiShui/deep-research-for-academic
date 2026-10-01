@@ -88,13 +88,11 @@ research_service.start():
 session_service.on_message(session, answer):
     status = clarify_round(session, answer)          # architect.clarify + decide_status
     if status == ask:
-        return questions                             # 反问，等下一轮
+        return {"status": "ask", "questions": questions}
     elif status == ready:
         brief = session.freeze()                     # 冻结 brief
-        task = asyncio.create_task(orchestrator.run(brief))   # ← 在这里 spawn 编排器（后台任务）
-        async for event in task:
-            await session_service.on_event(event)    # 喂回 session + SSE
-            yield sse(event)
+        self._spawn_pipeline(brief)                  # create_task + 持有引用；orchestrator 内部发事件到进程内队列
+        return {"status": "ready", "sse_url": ...}   # 只返回 JSON，不 yield SSE
 ```
 
 > **两个 state**：SessionState（brief_draft / clarification_history / clarify 状态，归 session_service，存 sessions/briefs 表）；PipelineState（section_plans / evidence / claims / metrics / ...，归 orchestrator，由冻结 brief 初始化，存 phase_snapshots）。brief_draft 不是 pipeline state 的字段；冻结 brief 是 pipeline 的输入。
@@ -106,7 +104,7 @@ session_service.on_message(session, answer):
 - **V2 多进程/多实例**（扩展时）：事件总线用 Redis pub/sub（EventSink=publish / SSE=subscribe）；取消标志用 Redis。
 - 审计历史 → V2。
 
-> orchestrator（clarify + pipeline）作为**后台 asyncio 任务**运行（POST /research 时 `asyncio.create_task` spawn），不阻塞单个 HTTP 请求；SSE 连接从进程内事件总线订阅进度。重启后客户端重连 → 从 phase_snapshots 恢复 pipeline → 重新流事件（事件流是瞬态，真相在 snapshot）。
+> orchestrator（pipeline）作为**后台 asyncio 任务**，在 POST /messages 判定 `ready` 时 `asyncio.create_task` spawn，不阻塞 HTTP 请求；SSE 连接从进程内事件总线订阅进度。重启后客户端重连 → 从 phase_snapshots 恢复 pipeline → 重新流事件（事件流是瞬态，真相在 snapshot）。
 
 ### 数据库设计（PostgreSQL，按需求分 schema）
 
@@ -137,6 +135,32 @@ critic_feedback）不单独建表，活在 `phase_snapshots.state` 的 JSONB 里
 - 入库流水线：parse（MinerU 2.5）→ chunk（语义切分，表格/公式独立单元）→ embed（BGE-M3 dense+sparse）→ store（Milvus hybrid）→ 检索 rerank（BGE-reranker-v2-m3）。入库用 `asyncio.to_thread`（CPU 阻塞，不卡事件循环）；进度持久化到 documents 表（轮询读）；启动时扫 processing → 标 failed（崩溃恢复）。
 - 核心原则「语义锚 + 原文分离」：嵌入语义锚（text=title+section、table=caption+列头+表注、formula=引入句+解释句），原文只存不 embed。详见 research.md 决策 #9。
 - **存储归属**：PostgreSQL = chunk/文档元数据真相源（chunks 表含 object_key）；Milvus = 向量 + 去规范化元数据子集（kb_id/paper_id，供过滤）；MinIO = 原始内容（PDF + chunk 文本）。`chunk_id → object_key` 映射在 PG。删除顺序 PG → Milvus → MinIO。
+
+### 失败语义与降级
+
+正常路径已细，失败路径必须同样定死——每种外部依赖 × 失败模式 → 明确动作：
+
+| 依赖 | 失败模式 | 动作 | 用户反馈 |
+|---|---|---|---|
+| LLM | 调用失败/超时 | 重试 2 次（指数退避）；耗尽则终止该 step | SSE error + 快照 errors |
+| LLM | 重试耗尽（连续失败） | 终止研究（保留快照，可恢复） | SSE error（可恢复） |
+| Search | 超时 | 重试 1 次 → 放弃，标记 coverage 缺口 | SSE progress |
+| Search | 空结果 | 标记 coverage 缺口（非错误） | SSE progress |
+| Search | 服务不可用 | 降级：跳过该源，用其他源 | SSE error（非致命） |
+| 沙箱 | 执行超时/失败 | `execution_status=failed`，writer 跳过该 artifact，标注「无法计算」 | SSE progress + 报告标注 |
+| Milvus | 不可用 | 降级：跳过 local_search，只用 paper/web | SSE error（非致命） |
+| PostgreSQL | 不可用 | 终止（真相源不可丢），内存态保留，重启后从快照恢复 | SSE error（可恢复） |
+| 取消 | 用户取消 | 停止当前 phase，保存快照，标记 cancelled | SSE done（cancelled） |
+
+**错误反馈双通道**：SSE `error` 事件（即时告知用户）+ 快照 `errors` 字段（持久化，供恢复/审计）。
+
+### 并发与一致性
+
+单进程 ≠ 无并发：asyncio 协程在 await 点交错。每 session 串行化：
+
+- **每 session 一个 `asyncio.Lock`**：同一 session 的 messages（clarify 推进）与 cancel 通过 lock 串行处理，避免 brief_draft 交错。
+- **取消是最终一致**：orchestrator 在每个 phase 边界检查取消标志；取消非立即，而是「当前 step 跑完才停」。取消标志读写原子（单线程），无数据竞态，只有「晚一个 step 感知」的逻辑竞态。
+- **内存 dict（session_id → queue / brief_draft）**：单线程 dict 读写原子，但「读-改-写」需 per-session lock 保护。
 
 ## Constitution Check
 
@@ -193,7 +217,7 @@ backend/
 │   │                           #     （读写不对称：读走 RetrievalPort[embed→hybrid→rerank]，写 ingest 直接用 Embedding+Vector；Rerank 仅读，internal top_k 走配置）
 │   └── research/               #   研究领域（唯一领域）
 │       ├── state.py            #     SSOT：ResearchBrief + ResearchState + Claim/Evidence/ComparableMetric + 控制字段 vs 产出字段
-│       ├── machine.py          #     pipeline 状态机（纯函数）：WORKERS + next_phase + _route_after_review
+│       ├── machine.py          #     纯政策层（clarify + pipeline）：decide_status + WORKERS + next_phase + _route_after_review
 │       ├── events.py           #     事件模型 + PHASE_DISPLAY 单源映射（PhaseEvent/StepEvent）
 │       └── agents/             #     纯工人（注入 llm port + emit，只交结果）
 │           ├── base.py         #       call_llm / parse_json
@@ -222,6 +246,7 @@ backend/
     │   │   ├── snapshot.py     #     phase_snapshots（恢复用）
     │   │   └── audit.py        #     audit_log（V2 占位）
     │   ├── postgres.py         #   StateStorePort 实现（asyncpg + Alembic 迁移）
+    │   ├── memory.py           #   CancellationPort 实现（V1：进程内 dict）
     │   └── redis.py            #   CancellationPort 实现（V2）
     ├── parser/
     │   └── pdf.py              #   文档解析

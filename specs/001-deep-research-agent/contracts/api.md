@@ -1,65 +1,88 @@
-# 接口契约：Research API + SSE
+# 接口契约：Auth + Research + Knowledge Base
 
 > Phase 1 输出。系统对用户暴露的接口。数据级契约（ResearchBrief 10 字段、报告骨架）
 > 见 `docs/contracts/`，此处定义传输层接口。
 
-## 1. 提交研究任务
+## 1. 认证
 
-`POST /research`
+### POST /auth/register
 
-请求体：
+`{ email, password }` → 201（密码 bcrypt/argon2 哈希，禁止明文）。
 
-```json
-{
-  "query": "自然语言研究请求",
-  "task_type": "idea_exploration | method_differentiation | evaluation_design | reviewer_response | auto"
-}
-```
+### POST /auth/login
 
-- `task_type` 缺省或 `auto` 时由系统判断。
-- 返回 `{ "session_id": "...", "status": "clarify" }`。
+`{ email, password }` → `{ access_token }`（JWT / cookie）。
 
-## 2. 澄清交互
+其余受保护接口：中间件从 cookie/token 解出 user_id，校验归属。
 
-`POST /research/{session_id}/clarify`
+## 2. 研究会话
 
-- 请求体：用户对澄清问题的回答。
-- 响应：`status`（ask / confirm / ready）、`missing_fields`、`questions`、`brief_patch`、`assumptions`。
-- 当 `status = ready` 时，ResearchBrief 冻结，进入调研。
+### POST /research
 
-## 3. 获取冻结的 ResearchBrief
+`{ query, task_type?, sources? }` → `{ session_id, status: "clarify" }`（不返回 sse_url，SSE 只在 ready 后才有）。
 
-`GET /research/{session_id}/brief`
+- 只建 session（SessionState），**不跑 clarify**。
+- `task_type` / `sources` 缺省或 `auto` 时由系统/澄清决定。
 
-返回 ResearchBrief（10 字段，见 `docs/contracts/researchbrief.md`）。
+### POST /research/{session_id}/messages
 
-## 4. 进度推送（SSE）
+`{ content }` → 推进**一轮** clarify：
 
-`GET /research/{session_id}/events`（`text/event-stream`）
+- `status=ask` → `{ status: "ask", questions, missing_fields }`（反问，等下一轮）
+- `status=ready` → 冻结 brief + 后台 spawn orchestrator → `{ status: "ready", sse_url }`
+
+（clarify 是逐轮交互，每轮一条 message；不是一次性 /clarify 调用。）
+
+### GET /research/{session_id}/events（SSE，`text/event-stream`）
 
 事件类型：
 
 | event | payload | 说明 |
 |---|---|---|
-| `phase` | `{ phase, message }` | 阶段切换（clarify/planning/research/analyze/write/review/done） |
-| `progress` | `{ section_id, stage, detail }` | 章节级进度与增量结果 |
-| `rework` | `{ issue_id, required_action, target }` | 审阅返工路由 |
+| `phase` | `{ phase, message }` | 阶段切换（plan/research/analyze/write/review/done） |
+| `progress` | `{ section_id, stage, results?, chart? }` | 章节级进度与结构化结果（results 列表 / chart 对象，非任意 JSON） |
+| `rework` | `{ issue_id, action, target }` | 回流路由（action 来自政策表，非 LLM） |
 | `error` | `{ code, message }` | 失败信息（可恢复/不可恢复） |
 | `done` | `{ final_report_url }` | 完成，指向最终报告 |
 
-## 5. 获取最终报告
+（SSE 端点用 cookie；EventSource 不能带自定义 header。）
 
-`GET /research/{session_id}/report`
+### GET /research/{session_id}/report
 
-返回最终报告（统一骨架 + 任务专属第 3 节，结构见 `docs/contracts/report-skeleton.md`）。
+返回最终报告（统一骨架 + 任务专属第 3 节，见 `docs/contracts/report-skeleton.md`）。
 
-## 6. 恢复
+### GET /research/{session_id}
 
-`GET /research/{session_id}`
+返回任务当前状态；中断恢复时从 `phase_snapshots` **同 phase 取最新一行**。
 
-返回任务当前状态；若中断，可从最近 checkpoint 恢复，不重复已完成的检索/写入。
+### POST /research/{session_id}/cancel
+
+`{ }` → 设置进程内取消标志（orchestrator 每 0.5s 轮询，若取消则停）。
+
+## 3. 知识库
+
+### POST /knowledge-base/documents
+
+multipart 上传 PDF → `202 { document_id, status: "processing" }`。入库走 `asyncio.to_thread` 后台流水线。
+
+### GET /knowledge-base/documents/{document_id}
+
+→ `{ status: processing/done/failed, progress }`（进度持久化于 documents 表，轮询读）。
+
+### GET /knowledge-base/documents
+
+列表。
+
+### DELETE /knowledge-base/documents/{document_id}
+
+删除（顺序 PG → Milvus → MinIO，避免孤儿数据）。
+
+### POST /knowledge-base/search
+
+`{ query, kb_id, top_k=20, rerank=true }` → `{ chunks: [...] }`（走 RetrievalPort：embed → hybrid → rerank）。
 
 ## 约束
 
-- 所有接口幂等：相同 `session_id` 的重复请求不重复执行已完成的阶段。
+- 幂等：相同 `session_id` / `document_id` 的重复请求不重复执行。
 - 检索预算与回流轮次在服务端强制上限（见 data-model.md 的 run_metadata）。
+- 崩溃恢复：启动时扫 `processing` 文档 → 标 failed（或 pending 重入队）。
