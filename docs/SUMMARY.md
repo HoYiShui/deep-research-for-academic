@@ -16,6 +16,7 @@
   - [CodeCrafter：分析执行与可视化](architecture/05-code-crafter.md)
   - [CriticMaster：审核与返工](architecture/06-critic-master.md)
   - [离线评测设计](architecture/07-evaluation.md)
+  - [数据流（dataflow）](architecture/dataflow.md)
 
 - [端到端案例]()
   - [案例产出说明（如何制造这些 case）](cases/README.md)
