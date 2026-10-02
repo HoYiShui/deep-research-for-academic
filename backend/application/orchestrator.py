@@ -77,6 +77,9 @@ class Orchestrator:
             if state.phase != "done":
                 self._bus.emit(session_id, PhaseEvent(phase=state.phase))
 
+        # Persist the final report to the reports table (durable, queryable).
+        if state.final_report is not None:
+            await self._store.save_report(session_id, state.final_report)
         self._bus.emit(session_id, DoneEvent(final_report_url=f"/research/{session_id}/report"))
 
     async def _run_phase(self, state: PipelineState) -> None:

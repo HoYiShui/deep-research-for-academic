@@ -50,10 +50,15 @@ async def _probe_postgres() -> None:
     from infrastructure.storage.postgres import PostgresStateStore
 
     store = PostgresStateStore("postgresql://deepresearch:deepresearch@localhost:5433/deepresearch")
-    await store.save_session("smoke-1", {"phase": "probe", "ok": True})
-    loaded = await store.load_session("smoke-1")
-    assert loaded == {"phase": "probe", "ok": True}, loaded
-    print(f"      postgres -> save/load roundtrip OK ({loaded})")
+    await store.create_session("smoke-1")
+    await store.append_message("smoke-1", "user", "probe")
+    await store.save_brief("smoke-1", {"query": "probe"}, task_type="idea_exploration")
+    await store.save_snapshot("smoke-1", "plan", {"ok": True})
+    brief = await store.load_brief("smoke-1")
+    snap = await store.load_latest_snapshot("smoke-1", "plan")
+    assert brief["query"] == "probe", brief
+    assert snap == {"ok": True}, snap
+    print(f"      postgres -> 7-table roundtrip OK (brief={brief})")
 
 
 async def _check(name: str, coro) -> bool:

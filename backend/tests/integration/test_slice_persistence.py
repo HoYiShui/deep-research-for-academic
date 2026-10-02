@@ -101,16 +101,37 @@ async def test_recovery_reconstructs_state_from_snapshot() -> None:
 class _FailingStore:
     """State store whose snapshots always fail (PG down)."""
 
-    async def save_session(self, session_id: str, state: dict) -> None:
+    async def create_session(self, session_id: str, status: str = "clarify") -> None:
         pass
 
-    async def load_session(self, session_id: str) -> dict | None:
+    async def set_session_status(self, session_id: str, status: str) -> None:
+        pass
+
+    async def get_session_status(self, session_id: str) -> str | None:
+        return None
+
+    async def append_message(self, session_id: str, role: str, content: str) -> None:
+        pass
+
+    async def list_messages(self, session_id: str) -> list[dict]:
+        return []
+
+    async def save_brief(self, session_id: str, brief: dict, task_type: str = "") -> None:
+        pass
+
+    async def load_brief(self, session_id: str) -> dict | None:
         return None
 
     async def save_snapshot(self, session_id: str, phase: str, state: dict) -> None:
         raise RuntimeError("pg down")
 
     async def load_latest_snapshot(self, session_id: str, phase: str) -> dict | None:
+        return None
+
+    async def save_report(self, session_id: str, content: dict) -> None:
+        pass
+
+    async def load_report(self, session_id: str) -> dict | None:
         return None
 
 

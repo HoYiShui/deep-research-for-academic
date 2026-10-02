@@ -47,9 +47,8 @@ class ResearchService:
         self._cancel.set_cancelled(session_id)
 
     async def get_report(self, session_id: str) -> dict | None:
-        """Return the final report from the completed pipeline, if present."""
-        snapshot = await self._store.load_latest_snapshot(session_id, "done")
-        return snapshot.get("final_report") if snapshot else None
+        """Return the final report from the reports table, if present."""
+        return await self._store.load_report(session_id)
 
     async def get_status(self, session_id: str) -> dict:
         """Return the current status by recovering the latest phase snapshot."""
@@ -58,5 +57,5 @@ class ResearchService:
             if snapshot is not None:
                 return {"session_id": session_id, "status": "done" if phase == "done" else "running",
                         "phase": phase}
-        session = await self._store.load_session(session_id)
-        return {"session_id": session_id, "status": (session or {}).get("status", "clarify")}
+        status = await self._store.get_session_status(session_id)
+        return {"session_id": session_id, "status": status or "clarify"}

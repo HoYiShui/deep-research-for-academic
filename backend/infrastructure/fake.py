@@ -34,17 +34,38 @@ class FakeSearch:
 
 
 class FakeStateStore:
-    """StateStorePort fake: in-memory dict."""
+    """StateStorePort fake: in-memory dicts per stable table."""
 
     def __init__(self) -> None:
-        self._sessions: dict[str, dict] = {}
+        self._status: dict[str, str] = {}
+        self._messages: dict[str, list[dict]] = {}
+        self._briefs: dict[str, dict] = {}
         self._snapshots: list[tuple[str, str, dict]] = []
+        self._reports: dict[str, dict] = {}
 
-    async def save_session(self, session_id: str, state: dict) -> None:
-        self._sessions[session_id] = state
+    async def create_session(self, session_id: str, status: str = "clarify") -> None:
+        self._status[session_id] = status
 
-    async def load_session(self, session_id: str) -> dict | None:
-        return self._sessions.get(session_id)
+    async def set_session_status(self, session_id: str, status: str) -> None:
+        self._status[session_id] = status
+
+    async def get_session_status(self, session_id: str) -> str | None:
+        return self._status.get(session_id)
+
+    async def append_message(self, session_id: str, role: str, content: str) -> None:
+        self._messages.setdefault(session_id, []).append({"role": role, "content": content})
+
+    async def list_messages(self, session_id: str) -> list[dict]:
+        return list(self._messages.get(session_id, []))
+
+    async def save_brief(self, session_id: str, brief: dict, task_type: str = "") -> None:
+        stored = dict(brief)
+        if task_type:
+            stored["task_type"] = task_type
+        self._briefs[session_id] = stored
+
+    async def load_brief(self, session_id: str) -> dict | None:
+        return dict(self._briefs[session_id]) if session_id in self._briefs else None
 
     async def save_snapshot(self, session_id: str, phase: str, state: dict) -> None:
         self._snapshots.append((session_id, phase, state))
@@ -54,6 +75,12 @@ class FakeStateStore:
             if sid == session_id and ph == phase:
                 return st
         return None
+
+    async def save_report(self, session_id: str, content: dict) -> None:
+        self._reports[session_id] = content
+
+    async def load_report(self, session_id: str) -> dict | None:
+        return self._reports.get(session_id)
 
 
 class FakeRetrieval:

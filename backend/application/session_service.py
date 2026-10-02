@@ -3,17 +3,15 @@
 from __future__ import annotations
 
 import asyncio
-from dataclasses import asdict
 
 from application.ports import StateStorePort
 from domain.ports import LLMPort
 from domain.research.agents import architect
 from domain.research.machine import decide_status
-from domain.research.state import SessionState
 
 
 class SessionService:
-    """Owns SessionState and drives the clarify loop (per-session serialized)."""
+    """Owns the clarify loop, persisting to sessions/messages/briefs tables."""
 
     def __init__(self, llm: LLMPort, store: StateStorePort) -> None:
         self._llm = llm
@@ -21,17 +19,16 @@ class SessionService:
         self._locks: dict[str, asyncio.Lock] = {}
 
     async def create(self, session_id: str, query: str = "") -> dict:
-        """Create a new SessionState and persist it.
+        """Create a new session and seed the initial research request.
 
         Args:
             session_id: The session to create.
             query: The initial research request, seeded into the brief draft.
         """
-        state = SessionState(session_id=session_id)
+        await self._store.create_session(session_id, "clarify")
         if query:
-            state.brief_draft["query"] = query
-        await self._store.save_session(session_id, asdict(state))
-        return asdict(state)
+            await self._store.save_brief(session_id, {"query": query})
+        return {"session_id": session_id, "status": "clarify"}
 
     async def clarify_round(self, session_id: str, answer: str) -> dict:
         """Advance one clarify round, serialized per session.
@@ -45,18 +42,17 @@ class SessionService:
         """
         lock = self._locks.setdefault(session_id, asyncio.Lock())
         async with lock:
-            raw = await self._store.load_session(session_id)
-            state = SessionState(**raw) if raw else SessionState(session_id=session_id)
+            brief = await self._store.load_brief(session_id) or {}
+            judgment = await architect.clarify(self._llm, brief, answer)
+            brief.update(judgment.get("brief_patch", {}))
 
-            judgment = await architect.clarify(self._llm, state.brief_draft, answer)
-            state.brief_draft.update(judgment.get("brief_patch", {}))
-            state.clarification_history.append({"answer": answer})
-
-            state.status = decide_status(judgment.get("missing_fields", []))
-            await self._store.save_session(session_id, asdict(state))
+            status = decide_status(judgment.get("missing_fields", []))
+            await self._store.append_message(session_id, "user", answer)
+            await self._store.save_brief(session_id, brief, brief.get("task_type", ""))
+            await self._store.set_session_status(session_id, status)
 
             return {
-                "status": state.status,
+                "status": status,
                 "questions": judgment.get("questions", []),
-                "brief": state.brief_draft,
+                "brief": brief,
             }
