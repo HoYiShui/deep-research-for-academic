@@ -107,7 +107,7 @@ Phase 2 集成切片（真 LLM → 溯源 → 持久化 → KB → 收尾，每�
 
 ### 收尾切片（沙箱 + 认证）
 
-- [ ] T041 集成：wire 沙箱（docker.py，code_crafter 执行）+ 认证（/auth/register/login，bcrypt/argon2 + JWT/cookie）+ 集成测试 tests/integration/test_slice_reliability.py
+- [x] T041 集成：wire 沙箱（docker.py，code_crafter 执行）+ 认证（/auth/register/login，bcrypt/argon2 + JWT/cookie）+ 集成测试 tests/integration/test_slice_reliability.py
 - [ ] T042 跑通 quickstart.md 最小闭环（认证→澄清→流水线→报告），对照 docs/cases/case-1-idea-exploration.md 定位差距
 
 **Checkpoint**: 完整系统 e2e 可跑，全部测试绿

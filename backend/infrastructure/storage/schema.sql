@@ -8,6 +8,13 @@ CREATE TABLE IF NOT EXISTS sessions (
     state JSONB NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS users (
+    user_id TEXT PRIMARY KEY,
+    email TEXT UNIQUE NOT NULL,
+    password_hash TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
 CREATE TABLE IF NOT EXISTS phase_snapshots (
     snapshot_id BIGSERIAL PRIMARY KEY,
     session_id TEXT NOT NULL,

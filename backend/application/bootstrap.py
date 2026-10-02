@@ -7,6 +7,7 @@ the container accepts overrides so tests can inject fakes/mocks.
 
 from __future__ import annotations
 
+from application.auth_service import AuthService
 from application.knowledge_base_service import KnowledgeBaseService
 from application.orchestrator import Orchestrator
 from application.research_service import ResearchService
@@ -14,14 +15,14 @@ from application.session_service import SessionService
 from application.sse import EventBus
 from infrastructure.embedding.bge_m3 import BGEM3Embedding
 from infrastructure.embedding.bge_reranker import BGEReranker
-from infrastructure.fake import FakeExecution
 from infrastructure.llm.deepseek import DeepSeekLLM
 from infrastructure.parser.pdf import MinerUParser
 from infrastructure.retrieval.local import LocalRetrieval
+from infrastructure.sandbox.docker import DockerExecution
 from infrastructure.search.arxiv import ArxivSearch
 from infrastructure.search.bocha import BochaSearch
 from infrastructure.search.composite import CompositeSearch
-from infrastructure.storage.memory import InMemoryCancel, InMemoryDocumentStore
+from infrastructure.storage.memory import InMemoryCancel, InMemoryDocumentStore, InMemoryUserStore
 from infrastructure.storage.postgres import PostgresStateStore
 from infrastructure.vector.milvus import MilvusStore
 
@@ -42,7 +43,9 @@ class Container:
         store=None,
         cancel=None,
         documents=None,
+        users=None,
         knowledge_base=None,
+        auth=None,
         bus=None,
     ) -> None:
         self.bus = bus or EventBus()
@@ -52,10 +55,12 @@ class Container:
         self.vector = vector or MilvusStore()
         self.reranker = reranker or BGEReranker()
         self.retrieval = retrieval or LocalRetrieval(self.embedding, self.vector, self.reranker)
-        self.execution = execution or FakeExecution()
+        self.execution = execution or DockerExecution()
         self.store = store or PostgresStateStore()
         self.cancel = cancel or InMemoryCancel()
         self.documents = documents or InMemoryDocumentStore()
+        self.users = users or InMemoryUserStore()
+        self.auth = auth or AuthService(self.users)
         self.knowledge_base = knowledge_base or KnowledgeBaseService(
             MinerUParser(), self.embedding, self.vector, self.documents
         )

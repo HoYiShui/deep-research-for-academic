@@ -30,7 +30,7 @@ async def analyze(
     return {
         "operation": template,
         "output": output,
-        "execution_status": "completed" if output is not None else "failed",
+        "execution_status": "completed" if output else "failed",
     }
 
 

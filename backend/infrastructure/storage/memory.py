@@ -33,3 +33,16 @@ class InMemoryDocumentStore:
 
     async def delete(self, document_id: str) -> None:
         self._documents.pop(document_id, None)
+
+
+class InMemoryUserStore:
+    """UserStorePort implementation backed by a process-local dict."""
+
+    def __init__(self) -> None:
+        self._users: dict[str, dict] = {}
+
+    async def create(self, user_id: str, email: str, password_hash: str) -> None:
+        self._users[email] = {"user_id": user_id, "email": email, "password_hash": password_hash}
+
+    async def get_by_email(self, email: str) -> dict | None:
+        return self._users.get(email)
