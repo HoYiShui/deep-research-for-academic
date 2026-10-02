@@ -29,22 +29,22 @@ Phase 2 集成切片（真 LLM → 溯源 → 持久化 → KB → 收尾，每�
 
 **⚠️ 这是收敛点**：此阶段结束前，任何 agent/adapter 都不能开始
 
-- [ ] T001 创建 backend/ 四层目录（interface/application/domain/infrastructure + tests/{contract,integration,unit}）+ backend/pyproject.toml（fastapi/asyncpg/pymilvus/httpx/uvicorn + pytest/pytest-asyncio/ruff/mypy）
-- [ ] T002 定义 domain/ports.py 全部端口接口（LLMPort/SearchPort/RetrievalPort/EmbeddingPort/VectorStorePort/RerankPort/ContentStorePort/FetchPort/EventSink/CodeExecutionPort）——**契约冻结**
-- [ ] T003 定义 application/ports.py（StateStorePort / CancellationPort）——**契约冻结**
-- [ ] T004 定义 domain/research/events.py（PhaseEvent/StepEvent + rework 事件 + PHASE_DISPLAY 单源映射）
-- [ ] T005 实现 domain/state.py 骨架（SessionState：brief_draft/clarification_history；PipelineState：section_plans/evidence/claims/phase 最小字段）
-- [ ] T006 实现 domain/machine.py 骨架（decide_status：critical 缺口→ask；next_phase：最简 happy path）
-- [ ] T007 实现 domain/research/agents/base.py（call_llm 注入 LLMPort + parse_json 脏 JSON 修复）——**共享件，6 个 agent 都依赖它**
-- [ ] T008 写契约测试 tests/contract/test_ports.py（每个端口 fake 实现必须满足的行为，先 FAIL）
-- [ ] T009 实现 infra/fake/ 全套 fake（fake_llm/fake_search/fake_state_store/fake_event_sink，满足端口契约，返回假数据）
-- [ ] T010 实现 application/session_service.py（clarify 循环，调 fake LLM + decide_status；**每 session 一个 asyncio.Lock 串行化**）
-- [ ] T011 实现 application/orchestrator.py（pipeline 循环，调 fake agent + advance 改状态+派生 SSE；**含 rework 事件发射**）
-- [ ] T012 实现 application/research_service.py（start 建 session + spawn orchestrator 后台任务）
-- [ ] T013 实现 application/sse.py + 进程内事件总线（dict[session_id→asyncio.Queue] + 0.5s drain）
-- [ ] T014 实现 interface/router/research.py（POST /research + GET /events）
-- [ ] T015 实现 application/bootstrap.py（组合根：构造 fake → 注入 service）
-- [ ] T016 验证 walking skeleton：POST /research → GET /events 收到 SSE 事件；确认依赖方向/事件总线/状态机循环/SSE 序列化/端口模式全对
+- [x] T001 创建 backend/ 四层目录（interface/application/domain/infrastructure + tests/{contract,integration,unit}）+ backend/pyproject.toml（fastapi/asyncpg/pymilvus/httpx/uvicorn + pytest/pytest-asyncio/ruff/mypy）
+- [x] T002 定义 domain/ports.py 全部端口接口（LLMPort/SearchPort/RetrievalPort/EmbeddingPort/VectorStorePort/RerankPort/ContentStorePort/FetchPort/EventSink/CodeExecutionPort）——**契约冻结**
+- [x] T003 定义 application/ports.py（StateStorePort / CancellationPort）——**契约冻结**
+- [x] T004 定义 domain/research/events.py（PhaseEvent/StepEvent + rework 事件 + PHASE_DISPLAY 单源映射）
+- [x] T005 实现 domain/state.py 骨架（SessionState：brief_draft/clarification_history；PipelineState：section_plans/evidence/claims/phase 最小字段）
+- [x] T006 实现 domain/machine.py 骨架（decide_status：critical 缺口→ask；next_phase：最简 happy path）
+- [x] T007 实现 domain/research/agents/base.py（call_llm 注入 LLMPort + parse_json 脏 JSON 修复）——**共享件，6 个 agent 都依赖它**
+- [x] T008 写契约测试 tests/contract/test_ports.py（每个端口 fake 实现必须满足的行为，先 FAIL）
+- [x] T009 实现 infra/fake/ 全套 fake（fake_llm/fake_search/fake_state_store/fake_event_sink，满足端口契约，返回假数据）
+- [x] T010 实现 application/session_service.py（clarify 循环，调 fake LLM + decide_status；**每 session 一个 asyncio.Lock 串行化**）
+- [x] T011 实现 application/orchestrator.py（pipeline 循环，调 fake agent + advance 改状态+派生 SSE；**含 rework 事件发射**）
+- [x] T012 实现 application/research_service.py（start 建 session + spawn orchestrator 后台任务）
+- [x] T013 实现 application/sse.py + 进程内事件总线（dict[session_id→asyncio.Queue] + 0.5s drain）
+- [x] T014 实现 interface/router/research.py（POST /research + GET /events）
+- [x] T015 实现 application/bootstrap.py（组合根：构造 fake → 注入 service）
+- [x] T016 验证 walking skeleton：POST /research → GET /events 收到 SSE 事件；确认依赖方向/事件总线/状态机循环/SSE 序列化/端口模式全对
 
 **Checkpoint**: 骨架跑通 + 端口契约冻结 + base.py 就位 → 独立分支可开始
 
