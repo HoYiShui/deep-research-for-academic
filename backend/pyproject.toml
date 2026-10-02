@@ -24,6 +24,7 @@ dev = [
 ]
 embedding = [
     "sentence-transformers>=2.7",
+    "milvus-lite>=2.4",
 ]
 
 [build-system]

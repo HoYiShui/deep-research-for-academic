@@ -55,4 +55,5 @@ class DeepSeekLLM:
             max_tokens=4096,
             messages=[{"role": "user", "content": prompt}],
         )
-        return response.content[0].text
+        # Some models emit thinking blocks alongside text; keep only the text.
+        return "".join(getattr(block, "text", "") for block in response.content)

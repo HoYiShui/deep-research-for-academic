@@ -1,7 +1,7 @@
 """Bocha web search adapter.
 
-Note: the exact Bocha endpoint and response shape are verified in the S3
-integration slice; this is the initial contract-following implementation.
+Response shape: ``{code, data: {webPages: {value: [{name, url, snippet, ...}]}}}``
+(verified against the live API).
 """
 
 from __future__ import annotations
@@ -18,7 +18,7 @@ class BochaSearch:
 
     async def search(self, query: str) -> list[SearchResult]:
         """Search the web and return candidates."""
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=30) as client:
             resp = await client.post(
                 "https://api.bochaai.com/v1/web-search",
                 json={"query": query, "freshness": "noLimit"},
@@ -26,13 +26,14 @@ class BochaSearch:
             )
             resp.raise_for_status()
             data = resp.json()
+        web_pages = data.get("data", {}).get("webPages", {})
         return [
             SearchResult(
                 source_id=item.get("url", ""),
                 source_type="web",
                 title=item.get("name", ""),
-                snippet=item.get("summary", ""),
+                snippet=item.get("snippet", ""),
                 url=item.get("url", ""),
             )
-            for item in data.get("webPages", {}).get("value", [])
+            for item in web_pages.get("value", [])
         ]
