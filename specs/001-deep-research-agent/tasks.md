@@ -60,11 +60,11 @@ Phase 2 集成切片（真 LLM → 溯源 → 持久化 → KB → 收尾，每�
 
 - [x] T018 [P] 实现 architect.clarify()（输入 brief_draft+answer → 输出 missing_fields/questions/brief_patch/assumptions，**不产 status**）+ 单测 tests/unit/test_clarify.py
 - [x] T019 [P] 实现 architect.plan()（冻结 brief → section_plans）+ 单测 tests/unit/test_plan.py
-- [ ] T020 [P] 实现 scout.research()（SearchPort paper/web + RetrievalPort local；抽 Evidence 带来源定位、建 Claim+ClaimEvidenceLink、source_id+location+quote 去重、gap_fill）+ 单测 tests/unit/test_scout.py
-- [ ] T021 [P] 实现 data_analyst.analyze()（归一 evaluation_context → ComparableMetric，判 compatible/partial/incompatible）+ 单测 tests/unit/test_data_analyst.py
-- [ ] T022 [P] 实现 code_crafter.analyze()（固定模板 → AnalysisArtifact，经 CodeExecutionPort）+ 单测 tests/unit/test_code_crafter.py
-- [ ] T023 [P] 实现 writer.write_report()（读 Claim/Evidence → DraftSection + DraftClaimBinding，每结论绑定 evidence_id）+ 单测 tests/unit/test_writer.py
-- [ ] T024 [P] 实现 critic.review()（产出 issue_type/severity/fillable 判断，**不产 required_action**）+ 单测 tests/unit/test_critic.py
+- [x] T020 [P] 实现 scout.research()（SearchPort paper/web + RetrievalPort local；抽 Evidence 带来源定位、建 Claim+ClaimEvidenceLink、source_id+location+quote 去重、gap_fill）+ 单测 tests/unit/test_scout.py
+- [x] T021 [P] 实现 data_analyst.analyze()（归一 evaluation_context → ComparableMetric，判 compatible/partial/incompatible）+ 单测 tests/unit/test_data_analyst.py
+- [x] T022 [P] 实现 code_crafter.analyze()（固定模板 → AnalysisArtifact，经 CodeExecutionPort）+ 单测 tests/unit/test_code_crafter.py
+- [x] T023 [P] 实现 writer.write_report()（读 Claim/Evidence → DraftSection + DraftClaimBinding，每结论绑定 evidence_id）+ 单测 tests/unit/test_writer.py
+- [x] T024 [P] 实现 critic.review()（产出 issue_type/severity/fillable 判断，**不产 required_action**）+ 单测 tests/unit/test_critic.py
 
 ### Adapters（infrastructure/，每个自包含：契约 + 契约测试）
 
