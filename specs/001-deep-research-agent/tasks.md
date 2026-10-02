@@ -70,13 +70,13 @@ Phase 2 集成切片（真 LLM → 溯源 → 持久化 → KB → 收尾，每�
 
 - [x] T025 [P] 实现 infra/llm/deepseek.py（LLMPort，Anthropic 兼容 + JSON mode）+ 契约测试 tests/contract/test_llm.py
 - [x] T026 [P] 实现 infra/search/bocha.py + arxiv.py（SearchPort）+ 契约测试 tests/contract/test_search.py
-- [ ] T027 [P] 实现 infra/embedding/bge_m3.py（EmbeddingPort，dense+sparse）+ 契约测试 tests/contract/test_embedding.py
-- [ ] T028 [P] 实现 infra/reranker/bge_reranker.py（RerankPort）+ 契约测试 tests/contract/test_rerank.py
-- [ ] T029 [P] 实现 infra/vector/milvus.py（VectorStorePort，hybrid + partition per KB）+ 契约测试 tests/contract/test_vector.py
-- [ ] T030 [P] 实现 infra/storage/postgres.py + storage/models/（StateStorePort：sessions/messages/briefs/reports/phase_snapshots 表）+ 契约测试 tests/contract/test_state_store.py
+- [x] T027 [P] 实现 infra/embedding/bge_m3.py（EmbeddingPort，dense+sparse）+ 契约测试 tests/contract/test_embedding.py
+- [x] T028 [P] 实现 infra/reranker/bge_reranker.py（RerankPort）+ 契约测试 tests/contract/test_rerank.py
+- [x] T029 [P] 实现 infra/vector/milvus.py（VectorStorePort，hybrid + partition per KB）+ 契约测试 tests/contract/test_vector.py
+- [x] T030 [P] 实现 infra/storage/postgres.py + storage/models/（StateStorePort：sessions/messages/briefs/reports/phase_snapshots 表）+ 契约测试 tests/contract/test_state_store.py
 - [x] T031 [P] 实现 infra/storage/memory.py（CancellationPort，进程内 dict）+ 契约测试 tests/contract/test_cancel.py
-- [ ] T032 [P] 实现 infra/sandbox/docker.py（CodeExecutionPort：一次性容器 + --network=none/--read-only/--cap-drop=ALL/资源上限）+ 契约测试 tests/contract/test_execution.py
-- [ ] T033 [P] 实现 infra/parser/pdf.py + ContentStorePort/FetchPort 实现（MinIO 本地读 / arXiv·web 外部拉）+ 契约测试 tests/contract/test_content.py
+- [x] T032 [P] 实现 infra/sandbox/docker.py（CodeExecutionPort：一次性容器 + --network=none/--read-only/--cap-drop=ALL/资源上限）+ 契约测试 tests/contract/test_execution.py
+- [x] T033 [P] 实现 infra/parser/pdf.py + ContentStorePort/FetchPort 实现（MinIO 本地读 / arXiv·web 外部拉）+ 契约测试 tests/contract/test_content.py
 
 > **冒烟验证**：每完成一个 adapter，顺手把它塞进骨架对应 fake 位置跑一次（不等到 Phase 2 统一换）——在写第 3 个 adapter 时发现契约错了，而不是写完第 15 个才发现。
 

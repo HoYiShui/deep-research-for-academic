@@ -1,0 +1,26 @@
+"""BGE-M3 embedding adapter (dense + sparse, lazy-loaded local model)."""
+
+from __future__ import annotations
+
+from domain.ports import Embedding
+
+
+class BGEM3Embedding:
+    """EmbeddingPort implementation via a local BGE-M3 model."""
+
+    def __init__(self, model_name: str = "BAAI/bge-m3") -> None:
+        self._model_name = model_name
+        self._model = None
+
+    def _load(self):
+        """Lazy-load the model to keep the module import cheap."""
+        if self._model is None:
+            from sentence_transformers import SentenceTransformer
+
+            self._model = SentenceTransformer(self._model_name)
+        return self._model
+
+    async def embed(self, text: str) -> Embedding:
+        """Embed text; dense now, sparse wired in the S4 spike."""
+        dense = self._load().encode(text, normalize_embeddings=True).tolist()
+        return Embedding(dense=dense, sparse={})
