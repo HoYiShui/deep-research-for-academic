@@ -7,21 +7,28 @@ from fastapi.responses import StreamingResponse
 
 from application.bootstrap import get_container
 from application.sse import sse_format
+from interface.dto.research import (
+    ClarifyResponse,
+    MessageRequest,
+    ResearchRequest,
+    SessionResponse,
+    StatusResponse,
+)
 
 router = APIRouter()
 
 
-@router.post("/research")
-async def start_research(body: dict) -> dict:
+@router.post("/research", response_model=SessionResponse)
+async def start_research(body: ResearchRequest) -> dict:
     """Create a session; returns status=clarify (no SSE URL yet)."""
-    return await get_container().research.start()
+    return await get_container().research.start(body.query)
 
 
-@router.post("/research/{session_id}/messages")
-async def post_message(session_id: str, body: dict) -> dict:
+@router.post("/research/{session_id}/messages", response_model=ClarifyResponse)
+async def post_message(session_id: str, body: MessageRequest) -> dict:
     """Advance one clarify round; spawn the pipeline when ready."""
     container = get_container()
-    result = await container.sessions.clarify_round(session_id, body.get("content", ""))
+    result = await container.sessions.clarify_round(session_id, body.content)
     if result["status"] == "ready":
         container.research.spawn_pipeline(session_id, result.get("brief", {}))
         result["sse_url"] = f"/research/{session_id}/events"
@@ -50,7 +57,7 @@ async def get_report(session_id: str) -> dict:
     return report
 
 
-@router.get("/research/{session_id}")
+@router.get("/research/{session_id}", response_model=StatusResponse)
 async def get_status(session_id: str) -> dict:
     """Return the current status by recovering the latest phase snapshot."""
     return await get_container().research.get_status(session_id)

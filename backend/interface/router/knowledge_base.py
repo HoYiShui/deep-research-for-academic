@@ -10,26 +10,31 @@ from typing import Annotated
 from fastapi import APIRouter, File, UploadFile
 
 from application.bootstrap import get_container
+from interface.dto.knowledge_base import (
+    ChunkResponse,
+    DocumentListResponse,
+    DocumentUploadResponse,
+    SearchRequest,
+    SearchResponse,
+)
 
 router = APIRouter(prefix="/knowledge-base", tags=["knowledge-base"])
 
 
-@router.post("/search")
-async def search(body: dict) -> dict:
+@router.post("/search", response_model=SearchResponse)
+async def search(body: SearchRequest) -> dict:
     """Retrieve chunks from the local KB via RetrievalPort (embed -> hybrid -> rerank)."""
     retrieval = get_container().retrieval
-    chunks = await retrieval.retrieve(
-        body.get("query", ""), body.get("kb_id", "default"), body.get("top_k", 20)
-    )
+    chunks = await retrieval.retrieve(body.query, body.kb_id, body.top_k)
     return {
         "chunks": [
-            {"chunk_id": c.chunk_id, "text": c.text, "score": c.score, "metadata": c.metadata}
+            ChunkResponse(chunk_id=c.chunk_id, text=c.text, score=c.score, metadata=c.metadata)
             for c in chunks
         ]
     }
 
 
-@router.post("/documents")
+@router.post("/documents", status_code=202, response_model=DocumentUploadResponse)
 async def upload_document(file: Annotated[UploadFile, File()]) -> dict:
     """Accept a PDF upload and start the background ingest pipeline."""
     container = get_container()
@@ -41,7 +46,7 @@ async def upload_document(file: Annotated[UploadFile, File()]) -> dict:
     return {"document_id": document_id, "status": "processing"}
 
 
-@router.get("/documents")
+@router.get("/documents", response_model=DocumentListResponse)
 async def list_documents() -> dict:
     """List documents with their progress state."""
     return {"documents": await get_container().knowledge_base.list_documents()}

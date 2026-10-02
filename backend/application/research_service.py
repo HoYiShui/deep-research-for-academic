@@ -28,10 +28,14 @@ class ResearchService:
         self._store = store
         self._cancel = cancel
 
-    async def start(self) -> dict:
-        """Create a session; clarify runs later via POST /messages."""
+    async def start(self, query: str = "") -> dict:
+        """Create a session; clarify runs later via POST /messages.
+
+        Args:
+            query: The initial research request, seeded into the session brief.
+        """
         session_id = uuid.uuid4().hex
-        await self._sessions.create(session_id)
+        await self._sessions.create(session_id, query)
         return {"session_id": session_id, "status": "clarify"}
 
     def spawn_pipeline(self, session_id: str, brief: dict) -> asyncio.Task:

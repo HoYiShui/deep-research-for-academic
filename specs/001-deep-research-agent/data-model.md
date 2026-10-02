@@ -76,7 +76,7 @@
 ### DraftSection / DraftClaimBinding / CriticFeedback（写与审）
 
 - **DraftClaimBinding**: `section_id`、`statement_id`、`claim_ids`、`cited_evidence_ids`、`artifact_ids`
-- **CriticFeedback**: `issue_id`、`target_type`、`target_id`、`issue_type`（missing_source / comparability越界 / 表述越界 / logic_error / hallucination / outdated）、`severity`（critical / major / minor）、`fillable`（bool，仅 missing_source 用）、`description`、`resolved`。**不产 required_action**——回流由 machine.py 的政策表决定。
+- **CriticFeedback**: `issue_id`、`target_type`、`target_id`、`issue_type`（missing_source / comparability_violation / overclaim / logic_error / hallucination / outdated）、`severity`（critical / major / minor）、`fillable`（bool，仅 missing_source 用）、`description`、`resolved`。**不产 required_action**——回流由 machine.py 的政策表决定。
 
 ## 状态转换
 
@@ -87,16 +87,16 @@
 
 ## 回流政策表（machine.py，total + 兜底）
 
-动作由 issue_type 决定，severity 决定「是否回流」（critical/major 回流，minor 只记录）：
+`severity` 只做门槛（critical/major 回流，minor 只记录不回流）；具体动作由 `issue_type`（英文标识）决定，`fillable` 仅对 `missing_source` 生效。`route_after_review` 对多个 action 取最高优先级（re_research > re_analyze > revise > acknowledge_limit）：
 
 | issue_type | fillable | 动作 |
 |---|---|---|
 | missing_source | true | re_research（补查） |
 | missing_source | false | acknowledge_limit（收紧边界） |
-| comparability越界 | — | re_analyze（重算） |
+| comparability_violation | — | re_analyze（重算） |
 | hallucination | — | retract + re_research（撤回结论 + 补证） |
-| 表述越界 | — | revise（修订） |
-| outdated / logic_error | — | re_research / re_analyze（视具体） |
+| overclaim | — | revise（修订） |
+| outdated / logic_error | — | re_research（视具体） |
 | *（兜底） | — | revise |
 
 ## 阶段读写边界

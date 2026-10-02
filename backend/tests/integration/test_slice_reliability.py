@@ -65,8 +65,23 @@ def test_auth_endpoints() -> None:
 
     with patch("interface.router.auth.get_container", return_value=_Container()):
         client = TestClient(app)
-        reg = client.post("/auth/register", json={"email": "a@b.com", "password": "pw"})
+        reg = client.post("/auth/register", json={"email": "a@b.com", "password": "password123"})
         assert reg.status_code == 201
-        login = client.post("/auth/login", json={"email": "a@b.com", "password": "pw"})
+        login = client.post("/auth/login", json={"email": "a@b.com", "password": "password123"})
         assert login.status_code == 200
         assert "access_token" in login.json()
+
+
+def test_auth_endpoints_reject_invalid_body() -> None:
+    from fastapi.testclient import TestClient
+
+    from interface.main import app
+
+    class _Container:
+        auth = AuthService(InMemoryUserStore(), secret="a" * 32)
+
+    with patch("interface.router.auth.get_container", return_value=_Container()):
+        client = TestClient(app)
+        # Missing field and short password must yield 422, not a bare dict.
+        assert client.post("/auth/register", json={"email": "a@b.com"}).status_code == 422
+        assert client.post("/auth/register", json={"email": "a@b.com", "password": "pw"}).status_code == 422

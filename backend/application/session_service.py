@@ -20,9 +20,16 @@ class SessionService:
         self._store = store
         self._locks: dict[str, asyncio.Lock] = {}
 
-    async def create(self, session_id: str) -> dict:
-        """Create a new SessionState and persist it."""
+    async def create(self, session_id: str, query: str = "") -> dict:
+        """Create a new SessionState and persist it.
+
+        Args:
+            session_id: The session to create.
+            query: The initial research request, seeded into the brief draft.
+        """
         state = SessionState(session_id=session_id)
+        if query:
+            state.brief_draft["query"] = query
         await self._store.save_session(session_id, asdict(state))
         return asdict(state)
 
