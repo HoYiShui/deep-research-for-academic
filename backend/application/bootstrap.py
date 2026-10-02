@@ -68,7 +68,7 @@ class Container:
         self.orchestrator = Orchestrator(
             self.bus, self.cancel, self.store, self.llm, self.search, self.retrieval, self.execution
         )
-        self.research = ResearchService(self.sessions, self.orchestrator)
+        self.research = ResearchService(self.sessions, self.orchestrator, self.store, self.cancel)
 
 
 _container: Container | None = None

@@ -1,8 +1,8 @@
-"""HTTP routes for the research entry (walking skeleton)."""
+"""HTTP routes for the research entry (session, clarify, pipeline, report)."""
 
 from __future__ import annotations
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 
 from application.bootstrap import get_container
@@ -12,7 +12,7 @@ router = APIRouter()
 
 
 @router.post("/research")
-async def start_research() -> dict:
+async def start_research(body: dict) -> dict:
     """Create a session; returns status=clarify (no SSE URL yet)."""
     return await get_container().research.start()
 
@@ -39,3 +39,25 @@ async def stream_events(session_id: str) -> StreamingResponse:
             yield sse_format(event)
 
     return StreamingResponse(generator(), media_type="text/event-stream")
+
+
+@router.get("/research/{session_id}/report")
+async def get_report(session_id: str) -> dict:
+    """Return the final report, or 404 if the pipeline has not completed."""
+    report = await get_container().research.get_report(session_id)
+    if report is None:
+        raise HTTPException(status_code=404, detail="report not ready")
+    return report
+
+
+@router.get("/research/{session_id}")
+async def get_status(session_id: str) -> dict:
+    """Return the current status by recovering the latest phase snapshot."""
+    return await get_container().research.get_status(session_id)
+
+
+@router.post("/research/{session_id}/cancel")
+async def cancel(session_id: str) -> dict:
+    """Set the cancellation flag; the orchestrator stops at the next phase boundary."""
+    get_container().research.cancel(session_id)
+    return {"session_id": session_id, "status": "cancelling"}
