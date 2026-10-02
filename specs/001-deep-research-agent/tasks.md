@@ -54,7 +54,7 @@ Phase 2 集成切片（真 LLM → 溯源 → 持久化 → KB → 收尾，每�
 
 ### 政策表（最该单测覆盖的纯函数）
 
-- [ ] T017 [P] 实现 machine._route_after_review 回流政策表（total：missing_source×severity×fillable 全组合 + hallucination→retract+补证 + 兜底 revise）+ 单测 tests/unit/test_route.py（每一行 + 兜底行都测）
+- [x] T017 [P] 实现 machine._route_after_review 回流政策表（total：missing_source×severity×fillable 全组合 + hallucination→retract+补证 + 兜底 revise）+ 单测 tests/unit/test_route.py（每一行 + 兜底行都测）
 
 ### Agents（domain/research/agents/，每个自包含：契约 + 单元测试）
 
