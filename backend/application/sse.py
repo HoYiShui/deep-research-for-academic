@@ -16,6 +16,7 @@ _EVENT_NAMES = {
     "PhaseEvent": "phase",
     "StepEvent": "progress",
     "ReworkEvent": "rework",
+    "ErrorEvent": "error",
     "DoneEvent": "done",
 }
 

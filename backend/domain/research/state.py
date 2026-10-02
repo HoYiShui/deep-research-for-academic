@@ -20,12 +20,23 @@ class SessionState:
 
 @dataclass
 class PipelineState:
-    """Pipeline state, owned by orchestrator, stored in phase_snapshots."""
+    """Pipeline state, owned by orchestrator, stored in phase_snapshots.
+
+    The frozen brief is read-only input; everything else is produced phase by
+    phase and snapshotted at each phase boundary for recovery.
+    """
 
     session_id: str = ""
     phase: str = "plan"
-    section_plans: list[dict] = field(default_factory=list)
-    sources: dict = field(default_factory=dict)
-    evidence: dict = field(default_factory=dict)
-    claims: dict = field(default_factory=dict)
-    run_metadata: dict = field(default_factory=dict)
+    brief: dict = field(default_factory=dict)  # frozen ResearchBrief (input)
+    section_plans: list = field(default_factory=list)  # SectionPlan list
+    evidence: list = field(default_factory=list)  # Evidence list (deduplicated)
+    coverage_gaps: list = field(default_factory=list)  # unfilled gaps (search/evidence)
+    comparable_metrics: list = field(default_factory=list)  # ComparableMetric list
+    analysis_artifacts: list = field(default_factory=list)  # AnalysisArtifact list
+    draft_sections: list = field(default_factory=list)  # DraftSection list
+    draft_claim_bindings: list = field(default_factory=list)  # DraftClaimBinding list
+    critic_feedback: list = field(default_factory=list)  # CriticFeedback list
+    final_report: dict | None = None  # FinalReport
+    run_metadata: dict = field(default_factory=dict)  # RunMetadata
+    errors: list = field(default_factory=list)  # failure-semantics errors

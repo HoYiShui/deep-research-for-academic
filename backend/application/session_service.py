@@ -7,7 +7,7 @@ from dataclasses import asdict
 
 from application.ports import StateStorePort
 from domain.ports import LLMPort
-from domain.research.agents.base import call_llm, parse_json
+from domain.research.agents import architect
 from domain.research.machine import decide_status
 from domain.research.state import SessionState
 
@@ -41,8 +41,7 @@ class SessionService:
             raw = await self._store.load_session(session_id)
             state = SessionState(**raw) if raw else SessionState(session_id=session_id)
 
-            # Real architect.clarify arrives in S1; here we call the LLM directly.
-            judgment = parse_json(await call_llm(self._llm, answer))
+            judgment = await architect.clarify(self._llm, state.brief_draft, answer)
             state.brief_draft.update(judgment.get("brief_patch", {}))
             state.clarification_history.append({"answer": answer})
 

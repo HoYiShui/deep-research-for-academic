@@ -94,3 +94,26 @@ def route_after_review(issues: list[dict[str, Any]]) -> str:
         return "done"
     actions = [_action_for(i) for i in actionable]
     return min(actions, key=_ACTION_PRIORITY.index)
+
+
+def phase_after_review(action: str) -> str:
+    """Map a review route action to the next pipeline phase.
+
+    Policy-only: the LLM never drives control flow. This table maps the
+    deterministic action from route_after_review back to a phase, closing the
+    rework loop (re_research -> research, re_analyze -> analyze, revise ->
+    write; acknowledge_limit folds into write so the report is re-emitted).
+
+    Args:
+        action: A rework action from route_after_review.
+
+    Returns:
+        The phase to transition into, or "done" for terminal actions.
+    """
+    return {
+        "done": "done",
+        "re_research": "research",
+        "re_analyze": "analyze",
+        "revise": "write",
+        "acknowledge_limit": "write",
+    }.get(action, "done")

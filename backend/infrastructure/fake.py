@@ -54,3 +54,17 @@ class FakeStateStore:
             if sid == session_id and ph == phase:
                 return st
         return None
+
+
+class FakeRetrieval:
+    """RetrievalPort fake: returns no local-KB chunks."""
+
+    async def retrieve(self, query: str, kb_id: str, top_k: int) -> list:
+        return []
+
+
+class FakeExecution:
+    """CodeExecutionPort fake: returns a fixed result."""
+
+    async def execute(self, code: str, input_data: dict, timeout_s: int = 30) -> dict:
+        return {"result": "ok"}

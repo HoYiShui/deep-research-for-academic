@@ -88,8 +88,8 @@ Phase 2 集成切片（真 LLM → 溯源 → 持久化 → KB → 收尾，每�
 
 ### 真 LLM 切片（风险最高：LLM 输出脏 + JSON mode）
 
-- [ ] T034 spike deepseek Anthropic 兼容 + JSON mode 稳定性（50 行脚本：判断抽取 + 政策路由输入输出）
-- [ ] T035 集成：bootstrap 把 fake_llm 换成 deepseek，wire architect/critic；**织入 LLM 失败语义**（重试 2 次指数退避→耗尽终止）；集成测试 tests/integration/test_slice_llm.py
+- [x] T034 spike deepseek Anthropic 兼容 + JSON mode 稳定性（50 行脚本：判断抽取 + 政策路由输入输出）
+- [x] T035 集成：bootstrap 把 fake_llm 换成 deepseek，wire architect/critic；**织入 LLM 失败语义**（重试 2 次指数退避→耗尽终止）；集成测试 tests/integration/test_slice_llm.py
 
 ### 溯源切片（高风险：溯源链 = 章程第一条「可溯源」核心）
 

@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-
 # Single source of truth for frontend display names.
 PHASE_DISPLAY: dict[str, str] = {
     "plan": "planning",
@@ -43,7 +42,16 @@ class ReworkEvent:
 
 
 @dataclass
+class ErrorEvent:
+    """A failure event (recoverable or terminal)."""
+
+    code: str
+    message: str
+
+
+@dataclass
 class DoneEvent:
     """Completion event carrying the report URL."""
 
-    report_url: str
+    final_report_url: str
+    status: str = "completed"  # "completed" | "cancelled"
