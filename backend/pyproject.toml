@@ -5,6 +5,7 @@ description = "Deep Research agent for cybersecurity academic research"
 requires-python = ">=3.11"
 dependencies = [
     "fastapi>=0.110",
+    "python-multipart>=0.0.9",
     "uvicorn[standard]>=0.29",
     "asyncpg>=0.29",
     "pymilvus>=2.4",

@@ -103,7 +103,7 @@ Phase 2 集成切片（真 LLM → 溯源 → 持久化 → KB → 收尾，每�
 
 - [x] T038 spike BGE-M3 sparse + Milvus hybrid（pymilvus 支持 + RRF 融合，50 行脚本）
 - [x] T039 集成 KB 检索：fake_vector/embedding/reranker → milvus/bge_m3/bge_reranker，实现 RetrievalPort + /knowledge-base/search；**织入 Milvus 不可用→降级（跳过 local）**；集成测试 tests/integration/test_slice_kb_search.py
-- [ ] T040 实现 KB 入库：knowledge_base_service.ingest（asyncio.to_thread：parse→chunk→embed→store + 进度持久化 documents 表 + 启动扫 processing→failed）+ /knowledge-base/documents 端点 + 集成测试 tests/integration/test_slice_kb_ingest.py
+- [x] T040 实现 KB 入库：knowledge_base_service.ingest（asyncio.to_thread：parse→chunk→embed→store + 进度持久化 documents 表 + 启动扫 processing→failed）+ /knowledge-base/documents 端点 + 集成测试 tests/integration/test_slice_kb_ingest.py
 
 ### 收尾切片（沙箱 + 认证）
 
