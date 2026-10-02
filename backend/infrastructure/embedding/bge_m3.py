@@ -6,7 +6,11 @@ from domain.ports import Embedding
 
 
 class BGEM3Embedding:
-    """EmbeddingPort implementation via a local BGE-M3 model."""
+    """EmbeddingPort implementation via a local BGE-M3 model.
+
+    BGE-M3 emits a dense vector (semantics) and a sparse lexical-weight vector
+    (exact terms), used for Milvus hybrid search with RRF fusion.
+    """
 
     def __init__(self, model_name: str = "BAAI/bge-m3") -> None:
         self._model_name = model_name
@@ -21,6 +25,8 @@ class BGEM3Embedding:
         return self._model
 
     async def embed(self, text: str) -> Embedding:
-        """Embed text; dense now, sparse wired in the S4 spike."""
-        dense = self._load().encode(text, normalize_embeddings=True).tolist()
-        return Embedding(dense=dense, sparse={})
+        """Embed text into a dual vector (dense + sparse lexical weights)."""
+        out = self._load().encode([text], return_dense=True, return_sparse=True)
+        dense = out["dense_vecs"][0].tolist()
+        sparse = dict(out["lexical_weights"][0])
+        return Embedding(dense=dense, sparse=sparse)

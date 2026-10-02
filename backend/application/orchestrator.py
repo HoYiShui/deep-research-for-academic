@@ -10,6 +10,7 @@ and Milvus degrade without terminating).
 from __future__ import annotations
 
 from dataclasses import asdict
+from typing import Any
 
 from application.ports import CancellationPort, StateStorePort
 from application.sse import EventBus
@@ -97,16 +98,22 @@ class Orchestrator:
             result = await scout.research(section, self._search, self._retrieval)
             state.evidence.extend(result["evidence"])
         state.evidence = _dedup_evidence(state.evidence)
-        take_gaps = getattr(self._search, "take_gaps", None)
-        gaps = take_gaps() if take_gaps is not None else []
-        state.coverage_gaps.extend(gaps)
-        for gap in gaps:
+        self._drain_gaps(self._search, "source_unavailable", state)
+        self._drain_gaps(self._retrieval, "milvus_unavailable", state)
+
+    def _drain_gaps(self, source: Any, code: str, state: PipelineState) -> None:
+        """Drain a source's coverage gaps and emit a non-fatal error for degraded ones."""
+        take_gaps = getattr(source, "take_gaps", None)
+        if take_gaps is None:
+            return
+        for gap in take_gaps():
+            state.coverage_gaps.append(gap)
             if gap.get("reason") == "unavailable":
                 self._bus.emit(
                     state.session_id,
                     ErrorEvent(
-                        code="source_unavailable",
-                        message=f"source {gap.get('source')} unavailable; degraded",
+                        code=code,
+                        message=f"{gap.get('source')} unavailable; degraded",
                     ),
                 )
 

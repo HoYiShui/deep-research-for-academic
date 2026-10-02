@@ -11,13 +11,17 @@ from application.orchestrator import Orchestrator
 from application.research_service import ResearchService
 from application.session_service import SessionService
 from application.sse import EventBus
-from infrastructure.fake import FakeExecution, FakeRetrieval
+from infrastructure.embedding.bge_m3 import BGEM3Embedding
+from infrastructure.embedding.bge_reranker import BGEReranker
+from infrastructure.fake import FakeExecution
 from infrastructure.llm.deepseek import DeepSeekLLM
+from infrastructure.retrieval.local import LocalRetrieval
 from infrastructure.search.arxiv import ArxivSearch
 from infrastructure.search.bocha import BochaSearch
 from infrastructure.search.composite import CompositeSearch
 from infrastructure.storage.memory import InMemoryCancel
 from infrastructure.storage.postgres import PostgresStateStore
+from infrastructure.vector.milvus import MilvusStore
 
 
 class Container:
@@ -37,7 +41,7 @@ class Container:
         self.bus = bus or EventBus()
         self.llm = llm or DeepSeekLLM()
         self.search = search or CompositeSearch([("arxiv", ArxivSearch()), ("bocha", BochaSearch())])
-        self.retrieval = retrieval or FakeRetrieval()
+        self.retrieval = retrieval or LocalRetrieval(BGEM3Embedding(), MilvusStore(), BGEReranker())
         self.execution = execution or FakeExecution()
         self.store = store or PostgresStateStore()
         self.cancel = cancel or InMemoryCancel()
