@@ -97,18 +97,18 @@ class Orchestrator:
             result = await scout.research(section, self._search, self._retrieval)
             state.evidence.extend(result["evidence"])
         state.evidence = _dedup_evidence(state.evidence)
-        gaps = getattr(self._search, "gaps", None)
-        if gaps is not None:
-            state.coverage_gaps.extend(gaps)
-            for gap in gaps:
-                if gap.get("reason") == "unavailable":
-                    self._bus.emit(
-                        state.session_id,
-                        ErrorEvent(
-                            code="source_unavailable",
-                            message=f"source {gap.get('source')} unavailable; degraded",
-                        ),
-                    )
+        take_gaps = getattr(self._search, "take_gaps", None)
+        gaps = take_gaps() if take_gaps is not None else []
+        state.coverage_gaps.extend(gaps)
+        for gap in gaps:
+            if gap.get("reason") == "unavailable":
+                self._bus.emit(
+                    state.session_id,
+                    ErrorEvent(
+                        code="source_unavailable",
+                        message=f"source {gap.get('source')} unavailable; degraded",
+                    ),
+                )
 
     async def _analyze(self, state: PipelineState) -> None:
         """Normalize metrics and run fixed analysis templates over them."""

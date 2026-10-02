@@ -93,7 +93,7 @@ Phase 2 集成切片（真 LLM → 溯源 → 持久化 → KB → 收尾，每�
 
 ### 溯源切片（高风险：溯源链 = 章程第一条「可溯源」核心）
 
-- [ ] T036 集成：bootstrap 把 fake_search 换成 arxiv/bocha，wire scout；**织入搜索失败语义**（超时→重试 1 次→coverage 缺口；服务不可用→降级跳过该源）；集成测试 tests/integration/test_slice_retrieval.py
+- [x] T036 集成：bootstrap 把 fake_search 换成 arxiv/bocha，wire scout；**织入搜索失败语义**（超时→重试 1 次→coverage 缺口；服务不可用→降级跳过该源）；集成测试 tests/integration/test_slice_retrieval.py
 
 ### 持久化切片（中风险：两 state 冻结交接 + 恢复）
 
