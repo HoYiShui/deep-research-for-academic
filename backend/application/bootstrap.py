@@ -11,16 +11,17 @@ from application.orchestrator import Orchestrator
 from application.research_service import ResearchService
 from application.session_service import SessionService
 from application.sse import EventBus
-from infrastructure.fake import FakeExecution, FakeRetrieval, FakeStateStore
+from infrastructure.fake import FakeExecution, FakeRetrieval
 from infrastructure.llm.deepseek import DeepSeekLLM
 from infrastructure.search.arxiv import ArxivSearch
 from infrastructure.search.bocha import BochaSearch
 from infrastructure.search.composite import CompositeSearch
 from infrastructure.storage.memory import InMemoryCancel
+from infrastructure.storage.postgres import PostgresStateStore
 
 
 class Container:
-    """Assembled service graph (real LLM + real search; fakes elsewhere)."""
+    """Assembled service graph (real LLM + search + persistence)."""
 
     def __init__(
         self,
@@ -38,7 +39,7 @@ class Container:
         self.search = search or CompositeSearch([("arxiv", ArxivSearch()), ("bocha", BochaSearch())])
         self.retrieval = retrieval or FakeRetrieval()
         self.execution = execution or FakeExecution()
-        self.store = store or FakeStateStore()
+        self.store = store or PostgresStateStore()
         self.cancel = cancel or InMemoryCancel()
         self.sessions = SessionService(self.llm, self.store)
         self.orchestrator = Orchestrator(

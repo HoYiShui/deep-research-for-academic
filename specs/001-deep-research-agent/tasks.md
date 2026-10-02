@@ -97,7 +97,7 @@ Phase 2 集成切片（真 LLM → 溯源 → 持久化 → KB → 收尾，每�
 
 ### 持久化切片（中风险：两 state 冻结交接 + 恢复）
 
-- [ ] T037 集成：bootstrap 把 fake_state_store 换成 postgres，验证两 state 冻结交接 + phase_snapshots 同 phase 取最新 + 崩溃恢复；**织入 PG 不可用→终止（真相源不可丢）**；集成测试 tests/integration/test_slice_persistence.py
+- [x] T037 集成：bootstrap 把 fake_state_store 换成 postgres，验证两 state 冻结交接 + phase_snapshots 同 phase 取最新 + 崩溃恢复；**织入 PG 不可用→终止（真相源不可丢）**；集成测试 tests/integration/test_slice_persistence.py
 
 ### KB 切片（中高风险：BGE-M3 sparse + Milvus hybrid）
 
