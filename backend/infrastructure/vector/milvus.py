@@ -2,23 +2,35 @@
 
 from __future__ import annotations
 
+import os
+
 from domain.ports import Chunk, Embedding
 
 
 class MilvusStore:
-    """VectorStorePort implementation backed by Milvus."""
+    """VectorStorePort implementation backed by Milvus.
 
-    def __init__(self, host: str = "localhost", port: int = 19530) -> None:
-        self._host = host
-        self._port = port
+    MILVUS_URI selects the backend: a file path (e.g. ``./milvus.db``) uses the
+    embedded Milvus Lite in dev; an ``http://host:port`` URI uses a standalone
+    server in prod. Falls back to MILVUS_HOST/MILVUS_PORT for backward compat.
+    """
+
+    def __init__(self, uri: str | None = None) -> None:
+        self._uri = uri or os.environ.get("MILVUS_URI") or self._default_uri()
         self._client = None
+
+    @staticmethod
+    def _default_uri() -> str:
+        host = os.environ.get("MILVUS_HOST", "localhost")
+        port = os.environ.get("MILVUS_PORT", "19530")
+        return f"http://{host}:{port}"
 
     def _connect(self):
         """Lazy-connect to Milvus."""
         if self._client is None:
             from pymilvus import MilvusClient
 
-            self._client = MilvusClient(uri=f"http://{self._host}:{self._port}")
+            self._client = MilvusClient(uri=self._uri)
         return self._client
 
     async def hybrid_search(self, kb_id: str, embedding: Embedding, top_k: int) -> list[Chunk]:

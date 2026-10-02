@@ -2,14 +2,19 @@
 
 from __future__ import annotations
 
+import os
+
 from domain.ports import Chunk
 
 
 class BGEReranker:
     """RerankPort implementation via a local BGE-reranker cross-encoder."""
 
-    def __init__(self, model_name: str = "BAAI/bge-reranker-v2-m3") -> None:
-        self._model_name = model_name
+    def __init__(self, model_name: str | None = None) -> None:
+        # A local weights dir overrides the HF hub name (BGE_RERANKER_MODEL_PATH).
+        self._model_name = model_name or os.environ.get(
+            "BGE_RERANKER_MODEL_PATH", "BAAI/bge-reranker-v2-m3"
+        )
         self._model = None
 
     def _load(self):

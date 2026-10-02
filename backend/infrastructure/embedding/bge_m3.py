@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import os
+
 from domain.ports import Embedding
 
 
@@ -12,8 +14,9 @@ class BGEM3Embedding:
     (exact terms), used for Milvus hybrid search with RRF fusion.
     """
 
-    def __init__(self, model_name: str = "BAAI/bge-m3") -> None:
-        self._model_name = model_name
+    def __init__(self, model_name: str | None = None) -> None:
+        # A local weights dir overrides the HF hub name (BGE_M3_MODEL_PATH).
+        self._model_name = model_name or os.environ.get("BGE_M3_MODEL_PATH", "BAAI/bge-m3")
         self._model = None
 
     def _load(self):
