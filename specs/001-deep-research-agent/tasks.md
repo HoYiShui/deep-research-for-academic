@@ -118,11 +118,9 @@ Phase 3 真实 agent 行为（契约冻结 → scout 补链/观察 → data_anal
 
 **Purpose**: 把 Phase 1 的存根 agents 升级为按 data-model.md + docs/architecture（02/04/05/06 号）的真实实现。坚持：**纯工人**（只产数据，控制流仍在 machine.py 政策层）、**契约先行**、**单测**；对齐章程「可溯源」（Claim→Evidence→Source 全链 id 回链）。
 
-> 权威源以 spec（plan.md/data-model.md）为准；dataflow.md 及 docs/architecture 是较早草稿，若冲突（如 critic 的 `required_action`）以 spec 为准。
-
 ### 契约冻结（收敛点）
 
-- [x] T043 冻结终态 PipelineState 契约：`state.py` 补齐 data-model.md 字段（`sources`/`claims`/`claim_evidence_links`/`quantitative_observations`/`section_coverage`），并把 `evidence`/`comparable_metrics`/`analysis_artifacts`/`draft_sections` 从 list 改为 dict-keyed（按 id 回链）+ 单测 `tests/unit/test_state.py`。**收尾（漂移 C-4/C-5）**：字段 `brief`→`research_brief`；phase→worker 分发从 orchestrator 的 if/elif 链迁回 machine.py 的 `WORKERS` 表
+- [x] T043 冻结终态 PipelineState 契约：`state.py` 补齐 data-model.md 字段（`sources`/`claims`/`claim_evidence_links`/`quantitative_observations`/`section_coverage`），把 `evidence`/`comparable_metrics`/`analysis_artifacts`/`draft_sections` 从 list 改为 dict-keyed（按 id 回链），字段 `brief`→`research_brief`，phase→worker 分发迁回 machine.py 的 `WORKERS` 表 + 单测 `tests/unit/test_state.py`
 
 ### Agents（每个自包含：契约 + 单元测试）
 
@@ -130,7 +128,7 @@ Phase 3 真实 agent 行为（契约冻结 → scout 补链/观察 → data_anal
 - [x] T045 [P] 实现 scout 的 QuantitativeObservation 抽取（结果表单元格 → observation_id/evidence_id/row_key/column_key/value/uncertainty/statistic 结构化投影）+ 单测 `tests/unit/test_scout_observations.py`
 - [x] T046 [P] 实现 data_analyst.analyze 真实化（collect observations → normalize evaluation_context → check comparability → comparable_metrics：compatible/partial/incompatible + reasons）+ 单测 `tests/unit/test_data_analyst.py`（扩展）
 - [x] T047 [P] 实现 code_crafter.analyze 受控模板（operation 闭集 = comparison_matrix/pairwise_delta/plot/statistic/aggregation，图表类型作 plot 参数 → AnalysisArtifact{input_metric_ids/input_evidence_ids/operation/code_or_recipe/output/execution_status}，禁 LLM 自由代码，仅 compatible 输入）+ 单测 `tests/unit/test_code_crafter.py`（扩展）
-- [x] T048 [P] 实现 writer.write_report 真实化（按 `01-contract.md §5` + `docs/contracts/report-skeleton.md` 的统一骨架 + 任务专属第 3 节写正文 DraftSection，每条关键结论绑定 evidence_id + 程序级 DraftClaimBinding{section_id/statement_id/claim_ids/cited_evidence_ids/artifact_ids}，final_report 落统一骨架）+ 单测 `tests/unit/test_writer.py`（扩展）。**收尾（漂移 C-6）**：补 `revise_report()`（revise 回流落 write 时走它，而非重跑 write_report）
+- [x] T048 [P] 实现 writer.write_report 真实化（按 `01-contract.md §5` + `docs/contracts/report-skeleton.md` 的统一骨架 + 任务专属第 3 节写正文 DraftSection，每条关键结论绑定 evidence_id + 程序级 DraftClaimBinding{section_id/statement_id/claim_ids/cited_evidence_ids/artifact_ids}，final_report 落统一骨架）+ 补 `revise_report()`（revise 回流落 write 时走它，而非重跑 write_report）+ 单测 `tests/unit/test_writer.py`（扩展）
 - [x] T049 [P] 实现 critic.review 真实化（三层复核：来源/证据、论断/条件、分析/表达 → CriticFeedback{issue_type∈missing_source/comparability_violation/overclaim/hallucination/outdated/logic_error, severity, fillable}，**不产 required_action**）+ 单测 `tests/unit/test_critic.py`（扩展）
 
 ### 集成切片
