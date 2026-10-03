@@ -99,10 +99,13 @@ class Orchestrator:
         state.section_plans = await architect.plan(self._llm, state.research_brief)
 
     async def _research(self, state: PipelineState) -> None:
-        """Gather evidence per section and collect coverage gaps."""
+        """Gather evidence, sources, claims, and coverage gaps per section."""
         for section in state.section_plans:
-            result = await scout.research(section, self._search, self._retrieval)
+            result = await scout.research(section, self._search, self._retrieval, self._llm)
             state.evidence.update(result["evidence"])
+            state.sources.update(result["sources"])
+            state.claims.update(result["claims"])
+            state.claim_evidence_links.extend(result["claim_evidence_links"])
         self._drain_gaps(self._search, "source_unavailable", state)
         self._drain_gaps(self._retrieval, "milvus_unavailable", state)
 

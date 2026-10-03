@@ -126,7 +126,7 @@ Phase 3 真实 agent 行为（契约冻结 → scout 补链/观察 → data_anal
 
 ### Agents（每个自包含：契约 + 单元测试）
 
-- [ ] T044 [P] 实现 scout 的 SourceRecord 登记 + Claim/ClaimEvidenceLink 建链（source_id→title/authors/version/source_tier 去重；从证据提炼论断 + supports/refutes/limits 关系）+ 单测 `tests/unit/test_scout_claims.py`
+- [x] T044 [P] 实现 scout 的 SourceRecord 登记 + Claim/ClaimEvidenceLink 建链（source_id→title/authors/version/source_tier 去重；从证据提炼论断 + supports/refutes/limits 关系）+ 单测 `tests/unit/test_scout_claims.py`
 - [ ] T045 [P] 实现 scout 的 QuantitativeObservation 抽取（结果表单元格 → observation_id/evidence_id/row_key/column_key/value/uncertainty/statistic 结构化投影）+ 单测 `tests/unit/test_scout_observations.py`
 - [ ] T046 [P] 实现 data_analyst.analyze 真实化（collect observations → normalize evaluation_context → check comparability → comparable_metrics：compatible/partial/incompatible + reasons）+ 单测 `tests/unit/test_data_analyst.py`（扩展）
 - [ ] T047 [P] 实现 code_crafter.analyze 受控模板（operation 闭集 = comparison_matrix/pairwise_delta/plot/statistic/aggregation，图表类型作 plot 参数 → AnalysisArtifact{input_metric_ids/input_evidence_ids/operation/code_or_recipe/output/execution_status}，禁 LLM 自由代码，仅 compatible 输入）+ 单测 `tests/unit/test_code_crafter.py`（扩展）
