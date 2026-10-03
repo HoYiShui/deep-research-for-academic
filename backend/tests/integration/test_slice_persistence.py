@@ -48,8 +48,8 @@ async def test_freeze_handover_passes_frozen_brief_to_pipeline() -> None:
     await task
 
     snapshot = await store.load_latest_snapshot(session_id, "plan")
-    assert snapshot["brief"] == result["brief"]
-    assert snapshot["brief"]["task_type"] == "idea_exploration"
+    assert snapshot["research_brief"] == result["brief"]
+    assert snapshot["research_brief"]["task_type"] == "idea_exploration"
 
 
 @pytest.mark.asyncio

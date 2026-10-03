@@ -122,7 +122,7 @@ Phase 3 真实 agent 行为（契约冻结 → scout 补链/观察 → data_anal
 
 ### 契约冻结（收敛点）
 
-- [ ] T043 冻结终态 PipelineState 契约：`state.py` 补齐 data-model.md 字段（`sources`/`claims`/`claim_evidence_links`/`quantitative_observations`/`section_coverage`），并把 `evidence`/`comparable_metrics`/`analysis_artifacts`/`draft_sections` 从 list 改为 dict-keyed（按 id 回链）+ 单测 `tests/unit/test_state.py`。**收尾（漂移 C-4/C-5）**：字段 `brief`→`research_brief`；phase→worker 分发从 orchestrator 的 if/elif 链迁回 machine.py 的 `WORKERS` 表
+- [x] T043 冻结终态 PipelineState 契约：`state.py` 补齐 data-model.md 字段（`sources`/`claims`/`claim_evidence_links`/`quantitative_observations`/`section_coverage`），并把 `evidence`/`comparable_metrics`/`analysis_artifacts`/`draft_sections` 从 list 改为 dict-keyed（按 id 回链）+ 单测 `tests/unit/test_state.py`。**收尾（漂移 C-4/C-5）**：字段 `brief`→`research_brief`；phase→worker 分发从 orchestrator 的 if/elif 链迁回 machine.py 的 `WORKERS` 表
 
 ### Agents（每个自包含：契约 + 单元测试）
 

@@ -12,6 +12,16 @@ class _FakeExecution:
 
 @pytest.mark.asyncio
 async def test_analyze_returns_artifact() -> None:
-    artifact = await code_crafter.analyze([], _FakeExecution(), "pairwise_delta")
+    artifact = await code_crafter.analyze({}, _FakeExecution(), "pairwise_delta")
     assert artifact["operation"] == "pairwise_delta"
     assert artifact["execution_status"] == "completed"
+
+
+@pytest.mark.asyncio
+async def test_analyze_empty_output_is_failed() -> None:
+    class _Empty:
+        async def execute(self, code, input_data, timeout_s=30):
+            return {}
+
+    artifact = await code_crafter.analyze({}, _Empty())
+    assert artifact["execution_status"] == "failed"

@@ -17,7 +17,7 @@ from application.sse import EventBus
 from domain.ports import CodeExecutionPort, LLMPort, RetrievalPort, SearchPort
 from domain.research.agents import architect, code_crafter, critic, data_analyst, scout, writer
 from domain.research.events import DoneEvent, ErrorEvent, PhaseEvent, ReworkEvent
-from domain.research.machine import next_phase, phase_after_review, route_after_review
+from domain.research.machine import WORKERS, next_phase, phase_after_review, route_after_review
 from domain.research.state import PipelineState
 
 # Cap on rework loops so an unfillable issue never spins forever (FR-017).
@@ -44,6 +44,13 @@ class Orchestrator:
         self._search = search
         self._retrieval = retrieval
         self._execution = execution
+        self._handlers = {
+            "architect": self._plan,
+            "scout": self._research,
+            "data_analyst": self._analyze,
+            "writer": self._write,
+            "critic": self._review,
+        }
 
     async def run(self, session_id: str, brief: dict) -> None:
         """Run the pipeline to completion, emitting events and snapshots.
@@ -52,7 +59,7 @@ class Orchestrator:
             session_id: The session being run.
             brief: The frozen ResearchBrief (pipeline input, read-only).
         """
-        state = PipelineState(session_id=session_id, brief=brief, phase="plan")
+        state = PipelineState(session_id=session_id, research_brief=brief, phase="plan")
         if not await self._try_snapshot(state, session_id):
             return
         self._bus.emit(session_id, PhaseEvent(phase="plan"))
@@ -83,24 +90,19 @@ class Orchestrator:
         self._bus.emit(session_id, DoneEvent(final_report_url=f"/research/{session_id}/report"))
 
     async def _run_phase(self, state: PipelineState) -> None:
-        """Dispatch one phase to its worker(s)."""
-        if state.phase == "plan":
-            state.section_plans = await architect.plan(self._llm, state.brief)
-        elif state.phase == "research":
-            await self._research(state)
-        elif state.phase == "analyze":
-            await self._analyze(state)
-        elif state.phase == "write":
-            self._write(state)
-        elif state.phase == "review":
-            self._review(state)
+        """Dispatch one phase to its worker via the WORKERS policy table."""
+        worker = WORKERS[state.phase]
+        await self._handlers[worker](state)
+
+    async def _plan(self, state: PipelineState) -> None:
+        """Generate section plans from the frozen brief."""
+        state.section_plans = await architect.plan(self._llm, state.research_brief)
 
     async def _research(self, state: PipelineState) -> None:
-        """Gather evidence per section, dedup, and collect coverage gaps."""
+        """Gather evidence per section and collect coverage gaps."""
         for section in state.section_plans:
             result = await scout.research(section, self._search, self._retrieval)
-            state.evidence.extend(result["evidence"])
-        state.evidence = _dedup_evidence(state.evidence)
+            state.evidence.update(result["evidence"])
         self._drain_gaps(self._search, "source_unavailable", state)
         self._drain_gaps(self._retrieval, "milvus_unavailable", state)
 
@@ -109,8 +111,9 @@ class Orchestrator:
         take_gaps = getattr(source, "take_gaps", None)
         if take_gaps is None:
             return
+        gaps = state.run_metadata.setdefault("coverage_gaps", [])
         for gap in take_gaps():
-            state.coverage_gaps.append(gap)
+            gaps.append(gap)
             if gap.get("reason") == "unavailable":
                 self._bus.emit(
                     state.session_id,
@@ -121,20 +124,23 @@ class Orchestrator:
                 )
 
     async def _analyze(self, state: PipelineState) -> None:
-        """Normalize metrics and run fixed analysis templates over them."""
+        """Normalize metrics and run fixed analysis templates over compatible ones."""
         state.comparable_metrics = data_analyst.analyze([])
-        for metric in state.comparable_metrics:
-            artifact = await code_crafter.analyze([metric], self._execution)
-            state.analysis_artifacts.append(artifact)
+        compatible = {
+            k: v for k, v in state.comparable_metrics.items() if v["comparability"] == "compatible"
+        }
+        if compatible:
+            artifact = await code_crafter.analyze(compatible, self._execution)
+            state.analysis_artifacts[artifact["artifact_id"]] = artifact
 
-    def _write(self, state: PipelineState) -> None:
+    async def _write(self, state: PipelineState) -> None:
         """Write draft sections and bindings; mark the draft as final report."""
         result = writer.write_report(state.section_plans, state.evidence)
         state.draft_sections = result["draft_sections"]
         state.draft_claim_bindings = result["draft_claim_bindings"]
         state.final_report = {"sections": state.draft_sections}
 
-    def _review(self, state: PipelineState) -> None:
+    async def _review(self, state: PipelineState) -> None:
         """Review draft bindings; routing to the next phase is policy-driven."""
         state.critic_feedback = critic.review(state.draft_claim_bindings, state.evidence)
 
@@ -147,7 +153,9 @@ class Orchestrator:
             return "done"
         rework_count = state.run_metadata.get("rework_count", 0)
         if rework_count >= _MAX_REWORK:
-            state.coverage_gaps.append({"reason": "rework_limit", "action": action})
+            state.run_metadata.setdefault("coverage_gaps", []).append(
+                {"reason": "rework_limit", "action": action}
+            )
             return "done"
         state.run_metadata["rework_count"] = rework_count + 1
         target = phase_after_review(action)
@@ -169,15 +177,3 @@ class Orchestrator:
             await self._store.save_snapshot(state.session_id, state.phase, asdict(state))
         except Exception:  # noqa: BLE001, S110 — best-effort snapshot may fail
             pass
-
-
-def _dedup_evidence(evidence: list[dict]) -> list[dict]:
-    """Drop duplicate evidence by (source_id, location, quote)."""
-    seen: set[tuple] = set()
-    out: list[dict] = []
-    for item in evidence:
-        key = (item.get("source_id"), item.get("location"), item.get("quote"))
-        if key not in seen:
-            seen.add(key)
-            out.append(item)
-    return out

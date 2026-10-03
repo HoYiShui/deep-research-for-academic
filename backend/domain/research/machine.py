@@ -14,6 +14,15 @@ CRITICAL_BRIEF_FIELDS = {"decision_goal", "research_object", "deliverable"}
 # Pipeline phase order (happy path).
 _PHASE_ORDER = ["plan", "research", "analyze", "write", "review", "done"]
 
+# Phase -> worker agent (pure policy; the orchestrator dispatches via this table).
+WORKERS = {
+    "plan": "architect",
+    "research": "scout",
+    "analyze": "data_analyst",
+    "write": "writer",
+    "review": "critic",
+}
+
 # Rework action priority: earliest phase wins when issues conflict.
 _ACTION_PRIORITY = ["re_research", "re_analyze", "revise", "acknowledge_limit"]
 

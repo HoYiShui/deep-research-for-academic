@@ -20,7 +20,9 @@ async def test_scout_dedups_by_source_location_quote() -> None:
 
 
 @pytest.mark.asyncio
-async def test_scout_evidence_has_source_id() -> None:
+async def test_scout_evidence_is_id_keyed_with_source_id() -> None:
     search = FakeSearch()
     result = await scout.research({"objective": "o"}, search, _FakeRetrieval())
-    assert result["evidence"][0]["source_id"] == "fake-1"
+    evidence = next(iter(result["evidence"].values()))
+    assert evidence["source_id"] == "fake-1"
+    assert evidence["evidence_id"].startswith("ev-")

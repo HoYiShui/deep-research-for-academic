@@ -81,6 +81,6 @@ async def test_quickstart_minimal_loop() -> None:
     # 5. report
     report = await container.research.get_report(session_id)
     assert report is not None
-    assert report["sections"][0]["section_id"] == "s1"
+    assert report["sections"]["s1"]["section_id"] == "s1"
     status = await container.research.get_status(session_id)
     assert status["status"] == "done"

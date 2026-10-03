@@ -22,7 +22,7 @@ class _EmptyExecution:
 
 @pytest.mark.asyncio
 async def test_code_crafter_marks_failed_on_empty_sandbox_output() -> None:
-    artifact = await code_crafter.analyze([], _EmptyExecution())
+    artifact = await code_crafter.analyze({}, _EmptyExecution())
     assert artifact["execution_status"] == "failed"
 
 

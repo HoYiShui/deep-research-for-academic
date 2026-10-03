@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from domain.research.ids import stable_id
+
 
 def compare(a: dict[str, Any], b: dict[str, Any]) -> str:
     """Judge comparability of two observations.
@@ -28,17 +30,17 @@ def compare(a: dict[str, Any], b: dict[str, Any]) -> str:
     return "compatible"
 
 
-def analyze(observations: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """Produce ComparableMetric list with comparability flags.
+def analyze(observations: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
+    """Produce id-keyed ComparableMetric dict with comparability flags.
 
     Args:
         observations: Observation dicts.
 
     Returns:
-        A list of dicts with evaluated_method, evaluation_context, and
-        comparability (compatible/partial/incompatible).
+        A dict keyed by comparable_metric_id, each with evaluated_method,
+        evaluation_context, and comparability (compatible/partial/incompatible).
     """
-    metrics: list[dict[str, Any]] = []
+    metrics: dict[str, dict[str, Any]] = {}
     for obs in observations:
         comparability = "compatible"
         for other in observations:
@@ -50,11 +52,17 @@ def analyze(observations: list[dict[str, Any]]) -> list[dict[str, Any]]:
                 break
             if c == "partial":
                 comparability = "partial"
-        metrics.append(
-            {
-                "evaluated_method": obs.get("evaluated_method", ""),
-                "evaluation_context": obs.get("evaluation_context", {}),
-                "comparability": comparability,
-            }
-        )
+        evaluated_method = obs.get("evaluated_method", "")
+        metric_id = stable_id("cm", evaluated_method, comparability)
+        metrics[metric_id] = {
+            "comparable_metric_id": metric_id,
+            "observation_ids": obs.get("observation_ids", []),
+            "metric_definition": obs.get("metric_definition", ""),
+            "evaluated_method": evaluated_method,
+            "evaluation_context": obs.get("evaluation_context", {}),
+            "value": obs.get("value", ""),
+            "unit": obs.get("unit", ""),
+            "comparability": comparability,
+            "reasons": [],
+        }
     return metrics
