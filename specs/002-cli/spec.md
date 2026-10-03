@@ -92,11 +92,11 @@ Agent 想单独验证 KB 入库/检索，不跑完整 pipeline。
 - **FR-004**: CLI MUST 把错误与日志写到 stderr（一行一条、带时间戳），stdout 只放结果本体。
 - **FR-005**: CLI MUST 支持 `--verbose`，把每次 LLM 调用的 prompt + response 打到 stderr，不污染 stdout。
 - **FR-006**: CLI MUST 支持 `--fake --seed N`，用内存 fake 适配器确定性复现（同输入同 seed 同输出）。
-- **FR-007**: CLI MUST 提供 `run` 全链路（clarify → pipeline → report），并支持 `--brief-file`（跳过 clarify）与 `--answers`（罐头答案）以满足非交互。
-- **FR-008**: CLI MUST 提供 `slice <phase>`，喂一份 `--input state.json`，只跑单个 phase 的 agent。
-- **FR-009**: CLI MUST 提供 `dump <session_id>`，从 phase_snapshots 读 state 打印。
+- **FR-007**: CLI MUST 提供 `run` 全链路（clarify → pipeline → report）；query 为可选位置参数、与 `--brief-file` 二选一（至少一个），并支持 `--answers`（罐头答案）以满足非交互。
+- **FR-008**: CLI MUST 提供 `slice <phase>`，喂一份 `--input state.json`，只跑单个 phase 的 agent（复用 orchestrator 执行单 phase 的那段，不另起一套）。
+- **FR-009**: CLI MUST 提供 `dump <session_id>`，从 phase_snapshots 读 state 打印（唯一 real-mode 命令，需真实 backend 先跑出过快照）。
 - **FR-010**: CLI MUST 提供 `ingest` 与 `search`，单独验证 KB 入库/检索。
-- **FR-011**: CLI MUST 默认 `--fake`（全内存、秒级、无依赖、确定性）；真实依赖为可选模式。
+- **FR-011**: CLI MUST 默认 `--fake`（全内存、秒级、无依赖、确定性），并提供 `--no-fake` 显式关闭以启用真实依赖。
 
 ### Key Entities
 

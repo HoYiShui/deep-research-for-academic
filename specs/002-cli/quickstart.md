@@ -27,10 +27,10 @@ python -m backend.cli slice review --input state.json --fake --seed 42 --json
 # 3. 全链路闭环（fake，秒级）
 python -m backend.cli run "compare transformer vs CNN intrusion detection" --fake --json
 
-# 4. 跳过 clarify，直接喂冻结 brief 进 pipeline
-python -m backend.cli run "" --brief-file brief.json --fake --json
+# 4. 跳过 clarify，直接喂冻结 brief 进 pipeline（query 省略，只给 --brief-file）
+python -m backend.cli run --brief-file brief.json --fake --json
 
-# 5. 卡住时看 state
+# 5. 卡住时看 state（dump 是 real-mode，读 PG 快照，需先有真实 backend 跑出过快照）
 python -m backend.cli dump <session_id> --json
 
 # 6. 单独验证 KB

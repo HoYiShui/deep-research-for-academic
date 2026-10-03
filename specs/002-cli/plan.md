@@ -25,7 +25,6 @@ backend/cli/
 ├── __init__.py
 ├── __main__.py        # python -m backend.cli 入口，argparse 子命令分发
 ├── output.py          # 输出契约：退出码、--json/--verbose/--quiet、stderr 日志
-├── fake.py            # 确定性 fake 容器（--fake --seed）
 └── commands/
     ├── doctor.py
     ├── run.py
@@ -44,9 +43,19 @@ backend/cli/
 
 ### 确定性策略（--fake --seed）
 
-- 复用 `infrastructure/fake.py` 的 FakeLLM / FakeSearch / FakeStateStore / FakeRetrieval / FakeExecution。
-- `seed` 决定 fake 输出（同 seed 同输出），满足「改一处 → 跑一次 → 看结果」的可复现。
-- 默认 fake（全内存、秒级、无依赖）；真实依赖为可选模式，经 `doctor` 确认后启用。
+- `--seed` 的确定性加进 `infrastructure/fake.py`（测试与 CLI 共享同一套 fake，不另造）。
+- CLI 只做 seed 注入（`--seed N` 传给 fake 容器），不新增 fake 实现。
+- 默认 fake（全内存、秒级、无依赖）；真实依赖用 `--no-fake` 显式关闭，经 `doctor` 确认后启用。
+
+### slice 的复用（避免平行路径）
+
+- `slice <phase>` 不自己 new 一个 agent 跑——那会与 orchestrator 跑的代码漂移。
+- 复用 orchestrator 执行单 phase 的那段（同一 state 切分、事件发射、结果合并），必要时抽一个共享 `run_phase(phase, state, emit)`，orchestrator 与 slice 都调它。
+
+### dump 的 real-mode 定位
+
+- `dump` 读 PG 的 `phase_snapshots`，是唯一 real-mode 命令；fake 模式下无数据。
+- 其余命令（run / slice / ingest / search）默认 fake 快速循环；dump 是 real 取证，需真实 backend 先跑出过快照。
 
 ### 与既有层的关系（依赖方向不变）
 
