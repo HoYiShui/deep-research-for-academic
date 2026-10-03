@@ -25,8 +25,9 @@
 
 - `query` 与 `--brief-file` **二选一、至少一个**：给了 query 走 clarify；给了 `--brief-file` 跳过 clarify，直接读冻结 brief 进 pipeline。
 - `--answers a.json`：clarify 自动用罐头答案（每行/每项一条），不交互。
-- `--seed N`：fake 输出的种子（同 seed 同结果）。
+- `--seed N`：fake 输出的种子（同 seed 同结果、异 seed 异结果）。
 - `--max-iterations N`：回流迭代上限。
+- `--no-fake`（real 模式）：会往 PG 写 sessions / briefs / snapshots，有持久化副作用；默认 fake 全内存、无副作用。
 
 ### `slice <phase> [--input state.json] [--no-fake] [--seed N] [--json] [--verbose]`
 
