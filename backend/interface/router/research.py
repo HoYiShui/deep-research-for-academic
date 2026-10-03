@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 
 from application.bootstrap import get_container
 from application.sse import sse_format
+from interface.deps import require_user
 from interface.dto.research import (
     ClarifyResponse,
     MessageRequest,
@@ -19,13 +20,15 @@ router = APIRouter()
 
 
 @router.post("/research", response_model=SessionResponse)
-async def start_research(body: ResearchRequest) -> dict:
+async def start_research(body: ResearchRequest, user: str = Depends(require_user)) -> dict:
     """Create a session; returns status=clarify (no SSE URL yet)."""
     return await get_container().research.start(body.query)
 
 
 @router.post("/research/{session_id}/messages", response_model=ClarifyResponse)
-async def post_message(session_id: str, body: MessageRequest) -> dict:
+async def post_message(
+    session_id: str, body: MessageRequest, user: str = Depends(require_user)
+) -> dict:
     """Advance one clarify round; spawn the pipeline when ready."""
     container = get_container()
     result = await container.sessions.clarify_round(session_id, body.content)
@@ -36,7 +39,7 @@ async def post_message(session_id: str, body: MessageRequest) -> dict:
 
 
 @router.get("/research/{session_id}/events")
-async def stream_events(session_id: str) -> StreamingResponse:
+async def stream_events(session_id: str, user: str = Depends(require_user)) -> StreamingResponse:
     """Stream SSE events for a session."""
     queue = get_container().bus.queue(session_id)
 
@@ -49,7 +52,7 @@ async def stream_events(session_id: str) -> StreamingResponse:
 
 
 @router.get("/research/{session_id}/report")
-async def get_report(session_id: str) -> dict:
+async def get_report(session_id: str, user: str = Depends(require_user)) -> dict:
     """Return the final report, or 404 if the pipeline has not completed."""
     report = await get_container().research.get_report(session_id)
     if report is None:
@@ -58,13 +61,13 @@ async def get_report(session_id: str) -> dict:
 
 
 @router.get("/research/{session_id}", response_model=StatusResponse)
-async def get_status(session_id: str) -> dict:
+async def get_status(session_id: str, user: str = Depends(require_user)) -> dict:
     """Return the current status by recovering the latest phase snapshot."""
     return await get_container().research.get_status(session_id)
 
 
 @router.post("/research/{session_id}/cancel")
-async def cancel(session_id: str) -> dict:
+async def cancel(session_id: str, user: str = Depends(require_user)) -> dict:
     """Set the cancellation flag; the orchestrator stops at the next phase boundary."""
     get_container().research.cancel(session_id)
     return {"session_id": session_id, "status": "cancelling"}

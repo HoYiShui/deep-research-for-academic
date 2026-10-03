@@ -84,9 +84,15 @@ async def test_orchestrator_emits_milvus_unavailable_and_completes() -> None:
 
 
 def test_kb_search_endpoint() -> None:
+    import jwt
     from fastapi.testclient import TestClient
 
+    from application.auth_service import AuthService
+    from infrastructure.storage.memory import InMemoryUserStore
     from interface.main import app
+
+    secret = "a" * 32
+    token = jwt.encode({"sub": "user-1"}, secret, algorithm="HS256")
 
     class _Retrieval:
         async def retrieve(self, query: str, kb_id: str, top_k: int) -> list[Chunk]:
@@ -94,10 +100,19 @@ def test_kb_search_endpoint() -> None:
 
     class _Container:
         retrieval = _Retrieval()
+        auth = AuthService(InMemoryUserStore(), secret=secret)
 
-    with patch("interface.router.knowledge_base.get_container", return_value=_Container()):
+    container = _Container()
+    with (
+        patch("interface.router.knowledge_base.get_container", return_value=container),
+        patch("interface.deps.get_container", return_value=container),
+    ):
         client = TestClient(app)
-        resp = client.post("/knowledge-base/search", json={"query": "q", "kb_id": "kb", "top_k": 5})
+        resp = client.post(
+            "/knowledge-base/search",
+            json={"query": "q", "kb_id": "kb", "top_k": 5},
+            headers={"Authorization": f"Bearer {token}"},
+        )
 
     assert resp.status_code == 200
     assert resp.json()["chunks"][0]["chunk_id"] == "c1"

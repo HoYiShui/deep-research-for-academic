@@ -78,9 +78,15 @@ async def test_recover_stale_marks_processing_as_failed() -> None:
 
 
 def test_list_documents_endpoint() -> None:
+    import jwt
     from fastapi.testclient import TestClient
 
+    from application.auth_service import AuthService
+    from infrastructure.storage.memory import InMemoryUserStore
     from interface.main import app
+
+    secret = "a" * 32
+    token = jwt.encode({"sub": "user-1"}, secret, algorithm="HS256")
 
     class _KB:
         async def list_documents(self) -> list[dict]:
@@ -88,10 +94,17 @@ def test_list_documents_endpoint() -> None:
 
     class _Container:
         knowledge_base = _KB()
+        auth = AuthService(InMemoryUserStore(), secret=secret)
 
-    with patch("interface.router.knowledge_base.get_container", return_value=_Container()):
+    container = _Container()
+    with (
+        patch("interface.router.knowledge_base.get_container", return_value=container),
+        patch("interface.deps.get_container", return_value=container),
+    ):
         client = TestClient(app)
-        resp = client.get("/knowledge-base/documents")
+        resp = client.get(
+            "/knowledge-base/documents", headers={"Authorization": f"Bearer {token}"}
+        )
 
     assert resp.status_code == 200
     assert resp.json()["documents"][0]["document_id"] == "d1"

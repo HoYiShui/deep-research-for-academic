@@ -7,9 +7,10 @@ import tempfile
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, File, UploadFile
+from fastapi import APIRouter, Depends, File, UploadFile
 
 from application.bootstrap import get_container
+from interface.deps import require_user
 from interface.dto.knowledge_base import (
     ChunkResponse,
     DocumentListResponse,
@@ -22,7 +23,7 @@ router = APIRouter(prefix="/knowledge-base", tags=["knowledge-base"])
 
 
 @router.post("/search", response_model=SearchResponse)
-async def search(body: SearchRequest) -> dict:
+async def search(body: SearchRequest, user: str = Depends(require_user)) -> dict:
     """Retrieve chunks from the local KB via RetrievalPort (embed -> hybrid -> rerank)."""
     retrieval = get_container().retrieval
     chunks = await retrieval.retrieve(body.query, body.kb_id, body.top_k)
@@ -35,7 +36,9 @@ async def search(body: SearchRequest) -> dict:
 
 
 @router.post("/documents", status_code=202, response_model=DocumentUploadResponse)
-async def upload_document(file: Annotated[UploadFile, File()]) -> dict:
+async def upload_document(
+    file: Annotated[UploadFile, File()], user: str = Depends(require_user)
+) -> dict:
     """Accept a PDF upload and start the background ingest pipeline."""
     container = get_container()
     document_id = uuid.uuid4().hex
@@ -47,19 +50,19 @@ async def upload_document(file: Annotated[UploadFile, File()]) -> dict:
 
 
 @router.get("/documents", response_model=DocumentListResponse)
-async def list_documents() -> dict:
+async def list_documents(user: str = Depends(require_user)) -> dict:
     """List documents with their progress state."""
     return {"documents": await get_container().knowledge_base.list_documents()}
 
 
 @router.get("/documents/{document_id}")
-async def get_document(document_id: str) -> dict:
+async def get_document(document_id: str, user: str = Depends(require_user)) -> dict:
     """Return a document's progress state."""
     return await get_container().knowledge_base.get_document(document_id)
 
 
 @router.delete("/documents/{document_id}")
-async def delete_document(document_id: str) -> dict:
+async def delete_document(document_id: str, user: str = Depends(require_user)) -> dict:
     """Delete a document from the progress registry."""
     await get_container().knowledge_base.delete_document(document_id)
     return {"document_id": document_id, "status": "deleted"}
