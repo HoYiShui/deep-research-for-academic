@@ -1,6 +1,6 @@
-# 面向学术研究生命周期的 CriticMaster：证据约束审核与定向返工
+# 面向学术研究生命周期的 Critic：证据约束审核与定向返工
 
-> 状态：终态重构设计草案。本文定义 `CriticMaster` 在网络安全学术研究中的审核与返工路由职责，不代表当前原型已具备报告—论断—证据的程序级绑定或完整复核闭环。
+> 状态：终态重构设计草案。本文定义 `Critic` 在网络安全学术研究中的审核与返工路由职责，不代表当前原型已具备报告—论断—证据的程序级绑定或完整复核闭环。
 
 关联文档：
 
@@ -11,7 +11,7 @@
 
 ## 1. 设计结论
 
-CriticMaster 是研究质量的证据闸门：检查报告中的研究论断是否在明确条件下由可定位证据支撑，并将问题定向回流到检索、数据校核、分析执行或写作环节。它不以一个主观总分替代证据检查，也不能把达到最大轮次等同于审核通过。
+Critic 是研究质量的证据闸门：检查报告中的研究论断是否在明确条件下由可定位证据支撑，并将问题定向回流到检索、数据校核、分析执行或写作环节。它不以一个主观总分替代证据检查，也不能把达到最大轮次等同于审核通过。
 
 ```text
 DraftClaimBinding
@@ -65,15 +65,15 @@ CriticFeedback(
     issue_id,
     target_type,           # source / evidence / claim / artifact / draft_section
     target_id,
-    issue_type,            # provenance / unsupported_claim / condition_mismatch / ...
-    severity,
+    issue_type,            # missing_source / comparability_violation / overclaim / logic_error / hallucination / outdated
+    severity,              # critical / major / minor
+    fillable,              # bool，仅 missing_source 使用
     description,
-    required_action,       # re_research / re_analyze / revise / acknowledge_limit
     resolved,
 )
 ```
 
-返工路由：
+返工路由（由 `machine.route_after_review` 政策表决定，Critic 只产判断、不产 `required_action`）：
 
 ```text
 缺原始来源、关键条件或限制证据
@@ -83,7 +83,7 @@ CriticFeedback(
   → DataAnalyst 校核 → CodeCrafter 重建 Artifact
 
 已有证据但语言过强、引用遗漏或章节缺失
-  → LeadWriter 修订
+  → Writer 修订
 
 无法补齐或预算耗尽
   → Writer 标记待验证风险，收紧结论边界
@@ -99,6 +99,6 @@ CriticFeedback(
 
 ## 6. 与当前原型的边界
 
-当前 `CriticMaster` 将截断后的草稿、前若干 facts 与 data points 交给 LLM 审核，并根据问题类型粗略地在重新搜索和修订间路由。它没有 `DraftClaimBinding`，无法逐项校验报告引用与 Claim–Evidence 图；修订路径还可能让 Critic 读取到旧的 `draft_sections` 而非被修订的报告版本。
+当前 `Critic` 将截断后的草稿、前若干 facts 与 data points 交给 LLM 审核，并根据问题类型粗略地在重新搜索和修订间路由。它没有 `DraftClaimBinding`，无法逐项校验报告引用与 Claim–Evidence 图；修订路径还可能让 Critic 读取到旧的 `draft_sections` 而非被修订的报告版本。
 
 终态保留其严苛审核与返工角色，但以稳定 ID、证据定位、问题定向和修订后复核构成可检查的质量闭环。

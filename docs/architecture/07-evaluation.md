@@ -243,7 +243,7 @@ Baseline 只执行一次资料检索和一次报告生成，不启用原始资�
 
 ### 6.3 计划、协同与状态消费
 
-Planner 是否“拆对任务”不能用发生重试的次数代替。应基于冻结的任务要求和状态流转，检查计划覆盖与实际消费情况。
+Architect 是否“拆对任务”不能用发生重试的次数代替。应基于冻结的任务要求和状态流转，检查计划覆盖与实际消费情况。
 
 | 指标 | 定义 |
 | --- | --- |
@@ -252,7 +252,7 @@ Planner 是否“拆对任务”不能用发生重试的次数代替。应基于
 | `state_consumption_trace` | 记录 SectionPlan、Evidence、QuantitativeObservation、AnalysisArtifact、CriticFeedback 是否被下游对应 Agent 实际读取和使用 |
 | `targeted_rework_rate` | Critic 反馈能否定位到具体章节、论断或分析产物，并被路由到相应补查、分析或修订步骤 |
 
-协同质量的重点不是让所有 Agent 都互相传递大量文本，而是让结构化状态被正确消费：ChiefArchitect 的章节计划约束 DeepScout，DeepScout 的 Evidence 与 QuantitativeObservation 约束后续分析和写作，Critic 的反馈准确回流至对应对象。
+协同质量的重点不是让所有 Agent 都互相传递大量文本，而是让结构化状态被正确消费：Architect 的章节计划约束 DeepScout，DeepScout 的 Evidence 与 QuantitativeObservation 约束后续分析和写作，Critic 的反馈准确回流至对应对象。
 
 ### 6.4 自检、冲突与修正
 

@@ -43,7 +43,7 @@ POST /research
 【application】session_service.clarify 循环：
   ⑦ architect.clarify(brief_draft, answer)              # 只产判断
        → { missing_fields, questions, brief_patch, assumptions }
-  ⑦' decide_status(missing_fields) → ask/confirm/ready   # 代码政策（machine.py）
+  ⑦' decide_status(missing_fields) → ask/ready   # 代码政策（machine.py）
   ⑧ status=ask → questions 经 session 返回用户 → 用户答 → 回 ⑦（持久化 brief_draft + history）
   ⑨ status=ready → 冻结 ResearchBrief（写 briefs 表）
   期间：每轮派生 ClarifyEvent → SSE 推给前端

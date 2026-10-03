@@ -28,7 +28,7 @@ QuantitativeObservation + SectionPlan.analysis_requirements
 
 | 对象 | 由谁产生 | DataAnalyst 如何使用 |
 |---|---|---|
-| `SectionPlan.analysis_requirements` | ChiefArchitect | 判断某章节是否确需比较矩阵、统计计算或图表。 |
+| `SectionPlan.analysis_requirements` | Architect | 判断某章节是否确需比较矩阵、统计计算或图表。 |
 | `QuantitativeObservation` | DeepScout | 读取表格单元格或段落数值及其 `evidence_id`。 |
 | `Evidence` / `SourceRecord` | DeepScout | 补齐表格位置、数据来源、任务和实验条件。 |
 | `Claim` | DeepScout | 确认比较服务于哪项研究论断。 |

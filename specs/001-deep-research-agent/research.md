@@ -14,11 +14,11 @@
 - **Rationale**: V1 的核心难点是 SSOT + 状态派生事件 + phase 级快照这套状态模型，手写更可控、不被 LangGraph 的状态模型牵着走；Agent 已是纯工人（input→result），V2 迁移成 LangGraph 节点几乎零成本。
 - **Alternatives**: V1 直接上 LangGraph（细粒度 checkpoint V1 用不上，且其状态模型与 SSOT 设计可能冲突）；Temporal（过重）；Prefect（偏数据管道）。
 
-## 2. 跨请求状态：Redis
+## 2. 跨请求状态：进程内态（V1）/ Redis（V2）
 
-- **Decision**: Redis 保存跨请求任务状态与 SSE 事件队列。
-- **Rationale**: 长任务跨多个 HTTP 请求，需快速读写会话状态；Redis 的 pub/sub 或 list 天然支持 SSE 事件与任务执行解耦。
-- **Alternatives**: 内存态（重启即丢，违反章程「成果保护」）；PostgreSQL 独占（查询慢，不适合高频临时态）。
+- **Decision**: V1 单进程用进程内 `dict`（SSE 事件总线 = `dict[session_id → asyncio.Queue]`；取消标志 = `dict[session_id → bool]`）；V2 多进程/多实例改用 Redis（pub/sub + 取消标志）。
+- **Rationale**: V1 单 worker（`uvicorn --workers 1`）部署下进程内态最简单且满足需求；扩展时才需要 Redis 解耦任务执行与事件推送。
+- **Alternatives**: V1 直接上 Redis（单进程用不上、徒增运维）；PostgreSQL 独占（查询慢，不适合高频临时态）。
 
 ## 3. 业务快照持久化：PostgreSQL JSONB
 
@@ -40,7 +40,7 @@
 
 ## 6. LLM：deepseek（Anthropic 兼容接口）
 
-- **Decision**: deepseek v4.1 flash，经 Anthropic 兼容 API 调用。
+- **Decision**: deepseek-v4-flash，经 Anthropic 兼容 API（`https://api.deepseek.com/anthropic`）调用。
 - **Rationale**: 已在用；成本可控。接口层抽象，便于替换模型。
 - **Alternatives**: 其他闭源/开源模型（均可替换，不影响架构）。
 

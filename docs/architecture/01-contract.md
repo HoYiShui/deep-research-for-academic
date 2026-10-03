@@ -6,7 +6,7 @@
 
 系统面向网络安全等技术研究课题，帮助研究者完成四类高价值工作：研究问题构思、方法差分论证、实验与主张验证，以及后续的审稿意见回应。它的交付不是泛泛的领域综述，而是围绕一次具体研究决策，形成可追溯的证据、比较、结论边界和下一步验证动作。
 
-核心原则：研究请求足够长不代表已经良定义。只有当未确定的信息会改变检索计划、可接受证据、可支持的结论或验证方案时，ChiefArchitect 才应发起 Clarify。
+核心原则：研究请求足够长不代表已经良定义。只有当未确定的信息会改变检索计划、可接受证据、可支持的结论或验证方案时，Architect 才应发起 Clarify。
 
 ### 1.1 核心术语：业务语义与架构对象
 
@@ -29,11 +29,9 @@
 ```text
 用户请求 + 可选研究模式
         ↓
-ChiefArchitect：任务类型识别、Clarify、ResearchBrief 冻结
+Architect：任务类型识别、Clarify、ResearchBrief 冻结
         ↓
-ResearchProfile：任务专属字段、检索与校核策略、报告模板
-        ↓
-Plan → DeepScout → Critic → Writer
+Architect → DeepScout → DataAnalyst/CodeCrafter → Writer → Critic
 ```
 
 ### 2.1 用户入口：研究模式
@@ -46,11 +44,11 @@ Plan → DeepScout → Critic → Writer
 - 回应审稿意见或修订论证
 - 不确定，由系统判断
 
-这里的“研究模式”是对用户友好的入口。内部实现可将它映射为 `task_type` 与对应的 `ResearchProfile`，无需让用户理解或直接配置 Agent skill。
+这里的“研究模式”是对用户友好的入口。内部实现可将它映射为 `task_type`，无需让用户理解或直接配置 Agent skill。
 
 ### 2.2 ResearchBrief：每次研究共享的契约
 
-无论任务类型如何变化，ChiefArchitect 最终冻结同一粒度的 ResearchBrief：
+无论任务类型如何变化，Architect 最终冻结同一粒度的 ResearchBrief：
 
 ```yaml
 task_type: idea_exploration | method_differentiation | evaluation_design | reviewer_response
@@ -65,7 +63,9 @@ deliverable: 报告、比较矩阵、验证计划、风险清单等交付形式
 assumptions: 未澄清但已显式采用的保守默认假设
 ```
 
-### 2.3 ResearchProfile：按类型展开的专属工作流
+### 2.3 ResearchProfile：按类型展开的专属工作流（已废弃）
+
+> ⚠️ 本节已被 spec 取代：V1 采用统一 10 字段 ResearchBrief + `task_type` 区分任务，不再引入独立的 ResearchProfile 概念。保留仅作历史参考；若将来各 `task_type` 的 brief 结构差异大到需各自加字段，再考虑复活此概念。
 
 ResearchProfile 不重复保存本次研究事实；它定义该类任务需要补充哪些字段、如何组织检索与报告。
 
@@ -76,35 +76,32 @@ ResearchProfile 不重复保存本次研究事实；它定义该类任务需要�
 | `evaluation_design` | 如何验证每个主张，以及结论能支持到哪里 | `datasets`、`protocols`、`baselines`、`metrics`、`claim_to_protocol_mapping` | 验证方案与协议—指标—结论映射 |
 | `reviewer_response` | 某项质疑是否成立，如何补证或收缩主张 | `reviewer_claim`、`affected_claims`、`available_artifacts` | 回应草案、补证路径与风险判断 |
 
-## 3. ChiefArchitect 的 Clarify 状态机
+## 3. Clarify 状态机（政策在 machine.py，Architect 只产判断）
 
 ```text
 INTAKE
   → 分类 task_type
-  → 读取当前 Brief 草稿
-  → 判断缺失项是否会改变研究执行
-  → ASK / CONFIRM / READY
+  → Architect.clarify 读取当前 Brief 草稿，判断缺失项（只产判断，不产 status）
+  → machine.decide_status 应用政策：critical 缺口 → ask；否则 → ready
 
-ASK → WAITING_FOR_CLARIFICATION → 合并用户回答 → 再次判断
-CONFIRM → 用户确认 Brief → READY
-READY → 冻结 ResearchBrief → PLANNING → DeepScout
+ask → 返回问题 → 用户回答 → 合并 brief_patch → 再次判断（循环在 session_service）
+ready → 冻结 ResearchBrief → 进入 pipeline（PLANNING → DeepScout）
 ```
 
-每轮 Clarify 建议只问一到两个高信息增益问题，并以结构化对象输出：
+每轮 Clarify 建议只问一到两个高信息增益问题。Architect 只输出结构化判断（**不含 status**）：
 
 ```yaml
-status: ask | confirm | ready
 missing_fields: []
 questions: []
 brief_patch: {}
 assumptions: []
 ```
 
-需要持久化 `session_id`、`clarification_history`、`pending_questions`、`brief_draft` 和 `clarification_round`，以支持用户跨请求回复。设定轮数上限；若仍有非关键缺口，则采用可披露的保守默认值，而不是无限追问。
+`status`（ask/ready）由 `machine.decide_status` 这个纯代码政策决定——**LLM 从不驱动控制流**。需要持久化 `session_id`、`clarification_history`、`pending_questions`、`brief_draft` 和 `clarification_round`，以支持用户跨请求回复。设定轮数上限；若仍有非关键缺口，则采用可披露的保守默认值，而不是无限追问。
 
 ## 4. 可复用的 Query 骨架
 
-用户的自然语言 Query 可以很具体，但 ChiefArchitect 需要将其归一到以下要素：
+用户的自然语言 Query 可以很具体，但 Architect 需要将其归一到以下要素：
 
 ```text
 研究动作 + 研究对象 + 决策目标 + 比较范围 + 可用约束 + 证据要求 + 交付形式
@@ -120,7 +117,7 @@ assumptions: []
 
 ### 4.1 三类 Query 示例：内部威胁检测
 
-以下示例刻意保持“足以进入 Clarify、但不替用户预先做完研究决策”的粒度。ChiefArchitect 仍需要根据缺失信息决定是否追问，例如研究对象是否限定某类内部威胁、可用数据与算力、候选路线是否由用户指定、以及交付是否需要实验协议。
+以下示例刻意保持“足以进入 Clarify、但不替用户预先做完研究决策”的粒度。Architect 仍需要根据缺失信息决定是否追问，例如研究对象是否限定某类内部威胁、可用数据与算力、候选路线是否由用户指定、以及交付是否需要实验协议。
 
 #### A. Idea 构思
 
@@ -230,7 +227,7 @@ assumptions: []
 
 现有原型可复用的骨架包括研究状态、章节计划、检索证据归档、章节写作与最终汇总。终态重构需要新增或迁移的内容包括：
 
-- ChiefArchitect 的任务类型识别与多轮 Clarify；
+- Architect 的任务类型识别与多轮 Clarify；
 - 持久化的 ResearchBrief 与研究会话恢复；
 - 按 `task_type` 注入的 ResearchProfile、证据标准与章节需求；
 - 从通用行业研究报告迁移到技术路线论证报告的 Writer 模板；

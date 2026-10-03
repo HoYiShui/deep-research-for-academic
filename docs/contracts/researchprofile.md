@@ -1,6 +1,8 @@
 # ResearchProfile 契约
 
-> 参考：`docs/architecture/01-contract.md` §2.3。
+> ⚠️ 已废弃（superseded）：V1 采用统一 10 字段 ResearchBrief + `task_type`，不再引入 ResearchProfile。本文件保留仅作历史参考。
+>
+> 参考：`docs/architecture/01-contract.md` §2.3（该节亦已标注废弃）。
 
 ResearchProfile 不重复保存研究事实；它定义每类任务需补充哪些字段、如何组织检索与报告。
 

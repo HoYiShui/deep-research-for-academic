@@ -161,7 +161,7 @@ ClaimCandidate(
 claim_key = sha256(json.dumps(normalized_claim_fields, sort_keys=True))
 ```
 
-哈希只是稳定 ID；真正决定能否聚合的是结构化字段。方法、数据集、协议或指标不一致时，系统不强行合并，应创建新的 `ClaimVariant`，并将其差异交给后续比较。
+哈希只是稳定 ID；真正决定能否聚合的是结构化字段。方法、数据集、协议或指标不一致时，系统不强行合并，应将条件差异保留在 `Claim.conditions`（`status=limited`），并将其差异交给后续比较。
 
 ### 6.4 新资料的处理规则
 

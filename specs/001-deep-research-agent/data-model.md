@@ -9,7 +9,7 @@
 
 | state | 内容 | 归谁 | 存哪 |
 |---|---|---|---|
-| **SessionState** | brief_draft（草稿）、clarification_history、clarify 状态（ask/confirm/ready） | session_service | sessions / briefs 表 |
+| **SessionState** | brief_draft（草稿）、clarification_history、clarify 状态（ask/ready） | session_service | sessions / briefs 表 |
 | **PipelineState** | 冻结 brief（只读输入）+ section_plans / evidence / claims / ... + phase + run_metadata | orchestrator | phase_snapshots |
 
 **brief_draft 不是 pipeline state 的字段**；冻结 brief 是 pipeline 的输入（只读），交接时传入。
@@ -59,7 +59,7 @@
 
 ### SourceRecord（来源登记）
 
-`source_id`（DOI/arXiv/URL/commit）、`source_type`（paper/dataset/code/standard/local_document）、`title`、`authors_or_publisher`、`version`、`canonical_url`、`provenance`、`source_tier`（primary/official/peer_reviewed/secondary/unknown）。
+`source_id`（DOI/arXiv/URL/commit）、`source_type`（paper/dataset/code/standard/local_document）、`title`、`authors_or_publisher`、`published_at`、`version`、`canonical_url`、`provenance`、`source_tier`（primary/official/peer_reviewed/secondary/unknown）。
 
 ### QuantitativeObservation（量化观察）
 
@@ -71,7 +71,7 @@
 
 ### AnalysisArtifact（分析产物）
 
-`artifact_id`、`section_id`、`input_metric_ids`、`input_evidence_ids`、`operation`、`code_or_recipe`、`output`、`execution_status`。
+`artifact_id`、`section_id`、`input_metric_ids`、`input_evidence_ids`、`operation`（闭集：comparison_matrix / pairwise_delta / plot / statistic / aggregation）、`code_or_recipe`、`output`、`execution_status`。
 
 ### DraftSection / DraftClaimBinding / CriticFeedback（写与审）
 
@@ -80,7 +80,7 @@
 
 ## 状态转换
 
-- **Clarify（SessionState）**：`ask` → `confirm` → `ready`（由 `decide_status` 纯代码政策决定）。ready 时冻结 brief，交接给 PipelineState。
+- **Clarify（SessionState）**：`ask` → `ready`（由 `decide_status` 纯代码政策决定）。ready 时冻结 brief，交接给 PipelineState。
 - **ResearchPhase（PipelineState）**：`plan` → `research` → `analyze` → `write` → `review` →（回流 research/analyze/write）→ `done`。
 - **Claim.status**: `open` → `supported` / `limited` / `refuted` / `insufficient`（由关联 Evidence 的 relation 决定）
 - **ComparableMetric.comparability**: `compatible` / `partial` / `incompatible`（不可逆，口径归一后确定）

@@ -72,7 +72,7 @@ interface → application → domain → ports（抽象接口）
 
 **Clarify 定位**（LLM 产判断、代码应用政策）：
 - `architect.clarify(brief_draft, answer) -> {missing_fields, questions, brief_patch, assumptions}`——**只产判断，不产 status**。
-- `decide_status(brief_draft, missing_fields) -> ask/confirm/ready`——**纯代码政策**（有 critical 缺口→ask，否则→保守默认→ready），在 machine.py。
+- `decide_status(missing_fields) -> ask/ready`——**纯代码政策**（有 critical 缺口→ask，否则→保守默认→ready），在 machine.py。
 - 循环在 session_service（`while status != ready: clarify → 问用户 → 合并 answer → 持久化`）。
 - **状态持久化**：brief_draft + clarification_history 经 StateStorePort 落 PostgreSQL（clarify 跨多个 HTTP 请求，不能只活在内存）；每轮 Q&A 是 append-only，由 session 的 messages 表承载（天然审计）。
 - **brief_draft 是结构化压缩态**：每轮把 answer 折进 brief，下一轮只看 `brief_draft + 最新 answer`，不重读全文 → context 有界，无 ReAct 式膨胀。

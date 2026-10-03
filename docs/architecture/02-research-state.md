@@ -13,9 +13,9 @@
 
 状态分为三类：
 
-1. **研究契约**：ChiefArchitect 冻结的研究范围与章节计划。
+1. **研究契约**：Architect 冻结的研究范围与章节计划。
 2. **研究事实**：DeepScout 追加的来源、证据及其与论断的关系。
-3. **派生产物**：DataAnalyst、CodeCrafter、LeadWriter 与 Critic 在研究事实之上生成的可比指标、分析结果、草稿和反馈。
+3. **派生产物**：DataAnalyst、CodeCrafter、Writer 与 Critic 在研究事实之上生成的可比指标、分析结果、草稿和反馈。
 
 ## 2. 顶层状态
 
@@ -59,11 +59,12 @@ ResearchState(
 
 ```python
 ResearchBrief(
-    task_type,             # idea / method / evaluation / reviewer response
+    task_type,             # idea_exploration / method_differentiation / evaluation_design / reviewer_response
     decision_goal,
     research_object,
     scope,
     comparison_scope,
+    claims_to_verify,
     evidence_requirements,
     conclusion_boundary,
     deliverable,
@@ -127,7 +128,7 @@ Evidence(
 
 ### 4.3 `Claim` 与 `ClaimEvidenceLink`
 
-Planning 中的 `claim_specs` 在 Research 中被实例化或细化为 `Claim`。研究过程中若发现数据集、协议或指标条件不同，应创建 `ClaimVariant`，不能把不同条件下的结论强行合并。
+Planning 中的 `claim_specs` 在 Research 中被实例化或细化为 `Claim`。研究过程中若发现数据集、协议或指标条件不同，应将条件差异保留在 `Claim.conditions`（`status=limited`），不能把不同条件下的结论强行合并。
 
 ```python
 Claim(
@@ -230,7 +231,7 @@ AnalysisArtifact(
 
 ### 6.1 `DraftSection`
 
-LeadWriter 根据章节计划、Claim、Evidence、ComparableMetric 和 AnalysisArtifact 形成草稿。草稿中的每项关键结论必须引用 `evidence_id`，并在适用时引用对应的 Artifact；引用关系另以 `DraftClaimBinding` 显式登记，不能只留在自然语言脚注中。
+Writer 根据章节计划、Claim、Evidence、ComparableMetric 和 AnalysisArtifact 形成草稿。草稿中的每项关键结论必须引用 `evidence_id`，并在适用时引用对应的 Artifact；引用关系另以 `DraftClaimBinding` 显式登记，不能只留在自然语言脚注中。
 
 ```python
 DraftClaimBinding(
@@ -246,7 +247,7 @@ DraftClaimBinding(
 
 ### 6.2 `CriticFeedback`
 
-CriticMaster 不是笼统阅读草稿后给出意见，而是沿 `DraftClaimBinding → Claim → ClaimEvidenceLink → Evidence → SourceRecord` 的链路逐项审核。它分两轮执行：首轮审核草稿并提出定向返工，修订后复核原问题是否关闭、是否引入新问题。
+Critic 不是笼统阅读草稿后给出意见，而是沿 `DraftClaimBinding → Claim → ClaimEvidenceLink → Evidence → SourceRecord` 的链路逐项审核。它分两轮执行：首轮审核草稿并提出定向返工，修订后复核原问题是否关闭、是否引入新问题。
 
 首轮检查：
 
@@ -259,15 +260,15 @@ CriticFeedback(
     issue_id,
     target_type,           # source / evidence / claim / artifact / draft_section
     target_id,
-    issue_type,
-    severity,
+    issue_type,            # missing_source / comparability_violation / overclaim / logic_error / hallucination / outdated
+    severity,              # critical / major / minor
+    fillable,              # bool，仅 missing_source 使用
     description,
-    required_action,       # re_research / re_analyze / revise / acknowledge_limit
     resolved,
 )
 ```
 
-反馈必须定位到具体对象，并按 `required_action` 路由：
+反馈必须定位到具体对象；回流动作由 `machine.route_after_review` 政策表决定（Critic 不产 `required_action`）：
 
 ```text
 缺原始来源、关键条件或限制证据
@@ -277,10 +278,10 @@ CriticFeedback(
   → DataAnalyst → CodeCrafter
 
 已有证据但表述过强、引用遗漏或章节缺失
-  → LeadWriter 修订
+  → Writer 修订
 
 无法补齐
-  → LeadWriter 写入待验证风险或收紧结论边界
+  → Writer 写入待验证风险或收紧结论边界
 ```
 
 修订后的复核只将问题标记为 `resolved`，或记录未解决/新出现的问题；不能因达到轮次上限而将未解决问题伪装为已通过。
@@ -289,12 +290,12 @@ CriticFeedback(
 
 | 阶段 / Agent | 主要读取 | 允许写入 |
 |---|---|---|
-| Clarify / ChiefArchitect | 用户请求、历史 Brief | `research_brief`、`section_plans`、初始 `claim_specs` |
+| Clarify / Architect | 用户请求、历史 Brief | `research_brief`、`section_plans`、初始 `claim_specs` |
 | DeepScout | Brief、SectionPlan、已有 Source/Evidence | `sources`、`evidence`、`claims`、`claim_evidence_links`、`quantitative_observations`、`section_coverage` |
 | DataAnalyst | Evidence、Observation、SectionPlan | `comparable_metrics`、`section_coverage` 中的可比性缺口 |
 | CodeCrafter | Analysis requirement、ComparableMetric | `analysis_artifacts` |
-| LeadWriter | Plan、Claim、Evidence、Metric、Artifact、Coverage | `draft_sections`、`draft_claim_bindings`、`final_report` |
-| CriticMaster | DraftBinding、Claim、Evidence、Source、Metric、Artifact、Coverage | `critic_feedback`、`section_coverage` 中的新增缺口与返工路由 |
+| Writer | Plan、Claim、Evidence、Metric、Artifact、Coverage | `draft_sections`、`draft_claim_bindings`、`final_report` |
+| Critic | DraftBinding、Claim、Evidence、Source、Metric、Artifact、Coverage | `critic_feedback`、`section_coverage` 中的新增缺口与返工路由 |
 
 ## 8. 全链路数据流
 
@@ -312,9 +313,9 @@ CriticFeedback(
       → ComparableMetric 或“不可直接比较”原因
   → CodeCrafter（仅满足分析前提时）
       → AnalysisArtifact
-  → LeadWriter
+  → Writer
       → DraftSection + DraftClaimBinding / FinalReport
-  → CriticMaster
+  → Critic
       → 定向补查 / 重新分析 / 修订
       → 修订后复核问题关闭情况
 ```

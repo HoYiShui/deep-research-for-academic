@@ -14,7 +14,7 @@
   - [DeepScout：递归检索与证据追溯](architecture/03-deepscout.md)
   - [DataAnalyst：口径归一与可比性](architecture/04-data-analyst.md)
   - [CodeCrafter：分析执行与可视化](architecture/05-code-crafter.md)
-  - [CriticMaster：审核与返工](architecture/06-critic-master.md)
+  - [Critic：审核与返工](architecture/06-critic-master.md)
   - [离线评测设计](architecture/07-evaluation.md)
   - [数据流（dataflow）](architecture/dataflow.md)
 
