@@ -20,7 +20,7 @@ Deep Research 系统**」的设计过程。因此文中保留的「与当前原�
 | 03-deepscout.md | DeepScout：递归检索、证据追溯与主张聚合 |
 | 04-data-analyst.md | DataAnalyst：证据口径归一与可比性校核 |
 | 05-code-crafter.md | CodeCrafter：受控分析执行与可视化 |
-| 06-critic-master.md | Critic：证据约束审核与定向返工 |
+| 06-critic.md | Critic：证据约束审核与定向返工 |
 | 07-evaluation.md | 离线评测设计 |
 
 ## 与其它层的关系
