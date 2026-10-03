@@ -61,11 +61,13 @@ async def research(
         }
 
     claims, links = await _extract_claims(llm, evidence)
+    observations = await _extract_observations(llm, evidence)
     return {
         "evidence": evidence,
         "sources": sources,
         "claims": claims,
         "claim_evidence_links": links,
+        "quantitative_observations": observations,
     }
 
 
@@ -115,7 +117,7 @@ async def _extract_claims(
 def _claims_prompt(evidence: dict[str, dict[str, Any]]) -> str:
     """Build the claim-extraction prompt from the gathered evidence snippets."""
     snippets = "\n".join(
-        f"- [{ev_id}] {ev['location']}: {ev['quote_or_raw_content'][:300]}"
+        f"- [{ev_id}] {ev.get('location', '?')}: {ev.get('quote_or_raw_content', '')[:300]}"
         for ev_id, ev in list(evidence.items())[:20]
     )
     return (
@@ -124,5 +126,49 @@ def _claims_prompt(evidence: dict[str, dict[str, Any]]) -> str:
         "supports. Respond with JSON only:\n"
         '{"claims": [{"text": "...", "conditions": {"dataset": "...", "protocol": "...", '
         '"metric": "..."}, "evidence_ids": ["ev-..."]}]}\n\n'
+        f"Evidence:\n{snippets}\n"
+    )
+
+
+async def _extract_observations(
+    llm: LLMPort, evidence: dict[str, dict[str, Any]]
+) -> dict[str, dict[str, Any]]:
+    """Extract quantitative observations (result-table cells) from evidence."""
+    if not evidence:
+        return {}
+    judgment = parse_json(await call_llm(llm, _observations_prompt(evidence)))
+    observations: dict[str, dict[str, Any]] = {}
+    for item in judgment.get("observations", []):
+        evidence_id = item.get("evidence_id", "")
+        if evidence_id not in evidence:
+            continue
+        row_key = item.get("row_key", "")
+        column_key = item.get("column_key", "")
+        observation_id = stable_id("obs", evidence_id, row_key, column_key)
+        observations[observation_id] = {
+            "observation_id": observation_id,
+            "evidence_id": evidence_id,
+            "kind": item.get("kind", ""),
+            "row_key": row_key,
+            "column_key": column_key,
+            "value": item.get("value", ""),
+            "uncertainty": item.get("uncertainty", ""),
+            "statistic": item.get("statistic", ""),
+        }
+    return observations
+
+
+def _observations_prompt(evidence: dict[str, dict[str, Any]]) -> str:
+    """Build the quantitative-observation extraction prompt from evidence."""
+    snippets = "\n".join(
+        f"- [{ev_id}] {ev.get('location', '?')}: {ev.get('quote_or_raw_content', '')[:300]}"
+        for ev_id, ev in list(evidence.items())[:20]
+    )
+    return (
+        "You are a research data extractor. Given evidence snippets containing "
+        "experimental results, extract quantitative observations (result-table "
+        "cells) as structured rows. Respond with JSON only:\n"
+        '{"observations": [{"row_key": "...", "column_key": "...", "value": "...", '
+        '"uncertainty": "...", "statistic": "...", "evidence_id": "ev-..."}]}\n\n'
         f"Evidence:\n{snippets}\n"
     )
