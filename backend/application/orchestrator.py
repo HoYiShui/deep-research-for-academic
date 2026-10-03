@@ -140,11 +140,21 @@ class Orchestrator:
             state.analysis_artifacts[artifact["artifact_id"]] = artifact
 
     async def _write(self, state: PipelineState) -> None:
-        """Write draft sections and bindings; mark the draft as final report."""
-        result = writer.write_report(state.section_plans, state.evidence)
+        """Write (or revise) draft sections and bindings."""
+        if state.critic_feedback:
+            result = await writer.revise_report(
+                state.section_plans, state.claims, state.evidence,
+                state.comparable_metrics, state.analysis_artifacts,
+                state.research_brief, state.draft_sections, state.critic_feedback, self._llm,
+            )
+        else:
+            result = await writer.write_report(
+                state.section_plans, state.claims, state.evidence,
+                state.comparable_metrics, state.analysis_artifacts, state.research_brief, self._llm,
+            )
         state.draft_sections = result["draft_sections"]
         state.draft_claim_bindings = result["draft_claim_bindings"]
-        state.final_report = {"sections": state.draft_sections}
+        state.final_report = result["final_report"]
 
     async def _review(self, state: PipelineState) -> None:
         """Review draft bindings; routing to the next phase is policy-driven."""
