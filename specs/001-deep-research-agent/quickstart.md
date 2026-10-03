@@ -10,8 +10,8 @@
 ## 启动
 
 ```bash
-# 1. 启动依赖（postgres / milvus / minio）
-docker compose up -d
+# 1. 启动依赖（postgres / minio / etcd / minio-milvus / milvus）
+docker compose --env-file backend/.env up -d
 
 # 2. 安装后端
 cd backend && pip install -e ".[dev]"

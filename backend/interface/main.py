@@ -7,6 +7,14 @@ from interface.router.knowledge_base import router as kb_router
 from interface.router.research import router as research_router
 
 app = FastAPI(title="Deep Research Agent")
+
+
+@app.get("/health")
+async def health() -> dict[str, str]:
+    """Lightweight process health endpoint for container orchestration."""
+    return {"status": "ok"}
+
+
 app.include_router(auth_router)
 app.include_router(research_router)
 app.include_router(kb_router)
