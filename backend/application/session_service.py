@@ -9,6 +9,9 @@ from domain.ports import LLMPort
 from domain.research.agents import architect
 from domain.research.machine import decide_status
 
+# Cap on clarify rounds; past this the brief is frozen with conservative defaults (FR-003).
+MAX_CLARIFY_ROUNDS = 3
+
 
 class SessionService:
     """Owns the clarify loop, persisting to sessions/messages/briefs tables."""
@@ -46,7 +49,11 @@ class SessionService:
             judgment = await architect.clarify(self._llm, brief, answer)
             brief.update(judgment.get("brief_patch", {}))
 
-            status = decide_status(judgment.get("missing_fields", []))
+            messages = await self._store.list_messages(session_id)
+            if len(messages) >= MAX_CLARIFY_ROUNDS:
+                status = "ready"  # conservative default once the round cap is reached
+            else:
+                status = decide_status(judgment.get("missing_fields", []))
             await self._store.append_message(session_id, "user", answer)
             await self._store.save_brief(session_id, brief, brief.get("task_type", ""))
             await self._store.set_session_status(session_id, status)
