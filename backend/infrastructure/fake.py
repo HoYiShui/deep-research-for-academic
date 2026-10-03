@@ -5,17 +5,63 @@ skeleton can run end-to-end before any real adapter exists.
 """
 from __future__ import annotations
 
+import json
+
 from domain.ports import SearchResult
 
 
 class FakeLLM:
-    """LLMPort fake: returns a fixed string."""
+    """LLMPort fake: returns a fixed string, or seeded phase-appropriate JSON.
 
-    def __init__(self, response: str = "{}") -> None:
+    With ``seed=None`` (default) it returns the fixed ``response``. With a seed
+    it becomes prompt-aware: it detects the calling agent from the prompt and
+    returns deterministic, seed-varied JSON so fake-mode runs produce meaningful
+    (and reproducible) output.
+    """
+
+    def __init__(self, response: str = "{}", seed: int | None = None) -> None:
         self._response = response
+        self._seed = seed
 
     async def complete(self, prompt: str) -> str:
-        return self._response
+        if self._seed is None:
+            return self._response
+        return self._seeded(prompt)
+
+    def _seeded(self, prompt: str) -> str:
+        n = 1 + (self._seed % 3)
+        if "section_plans" in prompt:
+            return json.dumps(
+                {
+                    "section_plans": [
+                        {
+                            "section_id": f"s{i}",
+                            "objective": f"objective {self._seed}-{i}",
+                            "sub_questions": [f"q{i}"],
+                        }
+                        for i in range(n)
+                    ]
+                }
+            )
+        if '"claims"' in prompt:
+            return json.dumps(
+                {"claims": [{"text": f"method A outperforms baseline (seed {self._seed})",
+                             "conditions": {}, "evidence_ids": []}]}
+            )
+        if '"observations"' in prompt:
+            return '{"observations": []}'
+        if '"metrics"' in prompt:
+            return '{"metrics": []}'
+        if '"content"' in prompt:
+            return '{"content": "A seeded analysis section.", "bindings": []}'
+        if '"issues"' in prompt:
+            return '{"issues": []}'
+        if '"missing_fields"' in prompt:
+            return json.dumps(
+                {"missing_fields": [], "questions": [],
+                 "brief_patch": {"task_type": "idea_exploration"}, "assumptions": []}
+            )
+        return "{}"
 
 
 class FakeSearch:

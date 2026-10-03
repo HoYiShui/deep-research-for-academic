@@ -6,7 +6,7 @@
 
 ## Summary
 
-给 deep-research-agent 后端加一个 CLI 调试入口（`python -m backend.cli`），统一 doctor / run / slice / dump / ingest / search 六个命令。Agent 是一等公民：非交互、确定性（`--fake --seed`）、结构化输出（`--json`）、退出码 + stderr 错误。复用 001 号 feature 的 application / domain / infrastructure 层，不新增研究能力。
+给 deep-research-agent 后端加一个 CLI 调试入口（`python -m cli`），统一 doctor / run / slice / dump / ingest / search 六个命令。Agent 是一等公民：非交互、确定性（`--fake --seed`）、结构化输出（`--json`）、退出码 + stderr 错误。复用 001 号 feature 的 application / domain / infrastructure 层，不新增研究能力。
 
 ## Technical Context
 
@@ -23,7 +23,7 @@
 ```text
 backend/cli/
 ├── __init__.py
-├── __main__.py        # python -m backend.cli 入口，argparse 子命令分发
+├── __main__.py        # python -m cli 入口，argparse 子命令分发
 ├── output.py          # 输出契约：退出码、--json/--verbose/--quiet、stderr 日志
 └── commands/
     ├── doctor.py

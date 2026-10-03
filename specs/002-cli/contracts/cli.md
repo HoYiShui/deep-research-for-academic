@@ -4,7 +4,7 @@
 
 ## 1. 命令集
 
-所有命令经 `python -m backend.cli <cmd>` 调用。通用 flag：
+所有命令经 `python -m cli <cmd>` 调用。通用 flag：
 
 | flag | 作用 |
 |---|---|

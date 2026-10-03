@@ -100,7 +100,7 @@ Agent 想单独验证 KB 入库/检索，不跑完整 pipeline。
 
 ### Key Entities
 
-- **命令集**: run / slice / dump / doctor / ingest / search，每个是 `python -m backend.cli <cmd>` 的子命令。
+- **命令集**: run / slice / dump / doctor / ingest / search，每个是 `python -m cli <cmd>` 的子命令。
 - **输出契约**: 退出码枚举（0/1/2/3）、stdout 结果本体、stderr 日志、`--json`/`--verbose`/`--quiet` 三个 flag。
 - **确定性容器**: 复用基础设施层的 fake 适配器（FakeLLM/FakeSearch/FakeStateStore/...），由 seed 决定输出。
 

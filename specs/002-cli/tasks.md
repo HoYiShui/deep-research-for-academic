@@ -20,17 +20,17 @@ T001 CLI 骨架 + 输出契约 + 确定性容器（--fake --seed）
 
 ## Phase 1：CLI 骨架（收敛点）
 
-- [ ] T001 实现 `backend/cli/` 骨架（`__main__.py` argparse 入口 `python -m backend.cli`）+ 输出契约（退出码 0/1/2/3、`--json` stdout、`--verbose`/`--quiet`、stderr 日志）+ 把 `--seed` 确定性加进 `infrastructure/fake.py`（CLI 只注入 seed，不另造 fake）+ `--no-fake` 开关 + 单测 `tests/unit/test_cli_output.py`
+[x] - [x] T001 实现 `backend/cli/` 骨架（`__main__.py` argparse 入口 `python -m cli`）+ 输出契约（退出码 0/1/2/3、`--json` stdout、`--verbose`/`--quiet`、stderr 日志）+ 把 `--seed` 确定性加进 `infrastructure/fake.py`（CLI 只注入 seed，不另造 fake）+ `--no-fake` 开关 + 单测 `tests/unit/test_cli_output.py`
 
 **Checkpoint**: 输出契约冻结 + 确定性容器就位 → 命令可开始
 
 ## Phase 2：命令（[P] 独立）
 
-- [ ] T002 [P] 实现 `doctor`（体检 PG / Milvus / MinIO / 模型权重 / env，任一不通过→退出码 3）+ 单测 `tests/unit/test_cli_doctor.py`
-- [ ] T003 [P] 实现 `run`（全链路 clarify→pipeline→report；`--brief-file` 跳过 clarify、`--answers` 罐头答案、`--max-iterations`）+ 单测 `tests/unit/test_cli_run.py`
-- [ ] T004 [P] 实现 `slice <phase>`（`--input state.json` 喂罐头 state，只跑单个 phase；复用 orchestrator 执行单 phase 的那段，必要时抽共享 `run_phase(phase, state, emit)`）+ 单测 `tests/unit/test_cli_slice.py`
-- [ ] T005 [P] 实现 `dump <session_id>`（从 phase_snapshots 读 state 打印）+ 单测 `tests/unit/test_cli_dump.py`
-- [ ] T006 [P] 实现 `ingest` + `search`（KB 单独入库/检索）+ 单测 `tests/unit/test_cli_kb.py`
+[x] - [x] T002 [P] 实现 `doctor`（体检 PG / Milvus / MinIO / 模型权重 / env，任一不通过→退出码 3）+ 单测 `tests/unit/test_cli_doctor.py`
+[x] - [x] T003 [P] 实现 `run`（全链路 clarify→pipeline→report；`--brief-file` 跳过 clarify、`--answers` 罐头答案、`--max-iterations`）+ 单测 `tests/unit/test_cli_run.py`
+[x] - [x] T004 [P] 实现 `slice <phase>`（`--input state.json` 喂罐头 state，只跑单个 phase；复用 orchestrator 执行单 phase 的那段，必要时抽共享 `run_phase(phase, state, emit)`）+ 单测 `tests/unit/test_cli_slice.py`
+[x] - [x] T005 [P] 实现 `dump <session_id>`（从 phase_snapshots 读 state 打印）+ 单测 `tests/unit/test_cli_dump.py`
+[x] - [x] T006 [P] 实现 `ingest` + `search`（KB 单独入库/检索）+ 单测 `tests/unit/test_cli_kb.py`
 
 **Checkpoint**: 6 个命令全部有测试，全部测试绿
 

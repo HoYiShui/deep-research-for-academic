@@ -11,31 +11,31 @@
 
 ```bash
 cd backend
-python -m backend.cli --help
+python -m cli --help
 ```
 
 ## 典型调试循环
 
 ```bash
 # 1. 环境体检（真实模式前先跑，确认不是环境问题）
-python -m backend.cli doctor --json
+python -m cli doctor --json
 
 # 2. 确定性单 agent 调试：改了 critic，只跑 review 这一刀
-python -m backend.cli slice review --input state.json --fake --seed 42 --json
+python -m cli slice review --input state.json --fake --seed 42 --json
 #    退出码 0 = 对了；退出码 1 = stderr 一行错误
 
 # 3. 全链路闭环（fake，秒级）
-python -m backend.cli run "compare transformer vs CNN intrusion detection" --fake --json
+python -m cli run "compare transformer vs CNN intrusion detection" --fake --json
 
 # 4. 跳过 clarify，直接喂冻结 brief 进 pipeline（query 省略，只给 --brief-file）
-python -m backend.cli run --brief-file brief.json --fake --json
+python -m cli run --brief-file brief.json --fake --json
 
 # 5. 卡住时看 state（dump 是 real-mode，读 PG 快照，需先有真实 backend 跑出过快照）
-python -m backend.cli dump <session_id> --json
+python -m cli dump <session_id> --json
 
 # 6. 单独验证 KB
-python -m backend.cli ingest paper.pdf --json
-python -m backend.cli search "intrusion detection" --json
+python -m cli ingest paper.pdf --json
+python -m cli search "intrusion detection" --json
 ```
 
 ## 输出约定
