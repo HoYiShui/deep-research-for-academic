@@ -23,6 +23,8 @@ Phase 0 冻结点（骨架 + 端口契约 + fake + base.py）
 Phase 2 集成切片（真 LLM → 溯源 → 持久化 → KB → 收尾，每刀换一个 fake）
         ▼
 Phase 3 真实 agent 行为（契约冻结 → scout 补链/观察 → data_analyst/code_crafter/writer/critic 真实化 → 集成）
+        ▼
+Phase 4 收尾补漏（认证 + 任务专属第 3 节 + 追溯 + 轮数上限 + 缺口落位）
 ```
 
 ## Phase 0：冻结点（Walking Skeleton + 端口契约）
@@ -138,6 +140,18 @@ Phase 3 真实 agent 行为（契约冻结 → scout 补链/观察 → data_anal
 
 **Checkpoint**: 报告正文真实落地，全链可溯源，全部测试绿
 
+## Phase 4：收尾补漏（认证 + 任务专属交付 + 缺口落位）
+
+**Purpose**: 补齐 spec 覆盖缺口（FR-003/007/018/024 等）。仍坚持：纯工人、契约先行、单测、每刀主干绿。
+
+- [ ] T052 [P] 认证校验：interface 层加 JWT 依赖（cookie/Bearer→user_id），挂到 `/research`、`/knowledge-base` 受保护路由；无 token / 无效 token → 401 + 集成测试 `tests/integration/test_auth_guard.py`
+- [ ] T053 [P] writer 任务专属第 3 节：按 `task_type` 注入 `docs/contracts/report-skeleton.md` 专属模块（idea 候选问题卡 / method 比较矩阵 / eval 协议-指标映射）+ 单测 `tests/unit/test_writer.py`（扩展）
+- [ ] T054 [P] clarify 轮数上限：session_service 加轮次计数 + 封顶（FR-003，达上限走保守默认 ready）+ 单测 `tests/unit/test_session.py`
+- [ ] T055 [P] scout 追溯原始来源：补 `citation_trace`（二手转述→原始论文）+ `gap_fill`（关键条件补查，FR-007）+ 单测 `tests/unit/test_scout_trace.py`
+- [ ] T056 [P] 缺口落位：统一把缺口写入 `section_coverage`（scout/critic 写 covered_claim_ids/gaps），弃 `run_metadata["coverage_gaps"]` + 单测
+
+**Checkpoint**: spec FR 全覆盖，全部测试绿
+
 ## Dependencies & Execution Order
 
 ### 切片顺序（由风险决定，非文档顺序，用描述性命名）
@@ -152,6 +166,7 @@ Phase 3 真实 agent 行为（契约冻结 → scout 补链/观察 → data_anal
 - **Phase 1 独立分支**：依赖 Phase 0（端口契约 + base.py）；互相独立（[P]=context 隔离）
 - **Phase 2 切片**：依赖 Phase 1；每刀换一个 fake，串行推进，每刀系统保持绿
 - **Phase 3 真实 agent**：依赖 Phase 2；T043 契约冻结后 T044–T049 独立分支（[P]），T050–T051 集成串行
+- **Phase 4 收尾补漏**：依赖 Phase 3；T052–T056 独立分支（[P]），各自补齐 spec 覆盖缺口
 
 ### 失败语义的归属（逐刀织入，不 retrofit）
 

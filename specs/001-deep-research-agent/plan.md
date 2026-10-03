@@ -61,7 +61,7 @@ interface → application → domain → ports（抽象接口）
 
 - **state.py = SSOT**：ResearchState 是唯一事实来源；SSE 事件从状态转移**派生**（`advance` 改状态 + 派生事件同源），漂移在结构上消失。
 - **agents = 纯工人**：`agent(slice, emit) -> result`，只交结果、不读写 phase、不持有跨 turn 状态。
-- **machine.py = 纯政策层**：clarify 与 pipeline 两条状态机的确定性规则集中一处（`decide_status` + `WORKERS` + `next_phase` + `_route_after_review` 政策表）；phase 序列 = plan → research → analyze → write → review；critic 只产 `issue_type × severity × fillable` 判断，路由是 total 政策表（含兜底），LLM 不驱动控制流。
+- **machine.py = 纯政策层**：clarify 与 pipeline 两条状态机的确定性规则集中一处（`decide_status` + `WORKERS` + `next_phase` + `route_after_review` 政策表）；phase 序列 = plan → research → analyze → write → review；critic 只产 `issue_type × severity × fillable` 判断，路由是 total 政策表（含兜底），LLM 不驱动控制流。
 
 ### 两个交互模式（两种状态机职责）
 
