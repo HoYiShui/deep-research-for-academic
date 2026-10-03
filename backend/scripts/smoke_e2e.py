@@ -78,19 +78,31 @@ async def main() -> None:
     # 4. pipeline (real plan + real search + real persistence)
     print("[4] running pipeline (real LLM plan + real arxiv/bocha search)...")
     task = container.research.spawn_pipeline(session_id, result["brief"])
-    await asyncio.wait_for(task, timeout=180)
+    await asyncio.wait_for(task, timeout=600)
 
-    # 5. report + recovery from postgres
+    # 5. report (non-placeholder prose) from the reports table
     report = await container.research.get_report(session_id)
     status = await container.research.get_status(session_id)
-    sections = report.get("sections", []) if report else []
+    sections = report.get("sections", {}) if report else {}
     print(f"[5] status={status['status']} report sections={len(sections)}")
-    for s in sections[:3]:
-        print(f"      - section {s.get('section_id')}: {s.get('content', '')[:80]!r}")
+    for section_id, s in list(sections.items())[:3]:
+        content = s.get("content", "")
+        is_placeholder = content.startswith("Section ")
+        print(f"      - [{section_id}] placeholder={is_placeholder} content={content[:80]!r}")
 
-    # Prove snapshots landed in real postgres (same-phase-latest recovery).
+    # 6. traceability (SC-002): recovered 'review' snapshot, bindings cite evidence.
     snap = await container.store.load_latest_snapshot(session_id, "review")
-    print(f"[6] recovered 'review' snapshot from postgres: evidence={len(snap.get('evidence', []))}")
+    evidence = snap.get("evidence", {})
+    claims = snap.get("claims", {})
+    bindings = snap.get("draft_claim_bindings", [])
+    cited = sum(1 for b in bindings for _ in b.get("cited_evidence_ids", []))
+    resolved = sum(
+        1 for b in bindings for e in b.get("cited_evidence_ids", []) if e in evidence
+    )
+    print(
+        f"[6] evidence={len(evidence)} claims={len(claims)} bindings={len(bindings)} "
+        f"cited={cited} resolved={resolved}"
+    )
 
 
 if __name__ == "__main__":

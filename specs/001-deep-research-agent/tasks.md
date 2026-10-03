@@ -136,7 +136,7 @@ Phase 3 真实 agent 行为（契约冻结 → scout 补链/观察 → data_anal
 ### 集成切片
 
 - [x] T050 集成：orchestrator 按终态接线（research 阶段产出 sources/claims/observations；analyze 喂真 observations→metrics；write/review 用真 writer/critic；回流仍走 machine 政策表）+ 集成测试 `tests/integration/test_slice_agents.py`
-- [ ] T051 跑通 quickstart 对照 case-1：报告正文非占位符、每条关键结论可回链证据（SC-002 抽查）+ 更新 `scripts/smoke_e2e.py`
+- [x] T051 跑通 quickstart 对照 case-1：报告正文非占位符、每条关键结论可回链证据（SC-002 抽查）+ 更新 `scripts/smoke_e2e.py`
 
 **Checkpoint**: 报告正文真实落地，全链可溯源，全部测试绿
 

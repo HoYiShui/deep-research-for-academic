@@ -51,10 +51,13 @@ async def plan(llm: LLMPort, brief: dict) -> list[dict[str, Any]]:
 def _clarify_prompt(brief_draft: dict, answer: str) -> str:
     return (
         "You are a research planning assistant. Given a research brief draft and "
-        "the user's latest answer, judge which fields are still missing and generate "
-        "clarifying questions. Respond with JSON only:\n"
-        '{"missing_fields": ["..."], "questions": ["..."], "brief_patch": {}, '
-        '"assumptions": ["..."]}\n\n'
+        "the user's latest answer, extract task_type, decision_goal, research_object, "
+        "and deliverable into brief_patch (fill them whenever they can be inferred, "
+        "even if not explicitly stated). Only list fields still genuinely missing in "
+        "missing_fields, and ask clarifying questions for those. Respond with JSON only:\n"
+        '{"missing_fields": ["..."], "questions": ["..."], '
+        '"brief_patch": {"task_type": "...", "decision_goal": "...", '
+        '"research_object": "...", "deliverable": "..."}, "assumptions": ["..."]}\n\n'
         f"Brief draft: {brief_draft}\nUser answer: {answer}\n"
     )
 

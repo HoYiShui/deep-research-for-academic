@@ -73,7 +73,9 @@ class Orchestrator:
             try:
                 await self._run_phase(state)
             except Exception as exc:  # noqa: BLE001 — agent/LLM/search failure
-                state.errors.append({"phase": state.phase, "message": str(exc)})
+                state.errors.append(
+                    {"phase": state.phase, "error": type(exc).__name__, "message": str(exc)}
+                )
                 await self._snapshot_quiet(state)
                 self._bus.emit(session_id, ErrorEvent(code="step_failed", message=str(exc)))
                 return
