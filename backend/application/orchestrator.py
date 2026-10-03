@@ -129,7 +129,9 @@ class Orchestrator:
 
     async def _analyze(self, state: PipelineState) -> None:
         """Normalize metrics and run fixed analysis templates over compatible ones."""
-        state.comparable_metrics = data_analyst.analyze([])
+        state.comparable_metrics = await data_analyst.analyze(
+            state.quantitative_observations, self._llm
+        )
         compatible = {
             k: v for k, v in state.comparable_metrics.items() if v["comparability"] == "compatible"
         }
