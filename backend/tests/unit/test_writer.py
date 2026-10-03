@@ -73,3 +73,35 @@ async def test_revise_report_keeps_unaffected_sections() -> None:
     )
     assert result["draft_sections"]["s1"]["content"] == "Revised prose."
     assert result["draft_sections"]["s2"]["content"] == "keep"
+
+
+@pytest.mark.asyncio
+async def test_write_report_includes_task_specific_section() -> None:
+    llm = FakeLLM(response='{"content": "analysis.", "bindings": []}')
+    result = await writer.write_report(
+        [{"section_id": "s1", "objective": "o"}],
+        {},
+        {},
+        {},
+        {},
+        {"task_type": "idea_exploration", "research_object": "R"},
+        llm,
+    )
+    assert "section_3" in result["draft_sections"]
+    assert result["draft_sections"]["section_3"]["title"] == "核心分析"
+    assert result["draft_sections"]["section_3"]["content"] == "analysis."
+
+
+@pytest.mark.asyncio
+async def test_write_report_skips_undeferred_task_section() -> None:
+    llm = FakeLLM(response='{"content": "analysis.", "bindings": []}')
+    result = await writer.write_report(
+        [{"section_id": "s1", "objective": "o"}],
+        {},
+        {},
+        {},
+        {},
+        {"task_type": "reviewer_response", "research_object": "R"},
+        llm,
+    )
+    assert "section_3" not in result["draft_sections"]

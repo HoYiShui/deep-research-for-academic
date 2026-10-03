@@ -48,6 +48,15 @@ async def write_report(
             "content": result.get("content", ""),
         }
         bindings.extend(_bindings(section_id, result.get("bindings", [])))
+    task_section = await _task_specific_section(
+        brief.get("task_type", ""), brief, claims, evidence, metrics, artifacts, llm
+    )
+    if task_section:
+        draft_sections["section_3"] = {
+            "section_id": "section_3",
+            "title": "核心分析",
+            "content": task_section,
+        }
     return {
         "draft_sections": draft_sections,
         "draft_claim_bindings": bindings,
@@ -116,6 +125,52 @@ def _bindings(section_id: str, raw_bindings: list[dict[str, Any]]) -> list[dict[
             }
         )
     return out
+
+
+# Task-specific section-3 instructions (aligned with docs/contracts/report-skeleton.md).
+_TASK_SECTION_INSTRUCTIONS = {
+    "idea_exploration": "candidate research problems with verifiable hypotheses, "
+    "required data/resources, novelty risk, and feasibility (a markdown table)",
+    "method_differentiation": "a nearest-work comparison matrix (input, mechanism, "
+    "output, solved limitations, open problems)",
+    "evaluation_design": "a protocol-metric-conclusion mapping (claim, protocol, "
+    "baseline, metric, supported and unsupported conclusions)",
+}
+
+
+async def _task_specific_section(
+    task_type: str,
+    brief: dict[str, Any],
+    claims: dict[str, dict[str, Any]],
+    evidence: dict[str, dict[str, Any]],
+    metrics: dict[str, dict[str, Any]],
+    artifacts: dict[str, dict[str, Any]],
+    llm: LLMPort,
+) -> str:
+    """Generate the task-specific section 3 (report-skeleton.md) via the LLM."""
+    instruction = _TASK_SECTION_INSTRUCTIONS.get(task_type)
+    if instruction is None:
+        return ""
+    raw = await call_llm(llm, _task_section_prompt(instruction, brief, claims))
+    return parse_json(raw).get("content", "")
+
+
+def _task_section_prompt(
+    instruction: str, brief: dict[str, Any], claims: dict[str, dict[str, Any]]
+) -> str:
+    """Build the task-specific section-3 prompt."""
+    claim_lines = "\n".join(
+        f"- [{cid}] {c.get('text', '')}" for cid, c in list(claims.items())[:15]
+    )
+    return (
+        "You are a research report writer. Write the core-analysis section (section 3) "
+        "of a cybersecurity research report. This section must present: "
+        f"{instruction}. Respond with JSON only:\n"
+        '{"content": "..."}\n\n'
+        f"Research object: {brief.get('research_object', '')}\n"
+        f"Decision goal: {brief.get('decision_goal', '')}\n"
+        f"Claims:\n{claim_lines}\n"
+    )
 
 
 def _section_prompt(
