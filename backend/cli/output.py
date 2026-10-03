@@ -44,3 +44,24 @@ def emit_human(status: str, body: str = "") -> None:
     print(f"status: {status}")
     if body:
         print(body)
+
+
+def drain_events(bus, session_id: str) -> list:
+    """Drain all queued events for a session from an EventBus."""
+    events = []
+    queue = bus.queue(session_id)
+    while not queue.empty():
+        events.append(queue.get_nowait())
+    return events
+
+
+def event_to_dict(event) -> dict:
+    """Serialize a domain event to a plain dict for JSON output."""
+    return {"event": type(event).__name__, **getattr(event, "__dict__", {})}
+
+
+def format_event(ev: dict) -> str:
+    """Format a serialized event as a one-line string."""
+    name = ev.get("event", "event")
+    rest = ", ".join(f"{k}={v}" for k, v in ev.items() if k != "event")
+    return f"{name}: {rest}" if rest else name

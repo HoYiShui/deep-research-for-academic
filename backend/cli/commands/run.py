@@ -38,7 +38,7 @@ async def run(args) -> int:
         raise output.UsageError("give query or --brief-file, not both")
 
     _load_env()
-    c = container.build_container(fake=args.fake, seed=args.seed)
+    c = container.build_container(fake=args.fake, seed=args.seed, verbose=args.verbose)
 
     if args.brief_file:
         brief = _read_json(args.brief_file)
@@ -62,15 +62,19 @@ async def run(args) -> int:
     await asyncio.wait_for(task, timeout=300)
 
     report = await c.research.get_report(session_id)
-    if report is None:
-        if args.json:
-            output.emit_json("failed", {"error": "no report produced"})
-        else:
-            output.emit_human("failed", "no report produced")
-        return output.EXIT_FAILURE
+    events = [output.event_to_dict(e) for e in output.drain_events(c.bus, session_id)]
 
     if args.json:
-        output.emit_json("ok", {"final_report": report})
+        payload: dict = {"final_report": report} if report is not None else {"error": "no report produced"}
+        if not args.quiet:
+            payload["events"] = events
+        output.emit_json("ok" if report is not None else "failed", payload)
     else:
-        output.emit_human("ok", json.dumps(report, ensure_ascii=False, indent=2))
-    return output.EXIT_SUCCESS
+        if not args.quiet:
+            for ev in events:
+                print(output.format_event(ev))
+        if report is None:
+            output.emit_human("failed", "no report produced")
+        else:
+            output.emit_human("ok", json.dumps(report, ensure_ascii=False, indent=2))
+    return output.EXIT_SUCCESS if report is not None else output.EXIT_FAILURE

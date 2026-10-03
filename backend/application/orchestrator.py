@@ -71,7 +71,7 @@ class Orchestrator:
                 return
 
             try:
-                await self._run_phase(state)
+                await self.run_phase(state)
             except Exception as exc:  # noqa: BLE001 — agent/LLM/search failure
                 state.errors.append(
                     {"phase": state.phase, "error": type(exc).__name__, "message": str(exc)}
@@ -91,7 +91,7 @@ class Orchestrator:
             await self._store.save_report(session_id, state.final_report)
         self._bus.emit(session_id, DoneEvent(final_report_url=f"/research/{session_id}/report"))
 
-    async def _run_phase(self, state: PipelineState) -> None:
+    async def run_phase(self, state: PipelineState) -> None:
         """Dispatch one phase to its worker via the WORKERS policy table."""
         worker = WORKERS[state.phase]
         await self._handlers[worker](state)

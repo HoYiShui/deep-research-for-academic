@@ -34,7 +34,11 @@ def _check_env() -> bool:
 def _check_model_weights() -> bool:
     path = os.environ.get("BGE_M3_MODEL_PATH", "")
     if not path or not os.path.isabs(path):
-        return True  # HF hub name (downloaded on first use), not a local-path failure
+        output.log(
+            f"warning: BGE_M3_MODEL_PATH is '{path or '(unset)'}' "
+            "(not a local dir; will download on first use)"
+        )
+        return True  # HF hub name, not a local-path failure
     return os.path.isdir(path)
 
 
