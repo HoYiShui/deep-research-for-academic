@@ -9,7 +9,7 @@
 | flag | 作用 |
 |---|---|
 | `--json` | stdout 输出单个 JSON 对象（结果本体） |
-| `--verbose` | 每个 LLM 调用的 prompt + response 打到 stderr（仅 real 模式有效，fake 无真 LLM 调用） |
+| `--verbose` | 每个 LLM 调用的 prompt + response 打到 stderr。fake 模式打的是 phase prompt + seeded 合成 response（验「prompt 结构对不对」）；real 模式打真实 prompt/response（验「模型行为对不对」）——两者是不同的调试信号，勿混 |
 | `--quiet` | 只打最终报告，压掉进度噪音（`run` 有意义，其余命令无进度噪音时为 no-op） |
 | `--no-fake` | 关闭默认 fake，启用真实依赖（deepseek / arxiv / bocha / postgres / milvus） |
 
@@ -76,7 +76,7 @@
 
 ### stderr
 
-错误 + 日志，一行一条、带时间戳。`--verbose`（real 模式）时每个 LLM 调用的 prompt + response 也打到这里，不污染 stdout。
+错误 + 日志，一行一条、带时间戳。`--verbose` 时每个 LLM 调用的 prompt + response 也打到这里（fake 为合成 response、real 为真实 response），不污染 stdout。
 
 ## 约束
 
