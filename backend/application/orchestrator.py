@@ -158,7 +158,9 @@ class Orchestrator:
 
     async def _review(self, state: PipelineState) -> None:
         """Review draft bindings; routing to the next phase is policy-driven."""
-        state.critic_feedback = critic.review(state.draft_claim_bindings, state.evidence)
+        state.critic_feedback = await critic.review(
+            state.draft_claim_bindings, state.claims, state.evidence, state.sources, self._llm
+        )
 
     def _advance(self, state: PipelineState) -> str:
         """Return the next phase, applying review rework routing with a cap."""
