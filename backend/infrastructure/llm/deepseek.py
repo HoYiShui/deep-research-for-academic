@@ -21,7 +21,7 @@ class DeepSeekLLM:
             api_key=os.environ.get("ANTHROPIC_API_KEY", ""),
             base_url=os.environ.get("ANTHROPIC_BASE_URL", "https://api.deepseek.com/anthropic"),
         )
-        self._model = os.environ.get("LLM_MODEL", "deepseek-v4-flash")
+        self._model = os.environ.get("LLM_MODEL", "deepseek-flash")
         self._retries = retries
         self._backoff = backoff
 

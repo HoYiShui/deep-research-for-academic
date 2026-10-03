@@ -40,7 +40,7 @@
 
 ## 6. LLM：deepseek（Anthropic 兼容接口）
 
-- **Decision**: deepseek-v4-flash，经 Anthropic 兼容 API（`https://api.deepseek.com/anthropic`）调用。
+- **Decision**: deepseek-flash（V4.1 Flash），经 Anthropic 兼容 API（`https://api.deepseek.com/anthropic`）调用。
 - **Rationale**: 已在用；成本可控。接口层抽象，便于替换模型。
 - **Alternatives**: 其他闭源/开源模型（均可替换，不影响架构）。
 
