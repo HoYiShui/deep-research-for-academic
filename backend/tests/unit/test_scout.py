@@ -50,3 +50,19 @@ async def test_scout_extracts_claims_via_llm() -> None:
     assert claim["text"] == "method A outperforms baseline"
     assert claim["claim_id"].startswith("cl-")
     assert result["claim_evidence_links"] == []
+
+
+@pytest.mark.asyncio
+async def test_scout_computes_section_coverage() -> None:
+    search = FakeSearch()
+    llm = FakeLLM(
+        response='{"claims": [{"text": "method A works", "conditions": {}, '
+        '"evidence_ids": []}]}'
+    )
+    result = await scout.research(
+        {"section_id": "s1", "objective": "o"}, search, _FakeRetrieval(), llm
+    )
+    coverage = result["section_coverage"]
+    assert coverage["section_id"] == "s1"
+    assert coverage["covered_claim_ids"] == []  # no evidence links
+    assert len(coverage["gaps"]) == 1  # the claim is uncovered

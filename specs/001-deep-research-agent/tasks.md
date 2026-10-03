@@ -148,7 +148,7 @@ Phase 4 收尾补漏（认证 + 任务专属第 3 节 + 追溯 + 轮数上限 + 
 - [ ] T053 [P] writer 任务专属第 3 节：按 `task_type` 注入 `docs/contracts/report-skeleton.md` 专属模块（idea 候选问题卡 / method 比较矩阵 / eval 协议-指标映射）+ 单测 `tests/unit/test_writer.py`（扩展）
 - [x] T054 [P] clarify 轮数上限：session_service 加轮次计数 + 封顶（FR-003，达上限走保守默认 ready）+ 单测 `tests/unit/test_session.py`
 - [ ] T055 [P] scout 追溯原始来源：补 `citation_trace`（二手转述→原始论文）+ `gap_fill`（关键条件补查，FR-007）+ 单测 `tests/unit/test_scout_trace.py`
-- [ ] T056 [P] 缺口落位：统一把缺口写入 `section_coverage`（scout/critic 写 covered_claim_ids/gaps），弃 `run_metadata["coverage_gaps"]` + 单测
+- [x] T056 [P] 缺口落位：统一把缺口写入 `section_coverage`（scout/critic 写 covered_claim_ids/gaps），弃 `run_metadata["coverage_gaps"]` + 单测
 
 **Checkpoint**: spec FR 全覆盖，全部测试绿
 

@@ -101,7 +101,7 @@ class Orchestrator:
         state.section_plans = await architect.plan(self._llm, state.research_brief)
 
     async def _research(self, state: PipelineState) -> None:
-        """Gather evidence, sources, claims, observations, and coverage gaps."""
+        """Gather evidence, sources, claims, observations, and per-section coverage."""
         for section in state.section_plans:
             result = await scout.research(section, self._search, self._retrieval, self._llm)
             state.evidence.update(result["evidence"])
@@ -109,17 +109,20 @@ class Orchestrator:
             state.claims.update(result["claims"])
             state.claim_evidence_links.extend(result["claim_evidence_links"])
             state.quantitative_observations.update(result["quantitative_observations"])
+            coverage = result["section_coverage"]
+            if coverage["section_id"]:
+                state.section_coverage[coverage["section_id"]] = coverage
         self._drain_gaps(self._search, "source_unavailable", state)
         self._drain_gaps(self._retrieval, "milvus_unavailable", state)
 
     def _drain_gaps(self, source: Any, code: str, state: PipelineState) -> None:
-        """Drain a source's coverage gaps and emit a non-fatal error for degraded ones."""
+        """Drain a source's degradation events and emit a non-fatal error for unavailable ones."""
         take_gaps = getattr(source, "take_gaps", None)
         if take_gaps is None:
             return
-        gaps = state.run_metadata.setdefault("coverage_gaps", [])
+        degraded = state.run_metadata.setdefault("degraded_sources", [])
         for gap in take_gaps():
-            gaps.append(gap)
+            degraded.append(gap)
             if gap.get("reason") == "unavailable":
                 self._bus.emit(
                     state.session_id,
@@ -173,9 +176,7 @@ class Orchestrator:
             return "done"
         rework_count = state.run_metadata.get("rework_count", 0)
         if rework_count >= _MAX_REWORK:
-            state.run_metadata.setdefault("coverage_gaps", []).append(
-                {"reason": "rework_limit", "action": action}
-            )
+            state.run_metadata.setdefault("rework_limit", []).append({"action": action})
             return "done"
         state.run_metadata["rework_count"] = rework_count + 1
         target = phase_after_review(action)

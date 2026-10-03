@@ -62,12 +62,29 @@ async def research(
 
     claims, links = await _extract_claims(llm, evidence)
     observations = await _extract_observations(llm, evidence)
+    coverage = _section_coverage(section, claims, links)
     return {
         "evidence": evidence,
         "sources": sources,
         "claims": claims,
         "claim_evidence_links": links,
         "quantitative_observations": observations,
+        "section_coverage": coverage,
+    }
+
+
+def _section_coverage(
+    section: dict[str, Any],
+    claims: dict[str, dict[str, Any]],
+    links: list[dict[str, Any]],
+) -> dict[str, Any]:
+    """Compute per-section coverage: which claims are covered vs gap."""
+    covered = {link["claim_id"] for link in links}
+    gaps = [cid for cid in claims if cid not in covered]
+    return {
+        "section_id": section.get("section_id", ""),
+        "covered_claim_ids": sorted(covered),
+        "gaps": [{"claim_id": cid, "reason": "no_evidence"} for cid in gaps],
     }
 
 
