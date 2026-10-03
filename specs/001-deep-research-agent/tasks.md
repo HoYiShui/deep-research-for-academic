@@ -21,6 +21,8 @@ Phase 0 冻结点（骨架 + 端口契约 + fake + base.py）
    └────┴─────┴─────┴─────┘
         ▼
 Phase 2 集成切片（真 LLM → 溯源 → 持久化 → KB → 收尾，每刀换一个 fake）
+        ▼
+Phase 3 真实 agent 行为（契约冻结 → scout 补链/观察 → data_analyst/code_crafter/writer/critic 真实化 → 集成）
 ```
 
 ## Phase 0：冻结点（Walking Skeleton + 端口契约）
@@ -112,6 +114,34 @@ Phase 2 集成切片（真 LLM → 溯源 → 持久化 → KB → 收尾，每�
 
 **Checkpoint**: 完整系统 e2e 可跑，全部测试绿
 
+## Phase 3：真实 agent 行为（终态设计落地）
+
+**Purpose**: 把 Phase 1 的存根 agents 升级为按 data-model.md + docs/architecture（02/04/05/06 号）的真实实现。坚持：**纯工人**（只产数据，控制流仍在 machine.py 政策层）、**契约先行**、**单测**；对齐章程「可溯源」（Claim→Evidence→Source 全链 id 回链）。
+
+> 权威源以 spec（plan.md/data-model.md/dataflow.md）为准；docs/architecture 是较早草稿，若冲突（如 critic 的 `required_action`）以 spec 为准。
+
+### 契约冻结（收敛点）
+
+- [ ] T043 冻结终态 PipelineState 契约：`state.py` 补齐 data-model.md 字段（`sources`/`claims`/`claim_evidence_links`/`quantitative_observations`/`section_coverage`），并把 `evidence`/`comparable_metrics`/`analysis_artifacts`/`draft_sections` 从 list 改为 dict-keyed（按 id 回链）+ 单测 `tests/unit/test_state.py`
+
+### Agents（每个自包含：契约 + 单元测试）
+
+- [ ] T044 [P] 实现 scout 的 SourceRecord 登记 + Claim/ClaimEvidenceLink 建链（source_id→title/authors/version/source_tier 去重；从证据提炼论断 + supports/refutes/limits 关系）+ 单测 `tests/unit/test_scout_claims.py`
+- [ ] T045 [P] 实现 scout 的 QuantitativeObservation 抽取（结果表单元格 → observation_id/evidence_id/row_key/column_key/value/uncertainty/statistic 结构化投影）+ 单测 `tests/unit/test_scout_observations.py`
+- [ ] T046 [P] 实现 data_analyst.analyze 真实化（collect observations → normalize evaluation_context → check comparability → comparable_metrics：compatible/partial/incompatible + reasons）+ 单测 `tests/unit/test_data_analyst.py`（扩展）
+- [ ] T047 [P] 实现 code_crafter.analyze 受控模板（comparison_matrix/pairwise_delta/grouped_bar_chart/line_chart_with_ci/protocol_coverage_table → AnalysisArtifact{input_metric_ids/input_evidence_ids/operation/code_or_recipe/output/execution_status}，禁 LLM 自由代码，仅 compatible 输入）+ 单测 `tests/unit/test_code_crafter.py`（扩展）
+- [ ] T048 [P] 实现 writer.write_report 真实化（每章节写正文 DraftSection，每条关键结论绑定 evidence_id + 程序级 DraftClaimBinding{section_id/statement_id/claim_ids/cited_evidence_ids/artifact_ids}，统一报告骨架 final_report）+ 单测 `tests/unit/test_writer.py`（扩展）
+- [ ] T049 [P] 实现 critic.review 真实化（三层复核：来源/证据、论断/条件、分析/表达 → CriticFeedback{issue_type∈missing_source/comparability_violation/overclaim/hallucination/outdated/logic_error, severity, fillable}，**不产 required_action**）+ 单测 `tests/unit/test_critic.py`（扩展）
+
+> **待定设计点**：writer 生成正文用 LLM 还是模板——需在实现 T048 前与用户敲定（影响 prompt 契约与可测性）；其余 agent 按 spec 直接落地。
+
+### 集成切片
+
+- [ ] T050 集成：orchestrator 按终态接线（research 阶段产出 sources/claims/observations；analyze 喂真 observations→metrics；write/review 用真 writer/critic；回流仍走 machine 政策表）+ 集成测试 `tests/integration/test_slice_agents.py`
+- [ ] T051 跑通 quickstart 对照 case-1：报告正文非占位符、每条关键结论可回链证据（SC-002 抽查）+ 更新 `scripts/smoke_e2e.py`
+
+**Checkpoint**: 报告正文真实落地，全链可溯源，全部测试绿
+
 ## Dependencies & Execution Order
 
 ### 切片顺序（由风险决定，非文档顺序，用描述性命名）
@@ -125,6 +155,7 @@ Phase 2 集成切片（真 LLM → 溯源 → 持久化 → KB → 收尾，每�
 - **Phase 0 冻结点**：无依赖，最先做；冻结后分叉
 - **Phase 1 独立分支**：依赖 Phase 0（端口契约 + base.py）；互相独立（[P]=context 隔离）
 - **Phase 2 切片**：依赖 Phase 1；每刀换一个 fake，串行推进，每刀系统保持绿
+- **Phase 3 真实 agent**：依赖 Phase 2；T043 契约冻结后 T044–T049 独立分支（[P]），T050–T051 集成串行
 
 ### 失败语义的归属（逐刀织入，不 retrofit）
 
