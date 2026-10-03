@@ -1,4 +1,4 @@
-"""ChiefArchitect agent: clarify and plan responsibilities.
+"""Architect agent: clarify and plan responsibilities.
 
 clarify produces a judgment (missing fields + questions), never a status;
 plan turns a frozen brief into section plans. Both are pure workers: they call

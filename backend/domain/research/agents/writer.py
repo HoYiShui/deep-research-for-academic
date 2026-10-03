@@ -1,4 +1,4 @@
-"""LeadWriter agent: write draft sections with evidence bindings."""
+"""Writer agent: write draft sections with evidence bindings."""
 
 from __future__ import annotations
 

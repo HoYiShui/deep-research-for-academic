@@ -1,4 +1,4 @@
-"""CriticMaster agent: review draft bindings and produce judgment.
+"""Critic agent: review draft bindings and produce judgment.
 
 Produces issue_type/severity/fillable only; never required_action -- routing
 is the policy table's job (machine.route_after_review).

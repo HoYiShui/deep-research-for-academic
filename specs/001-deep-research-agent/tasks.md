@@ -56,7 +56,7 @@ Phase 3 真实 agent 行为（契约冻结 → scout 补链/观察 → data_anal
 
 ### 政策表（最该单测覆盖的纯函数）
 
-- [x] T017 [P] 实现 machine._route_after_review 回流政策表（total：missing_source×severity×fillable 全组合 + hallucination→retract+补证 + 兜底 revise）+ 单测 tests/unit/test_route.py（每一行 + 兜底行都测）
+- [x] T017 [P] 实现 machine.route_after_review 回流政策表（total：missing_source×severity×fillable 全组合 + hallucination→retract+补证 + 兜底 revise）+ 单测 tests/unit/test_route.py（每一行 + 兜底行都测）
 
 ### Agents（domain/research/agents/，每个自包含：契约 + 单元测试）
 
@@ -118,7 +118,7 @@ Phase 3 真实 agent 行为（契约冻结 → scout 补链/观察 → data_anal
 
 **Purpose**: 把 Phase 1 的存根 agents 升级为按 data-model.md + docs/architecture（02/04/05/06 号）的真实实现。坚持：**纯工人**（只产数据，控制流仍在 machine.py 政策层）、**契约先行**、**单测**；对齐章程「可溯源」（Claim→Evidence→Source 全链 id 回链）。
 
-> 权威源以 spec（plan.md/data-model.md/dataflow.md）为准；docs/architecture 是较早草稿，若冲突（如 critic 的 `required_action`）以 spec 为准。
+> 权威源以 spec（plan.md/data-model.md）为准；dataflow.md 及 docs/architecture 是较早草稿，若冲突（如 critic 的 `required_action`）以 spec 为准。
 
 ### 契约冻结（收敛点）
 

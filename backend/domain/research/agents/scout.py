@@ -1,4 +1,4 @@
-"""DeepScout agent: multi-source retrieval and evidence dedup.
+"""Scout agent: multi-source retrieval and evidence dedup.
 
 Gathers evidence from paper/web (SearchPort) and the local KB (RetrievalPort),
 then deduplicates by (source_id, location, quote).
