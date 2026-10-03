@@ -88,6 +88,71 @@ def _section_coverage(
     }
 
 
+async def gap_fill(
+    section: dict[str, Any],
+    claims: dict[str, dict[str, Any]],
+    coverage: dict[str, Any],
+    search: SearchPort,
+) -> dict[str, Any]:
+    """Fill coverage gaps with targeted searches (FR-007).
+
+    For each uncovered claim, search its claim text (plus the section objective)
+    and return the new evidence and sources.
+    """
+    gaps = coverage.get("gaps", [])
+    if not gaps:
+        return {"evidence": {}, "sources": {}}
+    evidence: dict[str, dict[str, Any]] = {}
+    sources: dict[str, dict[str, Any]] = {}
+    for gap in gaps:
+        claim = claims.get(gap.get("claim_id", ""), {})
+        query = f"{section.get('objective', '')} {claim.get('text', '')}".strip()
+        if not query:
+            continue
+        ev, src = await _search_for(query, search, "gap_fill")
+        evidence.update(ev)
+        sources.update(src)
+    return {"evidence": evidence, "sources": sources}
+
+
+async def citation_trace(
+    sources: dict[str, dict[str, Any]], search: SearchPort
+) -> dict[str, Any]:
+    """Trace secondary sources to primary ones (FR-007)."""
+    evidence: dict[str, dict[str, Any]] = {}
+    new_sources: dict[str, dict[str, Any]] = {}
+    for src in sources.values():
+        if src.get("source_tier") != "secondary":
+            continue
+        query = f"{src.get('title', '')} original paper".strip()
+        if not query:
+            continue
+        ev, srcs = await _search_for(query, search, "citation_trace")
+        evidence.update(ev)
+        new_sources.update(srcs)
+    return {"evidence": evidence, "sources": new_sources}
+
+
+async def _search_for(
+    query: str, search: SearchPort, method: str
+) -> tuple[dict[str, dict[str, Any]], dict[str, dict[str, Any]]]:
+    """Search one query and build id-keyed evidence + registered sources."""
+    evidence: dict[str, dict[str, Any]] = {}
+    sources: dict[str, dict[str, Any]] = {}
+    for result in await search.search(query):
+        sources[result.source_id] = _register_source(result)
+        evidence_id = stable_id("ev", result.source_id, "snippet", result.snippet)
+        evidence[evidence_id] = {
+            "evidence_id": evidence_id,
+            "source_id": result.source_id,
+            "evidence_type": result.source_type,
+            "location": "snippet",
+            "quote_or_raw_content": result.snippet,
+            "extraction_method": method,
+        }
+    return evidence, sources
+
+
 def _register_source(result: SearchResult) -> dict[str, Any]:
     """Map a search result to a SourceRecord (paper -> peer_reviewed, web -> secondary)."""
     return {

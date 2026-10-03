@@ -112,6 +112,13 @@ class Orchestrator:
             coverage = result["section_coverage"]
             if coverage["section_id"]:
                 state.section_coverage[coverage["section_id"]] = coverage
+                if coverage["gaps"]:
+                    fill = await scout.gap_fill(section, result["claims"], coverage, self._search)
+                    state.evidence.update(fill["evidence"])
+                    state.sources.update(fill["sources"])
+        trace = await scout.citation_trace(state.sources, self._search)
+        state.evidence.update(trace["evidence"])
+        state.sources.update(trace["sources"])
         self._drain_gaps(self._search, "source_unavailable", state)
         self._drain_gaps(self._retrieval, "milvus_unavailable", state)
 
