@@ -15,6 +15,7 @@ services:
     env_file:
       - ./backend/.env          # secrets: ANTHROPIC_API_KEY / BOCHA_API_KEY / JWT_SECRET
     environment:
+      DR4A_AUTH_REQUIRED: "true"
       # Container-internal hostnames override the dev (localhost) values in .env.
       DATABASE_URL: postgresql://${POSTGRES_USER:-deepresearch}:${POSTGRES_PASSWORD:-deepresearch}@postgres:5432/${POSTGRES_DB:-deepresearch}
       MILVUS_URI: http://milvus:19530

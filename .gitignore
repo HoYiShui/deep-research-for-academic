@@ -45,3 +45,6 @@ htmlcov/
 
 # ---- mdbook 构建产物 ----
 docs/book/
+
+# ---- Node / TypeScript ----
+node_modules/

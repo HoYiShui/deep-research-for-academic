@@ -1,0 +1,44 @@
+import chalk from "chalk";
+import { CancellableLoader, CombinedAutocompleteProvider, Editor, Key, Markdown, matchesKey, Spacer, Text, type EditorTheme, type MarkdownTheme, type TUI } from "@earendil-works/pi-tui";
+import { ApiError, ResearchApiClient } from "./api-client.js";
+
+type Context = { sessionId?: string; status?: string; phase?: string; sseUrl?: string };
+
+const editorTheme: EditorTheme = { borderColor: chalk.cyan, selectList: { selectedPrefix: chalk.cyan, selectedText: chalk.inverse, description: chalk.dim, scrollInfo: chalk.dim, noMatch: chalk.dim } };
+const markdownTheme: MarkdownTheme = { heading: chalk.bold.cyan, link: chalk.blue.underline, linkUrl: chalk.blue.underline, code: (s) => chalk.bgHex("#1e1e1e").white(s), codeBlock: (s) => chalk.bgHex("#1e1e1e").white(s), codeBlockBorder: chalk.dim, quote: chalk.dim, quoteBorder: () => chalk.dim("│ "), hr: () => chalk.dim("─".repeat(48)), listBullet: (s) => chalk.dim(`  ${s}`), bold: chalk.bold, italic: chalk.italic, strikethrough: chalk.strikethrough, underline: chalk.underline };
+const json = (value: unknown) => `\`\`\`json\n${JSON.stringify(value, null, 2)}\n\`\`\``;
+
+export class Dr4aApp {
+  private readonly status = new Text(); private readonly editor: Editor; private readonly context: Context = {}; private loader: CancellableLoader | null = null;
+  constructor(private readonly tui: TUI, private api: ResearchApiClient) {
+    tui.addChild(new Text(chalk.bold.cyan("DR4A") + chalk.dim(" — academic deep research")));
+    tui.addChild(this.status); tui.addChild(new Text(chalk.dim("匿名开发模式 · /status /report /cancel /session /new /connect <api-url> · Ctrl+C 退出"))); tui.addChild(new Spacer(1));
+    this.editor = new Editor(tui, editorTheme, { paddingX: 1 }); this.editor.setAutocompleteProvider(new CombinedAutocompleteProvider([{ name: "status", description: "Read server state" }, { name: "report", description: "Read final report" }, { name: "cancel", description: "Request cancellation" }, { name: "session", description: "Print session ID" }, { name: "new", description: "Clear local context" }, { name: "connect", description: "Switch API URL", argumentHint: "<api-url>" }], process.cwd()));
+    this.editor.onSubmit = (value) => void this.submit(value.trim()); tui.addChild(this.editor); tui.setFocus(this.editor);
+    tui.addInputListener((data) => { if (matchesKey(data, Key.ctrl("c"))) { tui.stop(); process.exit(0); } if (matchesKey(data, Key.ctrl("enter"))) { void this.accept(); return { consume: true }; } if (matchesKey(data, Key.ctrl("r"))) { this.text(chalk.yellow("Brief 修改模式：输入反馈后按 Enter。")); return { consume: true }; } return undefined; }); this.refresh();
+  }
+  private beforeEditor(component: Text | Markdown | Spacer | CancellableLoader): void { const children = this.tui.children; children.splice(children.indexOf(this.editor), 0, component); }
+  private text(message: string): void { this.beforeEditor(new Text(message)); this.tui.requestRender(); }
+  private markdown(label: string, content: string, color = chalk.cyan): void { this.beforeEditor(new Text(color(label))); this.beforeEditor(new Markdown(content, 1, 0, markdownTheme)); this.beforeEditor(new Spacer(1)); this.tui.requestRender(); }
+  private refresh(): void { this.status.setText(chalk.dim(`API ${this.api.baseUrl}  │  session ${this.context.sessionId ?? "—"}  │  status ${this.context.status ?? "—"}  │  phase ${this.context.phase ?? "—"}`)); this.tui.requestRender(); }
+  private loading(label: string): void { this.doneLoading(); this.loader = new CancellableLoader(this.tui, chalk.cyan, chalk.dim, label); this.loader.onAbort = () => this.text(chalk.yellow("已取消本地等待；服务端任务可能仍在运行。")); this.beforeEditor(this.loader); this.editor.disableSubmit = true; this.tui.requestRender(); }
+  private doneLoading(): void { if (this.loader) { this.tui.removeChild(this.loader); this.loader.dispose(); this.loader = null; } this.editor.disableSubmit = false; }
+  private async submit(value: string): Promise<void> { if (!value) return; this.editor.setText(""); if (value.startsWith("/")) return this.command(value); if (this.context.status === "confirm" && this.context.sessionId) return this.revise(value); this.markdown("You", value, chalk.green); this.loading(this.context.status === "ask" ? "Clarifying..." : "Creating research session..."); try { const response = this.context.sessionId && this.context.status === "ask" ? await this.api.message(this.context.sessionId, value) : await this.api.createResearch(value); this.doneLoading(); this.consume(response); } catch (error) { this.doneLoading(); this.error(error); } }
+  private consume(response: Record<string, unknown>): void { if (typeof response.session_id === "string") this.context.sessionId = response.session_id; if (response.status !== "ask" && response.status !== "confirm") return this.error(new ApiError(`Unexpected response: ${JSON.stringify(response)}`, undefined, "contract_error")); this.context.status = response.status; if (response.status === "ask") this.markdown("Clarify", `### 需要补充\n\n${json({ questions: response.questions, missing_fields: response.missing_fields, brief_draft: response.brief_draft })}`, chalk.yellow); else this.markdown("Research Brief", `### 等待确认\n\n${json(response.research_brief)}\n\n**Ctrl+Enter** 确认并开始研究 · **Ctrl+R** 要求修改`, chalk.cyan); this.refresh(); }
+  private async accept(): Promise<void> { if (this.context.status !== "confirm" || !this.context.sessionId) return this.text(chalk.yellow("当前没有可确认的 Brief。")); this.loading("Freezing Research Brief..."); try { const response = await this.api.confirm(this.context.sessionId, true); this.doneLoading(); if (response.status !== "ready" || typeof response.sse_url !== "string") throw new ApiError(`Unexpected confirmation: ${JSON.stringify(response)}`, undefined, "contract_error"); this.context.status = "ready"; this.context.sseUrl = response.sse_url; this.refresh(); this.text(chalk.cyan("Brief 已确认，开始观察 pipeline。")); void this.events(response.sse_url); } catch (error) { this.doneLoading(); this.error(error); } }
+  private async revise(feedback: string): Promise<void> { if (!this.context.sessionId) return; this.markdown("Brief feedback", feedback, chalk.yellow); this.loading("Revising Brief..."); try { const response = await this.api.confirm(this.context.sessionId, false, feedback); this.doneLoading(); this.consume(response); } catch (error) { this.doneLoading(); this.error(error); } }
+  private async events(url: string): Promise<void> { this.loading("Researching..."); try { for await (const event of this.api.events(url)) { if (typeof event.data === "object" && event.data) { const data = event.data as Record<string, unknown>; if (typeof data.phase === "string") this.context.phase = data.phase; if (typeof data.status === "string") this.context.status = data.status; } this.markdown(`Event · ${event.event}`, json(event.data), chalk.dim); this.refresh(); if (event.event === "done" && this.context.sessionId) { this.doneLoading(); this.markdown("Final report", json(await this.api.report(this.context.sessionId)), chalk.green); } } } catch (error) { this.doneLoading(); this.error(error); } }
+  private async command(raw: string): Promise<void> { const [name, ...parts] = raw.slice(1).split(" "); const arg = parts.join(" ").trim(); try { if (name === "session") return this.text(chalk.dim(`session: ${this.context.sessionId ?? "—"}`)); if (name === "new") { Object.keys(this.context).forEach((key) => delete this.context[key as keyof Context]); this.refresh(); return this.text(chalk.dim("已清空本地会话上下文。")); } if (name === "status" && this.context.sessionId) return this.markdown("Status", json(await this.api.status(this.context.sessionId)), chalk.dim); if (name === "report" && this.context.sessionId) return this.markdown("Report", json(await this.api.report(this.context.sessionId)), chalk.green); if (name === "cancel" && this.context.sessionId) return this.markdown("Cancel", json(await this.api.cancel(this.context.sessionId)), chalk.yellow); if (name === "connect" && arg) { const candidate = new ResearchApiClient(arg); await candidate.health(); this.api = candidate; Object.keys(this.context).forEach((key) => delete this.context[key as keyof Context]); this.refresh(); return this.text(chalk.cyan(`已切换 API: ${arg}`)); } this.text(chalk.yellow("命令无效或缺少活动 session。")); } catch (error) { this.error(error); } }
+  private error(value: unknown): void {
+    if (value instanceof ApiError && value.code === "network_error") {
+      this.text(chalk.red(`无法连接后端：${this.api.baseUrl}`) + chalk.dim("\n请先启动 backend，或使用 /connect <api-url> 切换目标。"));
+      return;
+    }
+    if (value instanceof ApiError && value.statusCode === 401) {
+      this.text(chalk.yellow("目标后端启用了认证；当前 TUI 只支持本地匿名开发模式。"));
+      return;
+    }
+    const detail = value instanceof ApiError ? `${value.statusCode ?? "请求"} ${value.code}: ${value.message}` : String(value);
+    this.text(chalk.red(`请求失败：${detail}`));
+  }
+}

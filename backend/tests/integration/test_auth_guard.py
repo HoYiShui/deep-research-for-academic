@@ -14,10 +14,12 @@ def _container() -> AuthService:
     return AuthService(InMemoryUserStore(), secret=_SECRET)
 
 
-def test_protected_route_rejects_missing_token() -> None:
+def test_protected_route_rejects_missing_token_when_authentication_is_enabled(monkeypatch) -> None:
     from fastapi.testclient import TestClient
 
     from interface.main import app
+
+    monkeypatch.setenv("DR4A_AUTH_REQUIRED", "true")
 
     with patch("interface.deps.get_container", return_value=type("C", (), {"auth": _container()})()):
         client = TestClient(app)
@@ -25,10 +27,12 @@ def test_protected_route_rejects_missing_token() -> None:
         assert client.get("/knowledge-base/documents").status_code == 401
 
 
-def test_protected_route_rejects_invalid_token() -> None:
+def test_protected_route_rejects_invalid_token_when_authentication_is_enabled(monkeypatch) -> None:
     from fastapi.testclient import TestClient
 
     from interface.main import app
+
+    monkeypatch.setenv("DR4A_AUTH_REQUIRED", "true")
 
     with patch("interface.deps.get_container", return_value=type("C", (), {"auth": _container()})()):
         client = TestClient(app)
@@ -36,10 +40,12 @@ def test_protected_route_rejects_invalid_token() -> None:
         assert client.get("/research/s1", headers=headers).status_code == 401
 
 
-def test_protected_route_accepts_valid_token() -> None:
+def test_protected_route_accepts_valid_token_when_authentication_is_enabled(monkeypatch) -> None:
     from fastapi.testclient import TestClient
 
     from interface.main import app
+
+    monkeypatch.setenv("DR4A_AUTH_REQUIRED", "true")
 
     token = jwt.encode({"sub": "user-1"}, _SECRET, algorithm="HS256")
     container = type("C", (), {"auth": _container()})()
@@ -57,3 +63,20 @@ def test_protected_route_accepts_valid_token() -> None:
         client = TestClient(app)
         resp = client.get("/research/s1", headers={"Authorization": f"Bearer {token}"})
     assert resp.status_code == 200
+
+
+def test_local_development_mode_does_not_call_auth_service(monkeypatch) -> None:
+    from fastapi.testclient import TestClient
+
+    from interface.main import app
+
+    monkeypatch.delenv("DR4A_AUTH_REQUIRED", raising=False)
+
+    class _Research:
+        async def get_status(self, session_id: str) -> dict:
+            return {"session_id": session_id, "status": "clarify"}
+
+    container = type("C", (), {"research": _Research()})()
+    with patch("interface.router.research.get_container", return_value=container):
+        response = TestClient(app).get("/research/s1")
+    assert response.status_code == 200
