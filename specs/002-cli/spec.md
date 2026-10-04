@@ -21,32 +21,31 @@ Agent/开发者在「是环境问题还是代码问题」时，先跑体检，�
 1. **Given** 全部依赖就绪，**When** 跑 doctor，**Then** 退出码 0，逐项 PASS。
 2. **Given** PG 未启动，**When** 跑 doctor，**Then** 退出码 3，stderr 一行指出「postgres 不可达」。
 
-### User Story 2 - 确定性单 agent 调试（slice）(Priority: P1)
+### User Story 2 - 确定性单阶段调试（phase）(Priority: P1)
 
 Agent 改了一个 agent（如 critic.py）后，只想跑这一个 phase、喂一份固定 state，隔离「是哪个 agent 坏了」。
 
 **Why this priority**: 这是 Agent 调试循环的核心——「改一处 → 跑一次 → 看结果」必须快、确定、可复现。
 
-**Independent Test**: 给定一份罐头 state.json 和 `--fake --seed N`，slice review 两次输出一致，退出码反映 issue_type 是否正确。
+**Independent Test**: 给定一份满足 review 前置的 state.json 和 `--seed N`，phase review 两次输出一致，输出 post-state、events 与 state delta。
 
 **Acceptance Scenarios**:
 
-1. **Given** 一份 state.json + `--fake --seed 42`，**When** 连续跑两次 `slice review`，**Then** 两次 stdout 完全一致。
-2. **Given** critic 实现有 bug（漏判 overclaim），**When** `slice review`，**Then** 退出码 1，stderr 一行错误信息。
+1. **Given** 一份 review-ready state.json + `--seed 42`，**When** 连续跑两次 `phase review`，**Then** 两次 stdout 完全一致。
+2. **Given** 不满足 phase 前置的 state，**When** `phase review`，**Then** 退出码 2，stderr 指明缺失字段。
 
-### User Story 3 - 全链路闭环（run）(Priority: P1)
+### User Story 3 - 冻结 Brief 的 Pipeline 闭环（run）(Priority: P1)
 
-Agent/开发者想跑一条完整的 clarify → pipeline → report，验证端到端行为。
+Agent/开发者想从一份已经冻结的 ResearchBrief 跑 pipeline → report，验证编排与报告产出。
 
 **Why this priority**: 单 agent 对了不代表全链路对，run 是端到端验收入口。
 
-**Independent Test**: 给定一个 query，run 产出 final_report；给定 `--brief-file` 跳过 clarify 直接进 pipeline。
+**Independent Test**: 给定一份完整的 10 字段冻结 Brief，run 产出 final_report。
 
 **Acceptance Scenarios**:
 
-1. **Given** 一个 query + `--fake`，**When** run，**Then** 退出码 0，产出 final_report。
-2. **Given** `--brief-file f.json`，**When** run，**Then** 跳过 clarify 直接从冻结 brief 进 pipeline。
-3. **Given** `--answers a.json`，**When** run 的 clarify 需要回答，**Then** 自动用罐头答案，不交互。
+1. **Given** 一份冻结 Brief，**When** `run --brief f.json`，**Then** 退出码 0，产出 final_report。
+2. **Given** 缺字段或 task_type 无效的 Brief，**When** run，**Then** 退出码 2 并说明原因。
 
 ### User Story 4 - 状态检查（dump）(Priority: P2)
 
@@ -76,7 +75,7 @@ Agent 想单独验证 KB 入库/检索，不跑完整 pipeline。
 
 ### Edge Cases
 
-- clarify 需要交互，但 CLI 非交互 → `--brief-file` 跳过 / `--answers` 罐头答案。
+- Clarify 需要多轮交互 → CLI 不承载它；由 HTTP/API 或前端冻结 Brief 后再调用 `run`。
 - LLM 输出非确定 → `--fake --seed` 保证可复现。
 - 结果要给人看也要给机器解析 → 默认人类可读 + `--json` 结构化。
 - 环境错 vs 代码错要区分 → 退出码 3（环境）vs 1（研究/代码）。
@@ -92,21 +91,21 @@ Agent 想单独验证 KB 入库/检索，不跑完整 pipeline。
 - **FR-004**: CLI MUST 把错误与日志写到 stderr（一行一条、带时间戳），stdout 只放结果本体。
 - **FR-005**: CLI MUST 支持 `--verbose`，把每次 LLM 调用的 prompt + response 打到 stderr，不污染 stdout。
 - **FR-006**: CLI MUST 支持 `--fake --seed N`，用内存 fake 适配器确定性复现——`seed` 驱动可复现的多样性（同 seed 同输出、异 seed 异输出），而非固定输出。
-- **FR-007**: CLI MUST 提供 `run` 全链路（clarify → pipeline → report）；query 为可选位置参数、与 `--brief-file` 二选一（至少一个），并支持 `--answers`（罐头答案）以满足非交互。
-- **FR-008**: CLI MUST 提供 `slice <phase>`，喂一份 `--input state.json`，只跑单个 phase 的 agent；复用 orchestrator 执行单 phase 的那段与 EventBus 事件消费路径（与 router 相同），不另起一套、不加 generator 接口。
+- **FR-007**: CLI MUST 提供 `run --brief f.json`，只跑 pipeline → report；必须验证 10 字段冻结 Brief 与 task_type 枚举。Clarify 由 HTTP/API 或前端承载，不在 CLI 伪造交互。
+- **FR-008**: CLI MUST 提供 `phase <phase> --state state.json`，只跑单个 phase；验证 state phase 与命令一致及该 phase 最低前置字段，复用 orchestrator 执行单 phase 的路径与 EventBus 事件消费路径，不另起一套 agent 调用。
 - **FR-009**: CLI MUST 提供 `dump <session_id>`，从 phase_snapshots 读 state 打印（唯一 real-mode 命令，需真实 backend 先跑出过快照）。
 - **FR-010**: CLI MUST 提供 `ingest` 与 `search`，单独验证 KB 入库/检索。
-- **FR-011**: CLI MUST 默认 `--fake`（全内存、秒级、无依赖、确定性），并提供 `--no-fake` 显式关闭以启用真实依赖。
+- **FR-011**: CLI MUST 默认 fake（全内存、秒级、无依赖、确定性），并提供语义化的 `--real` 显式启用真实依赖。
 
 ### Key Entities
 
-- **命令集**: run / slice / dump / doctor / ingest / search，每个是 `python -m cli <cmd>` 的子命令。
+- **命令集**: run / phase / dump / doctor / ingest / search，每个是 `python -m cli <cmd>` 的子命令。
 - **输出契约**: 退出码枚举（0/1/2/3）、stdout 结果本体、stderr 日志、`--json`/`--verbose`/`--quiet` 三个 flag。
 - **确定性容器**: 复用基础设施层的 fake 适配器（FakeLLM/FakeSearch/FakeStateStore/...），由 seed 决定输出。
 
 ## Success Criteria
 
-- **SC-001**: Agent 跑「改 critic → slice review --fake --json → 看退出码」的循环能在 1 秒内完成单次迭代（fake 模式）。
+- **SC-001**: Agent 跑「改 critic → phase review --json → 看退出码」的循环能在 1 秒内完成单次迭代（默认 fake 模式）。
 - **SC-002**: 同一 `--fake --seed N` 输入两次运行的 stdout 完全一致（确定性）。
 - **SC-003**: `--json` 输出的结果是一个可由 `json.loads` 解析的单一对象，不含进度噪音。
 - **SC-004**: doctor 能正确区分 4 种退出码对应的场景（成功 / 研究失败 / 用法错 / 环境错）。

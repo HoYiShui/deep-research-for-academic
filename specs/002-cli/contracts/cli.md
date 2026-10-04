@@ -11,7 +11,7 @@
 | `--json` | stdout 输出单个 JSON 对象（结果本体） |
 | `--verbose` | 每个 LLM 调用的 prompt + response 打到 stderr。fake 模式打的是 phase prompt + seeded 合成 response（验「prompt 结构对不对」）；real 模式打真实 prompt/response（验「模型行为对不对」）——两者是不同的调试信号，勿混 |
 | `--quiet` | 只打最终报告，压掉进度噪音（`run` 有意义，其余命令无进度噪音时为 no-op） |
-| `--no-fake` | 关闭默认 fake，启用真实依赖（deepseek / arxiv / bocha / postgres / milvus） |
+| `--real` | 关闭默认 fake，启用真实依赖（deepseek / arxiv / bocha / postgres / milvus） |
 
 ## 2. 各命令
 
@@ -19,22 +19,30 @@
 
 体检 PG / Milvus / MinIO / 模型权重 / env。逐项 PASS/FAIL；任一 FAIL → 退出码 3。天然是 real 检查，无 `--fake`。
 
-### `run [query] [--brief-file f.json] [--answers a.json] [--no-fake] [--seed N] [--json] [--verbose] [--quiet] [--max-iterations N]`
+### `run --brief f.json [--real] [--seed N] [--json] [--verbose] [--quiet]`
 
-跑完整一条：clarify → pipeline → report。
+从冻结 ResearchBrief 跑：pipeline → report。
 
-- `query` 与 `--brief-file` **二选一、至少一个**：给了 query 走 clarify；给了 `--brief-file` 跳过 clarify，直接读冻结 brief 进 pipeline。
-- `--answers a.json`：clarify 自动用罐头答案（每行/每项一条），不交互。
+- `--brief f.json`：必填。必须是完整的 ResearchBrief 10 字段，`task_type` 必须是受支持枚举。
+- Clarify 不是 CLI 子命令：多轮对话由 HTTP/API 或前端完成；CLI 不用罐头答案伪造一段 Clarify。
 - `--seed N`：fake 输出的种子（同 seed 同结果、异 seed 异结果）。
-- `--max-iterations N`：回流迭代上限。
-- `--no-fake`（real 模式）：会往 PG 写 sessions / briefs / snapshots，有持久化副作用；默认 fake 全内存、无副作用。
+- `--real`：会往 PG 写 session / brief / snapshots，有持久化副作用；默认 fake 全内存、无副作用。
 
-### `slice <phase> [--input state.json] [--no-fake] [--seed N] [--json] [--verbose]`
+### `phase <phase> --state state.json [--real] [--seed N] [--json] [--verbose]`
 
-只跑单个 phase 的 agent。`phase ∈ plan / research / analyze / write / review`。
+只跑一个 pipeline phase。`phase ∈ plan / research / analyze / write / review`。
 
-- `--input state.json`：喂一份罐头 PipelineState，隔离「是哪个 agent 坏了」。
+- `--state state.json`：喂一份 PipelineState，隔离「是哪个 phase 坏了」。state 内的 `phase` 必须与命令相同。
+- CLI 调试层会检查该 phase 的最低前置字段；不满足时以退出码 2 拒绝，避免空 state 伪装为成功。
 - 复用 orchestrator 执行单 phase 的那段（同一 state 切分、事件发射、结果合并），不另起一套 agent 调用。
+
+| 要运行的 phase | 最低有效输入 |
+|---|---|
+| `plan` | `research_brief` |
+| `research` | `research_brief` + `section_plans` |
+| `analyze` | `section_plans` + `quantitative_observations` |
+| `write` | `research_brief` + `section_plans` + `claims` + `evidence` |
+| `review` | `draft_claim_bindings` + `claims` + `evidence` + `sources` |
 
 ### `dump <session_id> [--json]`
 
@@ -67,6 +75,8 @@
 {
   "status": "ok" | "failed" | "usage_error" | "env_error",
   "final_report": {},     // run 成功时
+  "state": {},            // phase 成功后的完整状态
+  "state_delta": {},      // phase 后发生变化的顶层字段
   "error": "",            // 失败时
   "events": []            // 可选，事件流；--quiet 时省略（缓冲整流可能很大）
 }
@@ -80,7 +90,7 @@
 
 ## 约束
 
-- 确定性：同一 `--fake --seed N` 输入两次运行 stdout 完全一致。
-- 非交互：任何命令都不阻塞等待人工输入；clarify 用 `--brief-file` 或 `--answers` 绕过。
+- 确定性：同一 `--seed N` 输入两次 fake 运行 stdout 完全一致。
+- 非交互：任何命令都不阻塞等待人工输入；CLI 只消费 Clarify 已冻结的 Brief。
 - 幂等：`dump`/`ingest`/`search` 可重复执行，无副作用。
 - 单套实现：`--seed` 确定性加进 `infrastructure/fake.py`（测试与 CLI 共享同一套 fake），CLI 只注入 seed，不另造一套。

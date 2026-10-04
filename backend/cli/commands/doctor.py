@@ -5,11 +5,13 @@ from __future__ import annotations
 import os
 
 from cli import output
+from cli.env import load_backend_env
 
 _REQUIRED_ENV = ("ANTHROPIC_API_KEY", "BOCHA_API_KEY", "DATABASE_URL", "JWT_SECRET")
 
 
 async def run(args) -> int:
+    load_backend_env()
     checks = [
         ("env", _check_env()),
         ("model_weights", _check_model_weights()),
