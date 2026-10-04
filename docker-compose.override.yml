@@ -2,8 +2,8 @@
 #
 # In dev:
 #   - the backend runs on the host: `cd backend && uvicorn interface.main:app --reload --env-file .env`
-#   - Milvus is embedded (Milvus Lite, MILVUS_URI=./milvus.db), so no Milvus container
-#   - the base infra (postgres + minio) is all `docker compose up` needs
+#   - Milvus runs as a Standalone service with etcd and its own MinIO dependency
+#   - the base infra is all `docker compose up` needs
 #
 # There is nothing structural to override today; keep any dev-only tweaks
 # (extra debug ports, one-off helpers) here.

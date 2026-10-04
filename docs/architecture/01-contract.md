@@ -82,10 +82,11 @@ ResearchProfile 不重复保存本次研究事实；它定义该类任务需要�
 INTAKE
   → 分类 task_type
   → Architect.clarify 读取当前 Brief 草稿，判断缺失项（只产判断，不产 status）
-  → machine.decide_status 应用政策：critical 缺口 → ask；否则 → ready
+  → machine.decide_status 应用政策：critical 缺口 → ask；否则 → confirm
 
 ask → 返回问题 → 用户回答 → 合并 brief_patch → 再次判断（循环在 session_service）
-ready → 冻结 ResearchBrief → 进入 pipeline（PLANNING → DeepScout）
+confirm → 返回完整 Brief → 等待用户确认或要求修改
+用户确认 → 冻结 ResearchBrief → 进入 pipeline（PLANNING → DeepScout）
 ```
 
 每轮 Clarify 建议只问一到两个高信息增益问题。Architect 只输出结构化判断（**不含 status**）：
@@ -97,7 +98,7 @@ brief_patch: {}
 assumptions: []
 ```
 
-`status`（ask/ready）由 `machine.decide_status` 这个纯代码政策决定——**LLM 从不驱动控制流**。需要持久化 `session_id`、`clarification_history`、`pending_questions`、`brief_draft` 和 `clarification_round`，以支持用户跨请求回复。设定轮数上限；若仍有非关键缺口，则采用可披露的保守默认值，而不是无限追问。
+`status`（ask/confirm）由 `machine.decide_status` 这个纯代码政策决定——**LLM 从不驱动控制流**。`ready` 只在用户明确确认后产生。需要持久化 `session_id`、`clarification_history`、`pending_questions`、`brief_draft` 和 `clarification_round`，以支持用户跨请求回复。设定轮数上限；若仍有非关键缺口，则采用可披露的保守默认值，而不是无限追问。
 
 ## 4. 可复用的 Query 骨架
 

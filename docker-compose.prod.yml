@@ -1,5 +1,5 @@
-# Prod override — adds Milvus standalone (+ its etcd/minio), the backend, and
-# (once a frontend exists) the frontend. Run with:
+# Prod override — adds the backend and (once a frontend exists) the frontend.
+# It reuses the service-backed data infrastructure from docker-compose.yml. Run with:
 #   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
 #
 # Secrets are injected via env_file (never inlined). Model weights are
@@ -7,65 +7,6 @@
 # uses nsjail in prod — the backend container gets no docker socket.
 
 services:
-  # ---- Milvus standalone deps (its own etcd + minio) ----
-  etcd:
-    image: quay.io/coreos/etcd:v3.5.5
-    restart: unless-stopped
-    environment:
-      - ETCD_AUTO_COMPACTION_MODE=revision
-      - ETCD_AUTO_COMPACTION_RETENTION=1000
-      - ETCD_QUOTA_BACKEND_BYTES=4294967296
-      - ETCD_SNAPSHOT_COUNT=50000
-    volumes:
-      - etcd_data:/etcd
-    command: etcd -advertise-client-urls=http://etcd:2379 -listen-client-urls http://0.0.0.0:2379 --data-dir /etcd
-    healthcheck:
-      test: ["CMD", "etcdctl", "endpoint", "health"]
-      interval: 10s
-      timeout: 5s
-      retries: 12
-
-  minio-milvus:
-    image: minio/minio:RELEASE.2024-05-28T17-19-04Z
-    restart: unless-stopped
-    environment:
-      MINIO_ROOT_USER: minioadmin
-      MINIO_ROOT_PASSWORD: minioadmin
-    volumes:
-      - milvus_minio_data:/minio_data
-    command: minio server /minio_data --console-address ":9001"
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
-      interval: 10s
-      timeout: 5s
-      retries: 12
-
-  milvus:
-    image: milvusdb/milvus:v2.6.0
-    restart: unless-stopped
-    command: ["milvus", "run", "standalone"]
-    security_opt:
-      - seccomp:unconfined
-    environment:
-      ETCD_ENDPOINTS: etcd:2379
-      MINIO_ADDRESS: minio-milvus:9000
-    volumes:
-      - milvus_data:/var/lib/milvus
-    ports:
-      # 19531/9092 (not 19530/9091) — taken by the local `industry` project.
-      - "127.0.0.1:19531:19530"
-      - "127.0.0.1:9092:9091"
-    depends_on:
-      etcd:
-        condition: service_healthy
-      minio-milvus:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9091/healthz"]
-      interval: 10s
-      timeout: 5s
-      retries: 12
-
   # ---- Backend ----
   backend:
     build:
@@ -74,6 +15,7 @@ services:
     env_file:
       - ./backend/.env          # secrets: ANTHROPIC_API_KEY / BOCHA_API_KEY / JWT_SECRET
     environment:
+      DR4A_AUTH_REQUIRED: "true"
       # Container-internal hostnames override the dev (localhost) values in .env.
       DATABASE_URL: postgresql://${POSTGRES_USER:-deepresearch}:${POSTGRES_PASSWORD:-deepresearch}@postgres:5432/${POSTGRES_DB:-deepresearch}
       MILVUS_URI: http://milvus:19530
@@ -85,6 +27,17 @@ services:
       - ${BGE_M3_MODEL_HOST_PATH:-./models/bge-m3}:/models/bge-m3:ro
     ports:
       - "127.0.0.1:${BACKEND_PORT:-8000}:8000"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3)",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 6
     depends_on:
       postgres:
         condition: service_healthy

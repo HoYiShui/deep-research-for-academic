@@ -6,7 +6,7 @@
 
 ## Summary
 
-给 deep-research-agent 后端加一个 CLI 调试入口（`python -m cli`），统一 doctor / run / slice / dump / ingest / search 六个命令。Agent 是一等公民：非交互、确定性（`--fake --seed`）、结构化输出（`--json`）、退出码 + stderr 错误。复用 001 号 feature 的 application / domain / infrastructure 层，不新增研究能力。
+给 deep-research-agent 后端加一个 CLI 调试入口（`python -m cli`），统一 doctor / run / phase / dump / ingest / search 六个命令。Agent 是一等公民：非交互、确定性（默认 fake + `--seed`）、结构化输出（`--json`）、退出码 + stderr 错误。CLI 只接收冻结 Brief，不承载 Clarify；复用 001 号 feature 的 application / domain / infrastructure 层，不新增研究能力。
 
 ## Technical Context
 
@@ -28,7 +28,7 @@ backend/cli/
 └── commands/
     ├── doctor.py
     ├── run.py
-    ├── slice.py
+    ├── phase.py
     ├── dump.py
     ├── ingest.py
     └── search.py
@@ -41,12 +41,12 @@ backend/cli/
 - **stderr**：错误 + 日志，一行一条、带时间戳。`--verbose` 时每个 LLM 调用的 prompt + response 也打到这里。
 - **`--quiet`**：只打最终报告，压掉进度噪音。
 
-### 确定性策略（--fake --seed）
+### 确定性策略（默认 fake + --seed）
 
 - `--seed` 的确定性加进 `infrastructure/fake.py`（测试与 CLI 共享同一套 fake，不另造）。
 - `seed` 驱动 fake 的**可复现多样性**：同 seed 同输出、异 seed 异输出（`seed 42` 一种场景、`seed 43` 另一种），而非固定输出让 `--seed` 变成无操作。
 - CLI 只做 seed 注入（`--seed N` 传给 fake 容器），不新增 fake 实现。
-- 默认 fake（全内存、秒级、无依赖）；真实依赖用 `--no-fake` 显式关闭，经 `doctor` 确认后启用。
+- 默认 fake（全内存、秒级、无依赖）；真实依赖用 `--real` 显式启用，经 `doctor` 确认后使用。
 
 ### 事件消费（复用 EventBus，不另加接口）
 
@@ -54,17 +54,17 @@ backend/cli/
 - CLI 走同一条路径：`create EventBus → run orchestrator（推事件进 bus）→ drain 队列 → print`。与 router 的 drain 一致，零改动、零漂移。
 - 不另给 orchestrator 加 async generator 接口——那会造第二个消费接口，回到「平行路径」的老坑。
 
-### slice 的复用（避免平行路径）
+### phase 的复用（避免平行路径）
 
-- `slice <phase>` 不自己 new 一个 agent 跑——那会与 orchestrator 跑的代码漂移。
-- 复用 orchestrator 执行单 phase 的那段（同一 state 切分、事件发射、结果合并），必要时抽一个共享 `run_phase(phase, state, emit)`，orchestrator 与 slice 都调它。
-- `--input state.json` 的罐头 state 复用 001 测试的 fixture（`tests/fixtures/`），CLI 与单测共享同一批，不手搓。
+- `phase <phase> --state state.json` 不自己 new 一个 agent 跑——那会与 orchestrator 跑的代码漂移。
+- 复用 orchestrator 执行单 phase 的那段（同一 state 切分、事件发射、结果合并）。CLI 专有验证确保 state phase 匹配且具备最低前置字段；它不替代生产状态机。
+- phase 输出完整 post-state、events 与顶层 state delta，供 Agent 判断发生了什么变化。
 
 ### dump 的 real-mode 定位与持久化副作用
 
 - `dump` 读 PG 的 `phase_snapshots`，是唯一 real-mode 命令；fake 模式下无数据。
-- 其余命令（run / slice / ingest / search）默认 fake 快速循环；dump 是 real 取证，需真实 backend 先跑出过快照。
-- `run --no-fake`（real 模式）会往 PG 写 sessions / briefs / snapshots，有持久化副作用；fake 模式全内存、无副作用。二者不对称，调试时注意别污染真实库。
+- 其余命令（run / phase / ingest / search）默认 fake 快速循环；dump 是 real 取证，需真实 backend 先跑出过快照。
+- `run --real`（real 模式）会往 PG 写 sessions / briefs / snapshots，有持久化副作用；fake 模式全内存、无副作用。二者不对称，调试时注意别污染真实库。
 
 ### 与既有层的关系（依赖方向不变）
 

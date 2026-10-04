@@ -12,16 +12,17 @@
 
 ### User Story 1 - 研究请求收敛与 ResearchBrief 冻结 (Priority: P1)
 
-研究人员提交一个开放研究请求（可自选任务模式，或交由系统判断）。系统只针对会改变检索计划、可接受证据、可支持结论或验证方案的缺失信息发起澄清，收敛后冻结一份结构化 ResearchBrief，作为后续调研的依据。
+研究人员提交一个开放研究请求（可自选任务模式，或交由系统判断）。系统只针对会改变检索计划、可接受证据、可支持结论或验证方案的缺失信息发起澄清；收敛后先展示结构化 ResearchBrief，只有用户确认后才冻结，作为后续调研的依据。
 
 **Why this priority**: 这是所有任务类型的统一入口。没有冻结的 ResearchBrief，后续检索范围与证据覆盖都无法评估。
 
-**Independent Test**: 单独交付时，输入任意开放研究请求，验证系统能识别任务类型、仅对关键缺失发起澄清，并冻结含 10 字段的 ResearchBrief。
+**Independent Test**: 单独交付时，输入任意开放研究请求，验证系统能识别任务类型、仅对关键缺失发起澄清，展示含 10 字段的 ResearchBrief，并只在用户确认后冻结。
 
 **Acceptance Scenarios**:
 
 1. **Given** 一个开放请求且缺失信息会改变检索/证据/结论/验证，**When** 系统分析，**Then** 系统发起针对性澄清（每轮 1–2 个高信息增益问题）。
-2. **Given** 澄清完成或信息已足够，**When** 系统收敛需求，**Then** 系统冻结含 10 字段的 ResearchBrief。
+2. **Given** 澄清完成或信息已足够，**When** 系统收敛需求，**Then** 系统展示含 10 字段的 ResearchBrief 并等待用户确认。
+3. **Given** 用户明确确认完整 ResearchBrief，**When** 系统接收确认，**Then** 系统冻结该 Brief 并启动后续研究。
 3. **Given** 缺失信息为非关键项，**When** 系统处理，**Then** 系统采用可披露的保守默认值，而非无限追问。
 
 ---
@@ -105,7 +106,7 @@
 - **FR-001**: 系统 MUST 接收自然语言研究请求，识别任务类型（选题构思 / 方法差分 / 实验验证 / 审稿回应），对不确定的情况可由系统判断。
 - **FR-002**: 系统 MUST 仅在未确定信息会改变检索计划、可接受证据、可支持结论或验证方案时发起澄清。
 - **FR-003**: 系统 MUST 每轮澄清只提 1–2 个高信息增益问题，并设轮数上限；非关键缺口 MUST 采用可披露的保守默认值。
-- **FR-004**: 系统 MUST 将收敛后的需求冻结为 ResearchBrief，包含 10 字段：task_type、decision_goal、research_object、scope、comparison_scope、claims_to_verify、evidence_requirements、conclusion_boundary、deliverable、assumptions。
+- **FR-004**: 系统 MUST 将收敛后的需求展示为 ResearchBrief，包含 10 字段：task_type、decision_goal、research_object、scope、comparison_scope、claims_to_verify、evidence_requirements、conclusion_boundary、deliverable、assumptions；只有用户明确确认后才可冻结。
 - **FR-005**: 系统 MUST 支持跨轮澄清（持久化澄清历史、待答问题与 Brief 草稿，供后续轮次回复）。
 - **FR-006**: 系统 MUST 支持从论文、网页、本地知识库多源检索证据。
 - **FR-007**: 系统 MUST 针对关键论断递归追溯原始来源（原始论文、数据集文档、官方代码），而非停留在摘要或二手转述。
@@ -147,7 +148,7 @@
 
 ### Measurable Outcomes
 
-- **SC-001**: 提交研究请求后，系统在不超过 3 轮澄清内冻结 ResearchBrief（或对非关键项采用保守默认）。
+- **SC-001**: 提交研究请求后，系统在不超过 3 轮澄清内形成完整 ResearchBrief（或对非关键项采用保守默认），并在用户确认后冻结。
 - **SC-002**: 报告中每条关键结论与引用均可回链到带定位的证据（可溯源率 100%，无法溯源处显式标注）。
 - **SC-003**: 口径不一致的指标被识别并标记不可比，报告中无不加说明的跨口径比较。
 - **SC-004**: ResearchBrief 规定的关键论断在报告中被覆盖（未覆盖的论断显式标注为证据不足）。

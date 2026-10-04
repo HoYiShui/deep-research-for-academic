@@ -7,7 +7,7 @@ import asyncio
 import sys
 
 from cli import output
-from cli.commands import doctor, dump, ingest, run, search, slice
+from cli.commands import doctor, dump, ingest, phase, run, search
 
 
 def _add_common(parser: argparse.ArgumentParser) -> None:
@@ -24,25 +24,22 @@ def build_parser() -> argparse.ArgumentParser:
     _add_common(p)
     p.set_defaults(handler=doctor.run)
 
-    p = sub.add_parser("run", help="full pipeline (clarify -> pipeline -> report)")
-    p.add_argument("query", nargs="?", default=None)
-    p.add_argument("--brief-file", help="skip clarify; load a frozen brief JSON")
-    p.add_argument("--answers", help="canned clarify answers (one per line)")
-    p.add_argument("--fake", action=argparse.BooleanOptionalAction, default=True,
-                   help="use fake adapters (default); --no-fake for real")
+    p = sub.add_parser("run", help="run the pipeline from a frozen ResearchBrief")
+    p.add_argument("--brief", required=True, help="path to a frozen ResearchBrief JSON")
+    p.add_argument("--real", action="store_false", dest="fake",
+                   help="use real adapters and persist the debug run")
     p.add_argument("--seed", type=int, help="fake-mode seed")
-    p.add_argument("--max-iterations", type=int, help="rework cap")
     _add_common(p)
     p.set_defaults(handler=run.run)
 
-    p = sub.add_parser("slice", help="run a single phase on a canned state")
+    p = sub.add_parser("phase", help="run one pipeline phase from a saved state")
     p.add_argument("phase", choices=["plan", "research", "analyze", "write", "review"])
-    p.add_argument("--input", required=True, help="canned PipelineState JSON")
-    p.add_argument("--fake", action=argparse.BooleanOptionalAction, default=True,
-                   help="use fake adapters (default); --no-fake for real")
+    p.add_argument("--state", required=True, help="path to a PipelineState JSON")
+    p.add_argument("--real", action="store_false", dest="fake",
+                   help="use real adapters and persist the debug run")
     p.add_argument("--seed", type=int, help="fake-mode seed")
     _add_common(p)
-    p.set_defaults(handler=slice.run)
+    p.set_defaults(handler=phase.run)
 
     p = sub.add_parser("dump", help="read a session's latest snapshot state")
     p.add_argument("session_id")

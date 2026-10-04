@@ -10,9 +10,10 @@ from domain.ports import Chunk, Embedding
 class MilvusStore:
     """VectorStorePort implementation backed by Milvus.
 
-    MILVUS_URI selects the backend: a file path (e.g. ``./milvus.db``) uses the
-    embedded Milvus Lite in dev; an ``http://host:port`` URI uses a standalone
-    server in prod. Falls back to MILVUS_HOST/MILVUS_PORT for backward compat.
+    MILVUS_URI selects the Standalone service endpoint. Host-side development
+    uses ``http://localhost:19530``; the production backend uses the Compose
+    service endpoint ``http://milvus:19530``. Falls back to
+    MILVUS_HOST/MILVUS_PORT for backward compatibility.
     """
 
     def __init__(self, uri: str | None = None) -> None:

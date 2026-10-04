@@ -11,6 +11,7 @@
 
 | 文件 | 内容 |
 |---|---|
+| [research-api.md](contracts/research-api.md) | Research API 契约：认证、会话、Clarify、SSE、报告、取消与错误语义 |
 | [researchbrief.md](contracts/researchbrief.md) | ResearchBrief 契约：归一化 7 要素、10 字段、术语对照、Clarify 原则 |
 | [researchprofile.md](contracts/researchprofile.md) | 4 类任务：决策问题、专属字段、主要交付 |
 | [report-skeleton.md](contracts/report-skeleton.md) | 统一报告骨架（完整 markdown）+ 3 个任务专属模块 |

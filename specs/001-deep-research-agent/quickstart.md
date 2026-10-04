@@ -10,8 +10,8 @@
 ## 启动
 
 ```bash
-# 1. 启动依赖（postgres / milvus / minio）
-docker compose up -d
+# 1. 启动依赖（postgres / minio / etcd / minio-milvus / milvus）
+docker compose --env-file backend/.env up -d
 
 # 2. 安装后端
 cd backend && pip install -e ".[dev]"
@@ -28,12 +28,13 @@ cd frontend && npm run dev
 用 `docs/cases/case-1-idea-exploration.md` 的 query 验证：
 
 1. **注册/登录**：`POST /auth/register` → `POST /auth/login` → 拿 token。
-2. **建会话**：`POST /research`（query + `task_type=idea_exploration`）→ `{ session_id, status: "clarify" }`（不返回 sse_url）。
-3. **澄清（交互式）**：`POST /research/{id}/messages` 逐轮回答澄清问题 → 直到 `{ status: "ready", sse_url }`。
-4. **观察流水线**：`GET /research/{id}/events`（SSE）观察 `phase` 事件：`plan → research → analyze → write → review → done`。
-5. **拿报告**：`GET /research/{id}/report`。
+2. **初始 Clarify**：`POST /research`（query + `task_type=idea_exploration`）→ `201`，返回 `{ session_id, status: "ask", ... }` 或 `{ session_id, status: "confirm", research_brief }`，不返回 `sse_url`。
+3. **澄清（交互式）**：仅在 `ask` 时以 `POST /research/{id}/messages` 逐轮回答问题，直到返回 `{ status: "confirm", research_brief }`。
+4. **确认 Brief**：`POST /research/{id}/confirm { accepted: true }` → `{ status: "ready", sse_url }`；用户要求修改时以 `{ accepted: false, feedback }` 返回 Clarify。
+5. **观察流水线**：收到 `ready` 后，`GET /research/{id}/events`（SSE）观察 `phase` 事件：`plan → research → analyze → write → review → done`。
+6. **拿报告**：`GET /research/{id}/report`。
 
-（注意：SSE 连接在 `ready` 之后才建立；`POST /messages` 返回 JSON，不返回 SSE。）
+（注意：SSE 连接只在确认成功、收到 `ready` 后建立；`POST /messages` 返回 `ask` 或 `confirm` JSON，不返回 SSE。）
 
 ## 知识库（可选）
 
