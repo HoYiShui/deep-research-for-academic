@@ -3,6 +3,7 @@
 - [文档目录](README.md)
 
 - [输入/输出契约]()
+  - [Research API 契约](contracts/research-api.md)
   - [ResearchBrief 契约](contracts/researchbrief.md)
   - [ResearchProfile 契约](contracts/researchprofile.md)
   - [统一报告骨架](contracts/report-skeleton.md)

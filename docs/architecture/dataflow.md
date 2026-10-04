@@ -5,7 +5,7 @@
 
 ## 1. DeepResearch 端到端数据流
 
-### 阶段 0：入口（建会话 + 建 SSE 通道）
+### 阶段 0：入口（建会话 + 初始 Clarify）
 
 ```text
 【前端 browser client】
@@ -24,18 +24,17 @@ POST /research
      - 生成 session_id（uuid）
      - 初始化 SessionState{ phase: clarify, brief_draft: 空, clarification_history }（归 session_service，存 sessions 表）
      - StateStorePort → PostgreSQL 写 sessions 表（session_id + user_id + status=clarify）
-     - 为 session 注册 SSE 通道（asyncio.Queue）
+     - 用原始 query 执行 clarify_initial；Architect 只产 missing_fields / questions /
+       brief_patch / assumptions，machine.decide_status 决定 ask 或 confirm
 
 【interface】
-  ⑤ 同步返回 201 { session_id, status: clarify, sse_url }
-       （关键：这里只「同步建会话」，不阻塞等结果）
-
-【前端】
-  ⑥ 拿 sse_url 建 EventSource（GET /research/{session_id}/events，带 cookie）
-      从此一切进度都走这条 SSE 流
+  ⑤ 同步返回 201：
+       - ask → { session_id, status: ask, questions, missing_fields, brief_draft }
+       - confirm → { session_id, status: confirm, research_brief }
+       （关键：这里只建会话并完成同步 Clarify，不启动 pipeline）
 ```
 
-### 阶段 1：澄清（session 多轮，经 SSE）
+### 阶段 1：澄清（session 多轮，经 HTTP）
 
 ```text
 用户发消息 → POST /research/{session_id}/messages { content }
@@ -43,10 +42,19 @@ POST /research
 【application】session_service.clarify 循环：
   ⑦ architect.clarify(brief_draft, answer)              # 只产判断
        → { missing_fields, questions, brief_patch, assumptions }
-  ⑦' decide_status(missing_fields) → ask/ready   # 代码政策（machine.py）
-  ⑧ status=ask → questions 经 session 返回用户 → 用户答 → 回 ⑦（持久化 brief_draft + history）
-  ⑨ status=ready → 冻结 ResearchBrief（写 briefs 表）
-  期间：每轮派生 ClarifyEvent → SSE 推给前端
+  ⑦' decide_status(missing_fields) → ask/confirm # 代码政策（machine.py）
+  ⑧ status=ask → HTTP 返回 questions / missing_fields / brief_draft → 用户答 → 回 ⑦
+      （持久化 brief_draft + history）
+  ⑨ status=confirm → HTTP 返回完整 research_brief，等待用户审核
+
+【确认】
+  ⑩ POST /research/{session_id}/confirm { accepted: true }
+      → 再次校验 → 冻结 ResearchBrief（写 briefs 表）→ 后台启动 pipeline
+      → HTTP 返回 { status: ready, sse_url }
+  ⑪ accepted=false + feedback → 回到 Clarify
+
+【前端】
+  ⑫ 收到 ready 后才连接 GET /research/{session_id}/events（带 cookie）
 ```
 
 ### 阶段 2：研究流水线（长跑，SSE 推进度）

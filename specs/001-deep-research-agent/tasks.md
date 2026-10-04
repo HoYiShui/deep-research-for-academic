@@ -1,5 +1,8 @@
 # Tasks: 网络安全学术研究 Deep Research 系统
 
+> 历史实施任务记录：已完成条目保留其当时的设计与措辞，不作为现行 API 规范。
+> 当前客户端传输契约见 `docs/contracts/research-api.md`。
+
 **Input**: `/specs/001-deep-research-agent/`（plan.md / spec.md / data-model.md / contracts/api.md / research.md / quickstart.md）
 
 **设计原则**：

@@ -55,7 +55,7 @@ ResearchState(
 
 ### 3.1 `ResearchBrief`
 
-`ResearchBrief` 是一次研究的**结构化研究任务书**，定义研究范围、比较对象、可接受证据、结论边界和交付形式。它在 Clarify 完成后冻结；后续若用户改变研究决策，应创建新版本，而不是静默覆盖。
+`ResearchBrief` 是一次研究的**结构化研究任务书**，定义研究范围、比较对象、可接受证据、结论边界和交付形式。Clarify 产生完整 Brief 草稿后，必须经用户确认才冻结；后续若用户改变研究决策，应创建新版本，而不是静默覆盖。
 
 ```python
 ResearchBrief(
@@ -290,7 +290,7 @@ CriticFeedback(
 
 | 阶段 / Agent | 主要读取 | 允许写入 |
 |---|---|---|
-| Clarify / Architect | 用户请求、历史 Brief | `research_brief`、`section_plans`、初始 `claim_specs` |
+| Clarify / Architect | 用户请求、历史 Brief 草稿 | `ClarifyAssessment`（missing_fields / questions / brief_patch / assumptions）；不直接冻结 Brief 或写 SectionPlan |
 | DeepScout | Brief、SectionPlan、已有 Source/Evidence | `sources`、`evidence`、`claims`、`claim_evidence_links`、`quantitative_observations`、`section_coverage` |
 | DataAnalyst | Evidence、Observation、SectionPlan | `comparable_metrics`、`section_coverage` 中的可比性缺口 |
 | CodeCrafter | Analysis requirement、ComparableMetric | `analysis_artifacts` |
@@ -302,7 +302,8 @@ CriticFeedback(
 ```text
 用户请求
   → Clarify
-  → ResearchBrief + SectionPlan[]
+  → 完整 Brief 草稿 → 用户确认 → ResearchBrief
+  → Architect.plan → SectionPlan[]
   → DeepScout
       → SourceRecord
       → Evidence

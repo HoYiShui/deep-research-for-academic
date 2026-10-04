@@ -67,35 +67,42 @@ interface → application → domain → ports（抽象接口）
 
 | 阶段 | 交互模式 | 状态机 | 载体 |
 |---|---|---|---|
-| Clarify（brief 未满足） | 多轮、同步（反问→用户答→再问） | 简单循环（session_service 驱动） | session |
+| Clarify（brief 未满足） | 多轮、同步（反问→用户答→再问→用户确认） | 简单循环（session_service 驱动） | session |
 | Pipeline（brief 已冻结） | 长跑、异步（SSE 推进度） | 显式状态机（machine.py） | session（看进度） |
 
 **Clarify 定位**（LLM 产判断、代码应用政策）：
 - `architect.clarify(brief_draft, answer) -> {missing_fields, questions, brief_patch, assumptions}`——**只产判断，不产 status**。
-- `decide_status(missing_fields) -> ask/ready`——**纯代码政策**（有 critical 缺口→ask，否则→保守默认→ready），在 machine.py。
-- 循环在 session_service（`while status != ready: clarify → 问用户 → 合并 answer → 持久化`）。
+- `decide_status(missing_fields) -> ask/confirm`——**纯代码政策**（有 critical 缺口→ask，否则→保守默认→confirm），在 machine.py。
+- 循环在 session_service（`while status == ask: clarify → 问用户 → 合并 answer → 持久化`）；`confirm` 只展示完整 Brief，等待用户明确确认或要求修改。
 - **状态持久化**：brief_draft + clarification_history 经 StateStorePort 落 PostgreSQL（clarify 跨多个 HTTP 请求，不能只活在内存）；每轮 Q&A 是 append-only，由 session 的 messages 表承载（天然审计）。
 - **brief_draft 是结构化压缩态**：每轮把 answer 折进 brief，下一轮只看 `brief_draft + 最新 answer`，不重读全文 → context 有界，无 ReAct 式膨胀。
 
 **会话 ↔ 流水线边界**（依赖无环，research_service 是唯一中介；两个 state，冻结是交接点）：
 
 ```text
-# 入口 1：建会话（POST /research，只建 session，不跑 clarify）
+# 入口 1：建会话并执行初始 Clarify（POST /research）
 research_service.start():
-    return session_service.create()     # SessionState{ brief_draft, history }，返回 status=clarify
+    session = session_service.create()  # SessionState{ brief_draft, history }
+    return session_service.clarify_initial(session, query)  # 返回 ask 或 confirm
 
 # 入口 2：推进一轮 clarify（POST /messages，每轮一次）
 session_service.on_message(session, answer):
     status = clarify_round(session, answer)          # architect.clarify + decide_status
     if status == ask:
         return {"status": "ask", "questions": questions}
-    elif status == ready:
-        brief = session.freeze()                     # 冻结 brief
-        self._spawn_pipeline(brief)                  # create_task + 持有引用；orchestrator 内部发事件到进程内队列
-        return {"status": "ready", "sse_url": ...}   # 只返回 JSON，不 yield SSE
+    elif status == confirm:
+        return {"status": "confirm", "research_brief": brief_draft}
+
+# 入口 3：确认或退回 Brief（POST /confirm）
+session_service.confirm(session, accepted, feedback):
+    if not accepted:
+        return clarify_round(session, feedback)      # 返回 ask
+    brief = session.freeze()                          # 确认后才冻结 brief
+    self._spawn_pipeline(brief)                       # create_task + 持有引用；orchestrator 内部发事件到进程内队列
+    return {"status": "ready", "sse_url": ...}
 ```
 
-> **两个 state**：SessionState（brief_draft / clarification_history / clarify 状态，归 session_service，存 sessions/briefs 表）；PipelineState（section_plans / evidence / claims / metrics / ...，归 orchestrator，由冻结 brief 初始化，存 phase_snapshots）。brief_draft 不是 pipeline state 的字段；冻结 brief 是 pipeline 的输入。
+> **两个 state**：SessionState（brief_draft / clarification_history / clarify 状态 ask/confirm，归 session_service，存 sessions/briefs 表）；PipelineState（section_plans / evidence / claims / metrics / ...，归 orchestrator，由确认后冻结的 brief 初始化，存 phase_snapshots）。brief_draft 不是 pipeline state 的字段；冻结 brief 是 pipeline 的输入。
 
 ### 持久化生命周期
 
@@ -104,7 +111,7 @@ session_service.on_message(session, answer):
 - **V2 多进程/多实例**（扩展时）：事件总线用 Redis pub/sub（EventSink=publish / SSE=subscribe）；取消标志用 Redis。
 - 审计历史 → V2。
 
-> orchestrator（pipeline）作为**后台 asyncio 任务**，在 POST /messages 判定 `ready` 时 `asyncio.create_task` spawn，不阻塞 HTTP 请求；SSE 连接从进程内事件总线订阅进度。重启后客户端重连 → 从 phase_snapshots 恢复 pipeline → 重新流事件（事件流是瞬态，真相在 snapshot）。
+> orchestrator（pipeline）作为**后台 asyncio 任务**，在 POST /confirm 收到用户确认后 `asyncio.create_task` spawn，不阻塞 HTTP 请求；SSE 连接从进程内事件总线订阅进度。重启后客户端重连 → 从 phase_snapshots 恢复 pipeline → 重新流事件（事件流是瞬态，真相在 snapshot）。
 
 ### 数据库设计（PostgreSQL，按需求分 schema）
 

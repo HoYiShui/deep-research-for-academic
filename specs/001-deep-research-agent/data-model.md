@@ -9,7 +9,7 @@
 
 | state | 内容 | 归谁 | 存哪 |
 |---|---|---|---|
-| **SessionState** | brief_draft（草稿）、clarification_history、clarify 状态（ask/ready） | session_service | sessions / briefs 表 |
+| **SessionState** | brief_draft（草稿）、clarification_history、clarify 状态（ask/confirm） | session_service | sessions / briefs 表 |
 | **PipelineState** | 冻结 brief（只读输入）+ section_plans / evidence / claims / ... + phase + run_metadata | orchestrator | phase_snapshots |
 
 **brief_draft 不是 pipeline state 的字段**；冻结 brief 是 pipeline 的输入（只读），交接时传入。
@@ -43,7 +43,7 @@
 
 ### ResearchBrief（研究任务书，10 字段）
 
-`task_type`（枚举：idea_exploration / method_differentiation / evaluation_design / reviewer_response）、`decision_goal`、`research_object`、`scope`、`comparison_scope`、`claims_to_verify`、`evidence_requirements`、`conclusion_boundary`、`deliverable`、`assumptions`。Clarify 后冻结；改动需创建新版本而非静默覆盖。
+`task_type`（枚举：idea_exploration / method_differentiation / evaluation_design / reviewer_response）、`decision_goal`、`research_object`、`scope`、`comparison_scope`、`claims_to_verify`、`evidence_requirements`、`conclusion_boundary`、`deliverable`、`assumptions`。Clarify 收敛并经用户确认后冻结；改动需创建新版本而非静默覆盖。
 
 ### SectionPlan（章节计划）
 
@@ -80,7 +80,7 @@
 
 ## 状态转换
 
-- **Clarify（SessionState）**：`ask` → `ready`（由 `decide_status` 纯代码政策决定）。ready 时冻结 brief，交接给 PipelineState。
+- **Clarify（SessionState）**：`ask` → `confirm`（由 `decide_status` 纯代码政策决定）。用户确认后才 `freeze` Brief、产生 `ready` 并交接给 PipelineState。
 - **ResearchPhase（PipelineState）**：`plan` → `research` → `analyze` → `write` → `review` →（回流 research/analyze/write）→ `done`。
 - **Claim.status**: `open` → `supported` / `limited` / `refuted` / `insufficient`（由关联 Evidence 的 relation 决定）
 - **ComparableMetric.comparability**: `compatible` / `partial` / `incompatible`（不可逆，口径归一后确定）

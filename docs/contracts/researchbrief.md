@@ -10,7 +10,7 @@
 研究动作 + 研究对象 + 决策目标 + 比较范围 + 可用约束 + 证据要求 + 交付形式
 ```
 
-## 2. ResearchBrief（10 字段，Clarify 后冻结）
+## 2. ResearchBrief（10 字段，Clarify 收敛并经用户确认后冻结）
 
 ```yaml
 task_type: idea_exploration | method_differentiation | evaluation_design | reviewer_response
@@ -30,7 +30,8 @@ assumptions: 未澄清但已显式采用的保守默认假设
 ```text
 原始 Query
   → 归一化到 7 要素（意图层）
-  → Clarify → ResearchBrief（10 字段，冻结）
+  → Clarify → 完整 Brief 草稿（等待用户确认）
+  → 用户确认 → ResearchBrief（10 字段，冻结）
   → 逐章节 SectionPlan（研究目标 / 论断 / 子问题 / 锚点 / 证据需求）
 ```
 
@@ -50,4 +51,5 @@ assumptions: 未澄清但已显式采用的保守默认假设
 
 只有当未确定信息会改变检索计划、可接受证据、可支持的结论或验证方案时，才发起 Clarify
 （"请求足够长 ≠ 已经良定义"）。每轮只问 1–2 个高信息增益问题；设轮数上限；非关键缺口采用
-可披露的保守默认值，不无限追问。
+可披露的保守默认值，不无限追问。系统认为十字段齐备时，必须先向用户展示完整 Brief 并等待明确
+确认；只有确认后才冻结，进入 pipeline。
