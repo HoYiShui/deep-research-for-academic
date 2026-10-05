@@ -23,8 +23,15 @@ class PostgresStateStore:
 
     async def _get_pool(self) -> asyncpg.Pool:
         if self._pool is None:
-            self._pool = await asyncpg.create_pool(self._dsn)
-            await run_migrations(self._pool)
+            pool = await asyncpg.create_pool(self._dsn)
+            # Pre-mono callers cannot implicitly migrate a user's database.
+            # The new UnitOfWork/Repository owns the mono migration boundary.
+            try:
+                await run_migrations(pool, through_version="0001_init")
+            except BaseException:
+                await pool.close()
+                raise
+            self._pool = pool
         return self._pool
 
     # ---- sessions ----
