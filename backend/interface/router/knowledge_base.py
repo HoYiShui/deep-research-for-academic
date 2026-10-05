@@ -41,11 +41,12 @@ async def upload_document(
 ) -> dict:
     """Accept a PDF upload and start the background ingest pipeline."""
     container = get_container(request)
+    knowledge = container.knowledge_base
     document_id = uuid.uuid4().hex
     with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
         tmp.write(await file.read())
         path = tmp.name
-    asyncio.create_task(container.knowledge_base.ingest(document_id, path))
+    asyncio.create_task(knowledge.ingest(document_id, path))
     return {"document_id": document_id, "status": "processing"}
 
 

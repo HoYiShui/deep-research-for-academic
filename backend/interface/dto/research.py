@@ -2,46 +2,71 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Annotated, Literal
+from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import Field, StrictBool
 
+from application.research_inputs import (
+    ConfirmResearchInput,
+    ResearchMessageInput,
+    StartResearchInput,
+)
+from domain.research.models import (
+    BriefField,
+    Nonnegative,
+    PartialResearchBrief,
+    Positive,
+    Record,
+    ResearchBrief,
+    SourceSelection,
+    Text,
+)
 from interface.dto.base import RequestDTO
 
 
-class ResearchRequest(RequestDTO):
+class ResearchRequest(StartResearchInput):
     """POST /research body."""
 
-    query: str = Field(min_length=1)
-    task_type: str | None = None
-    sources: list[str] | None = None
 
-
-class MessageRequest(RequestDTO):
+class MessageRequest(ResearchMessageInput):
     """POST /research/{id}/messages body."""
 
-    content: str = Field(min_length=1)
+
+class ConfirmRequest(ConfirmResearchInput):
+    """Explicit acceptance or rejection of the current version."""
 
 
-class SessionResponse(BaseModel):
-    """POST /research response."""
-
-    session_id: str
-    status: str
+class EmptyRequest(RequestDTO):
+    """An explicit empty body rejects unexpected control fields."""
 
 
-class ClarifyResponse(BaseModel):
-    """One clarify round's response."""
+class ClarifyBase(Record):
+    session_id: UUID
+    brief_version: Positive
+    clarification_round: Nonnegative
+    clarification_limit_reached: StrictBool
+    source_selection: SourceSelection
 
-    status: str
-    questions: list[str] = Field(default_factory=list)
-    brief: dict[str, Any] = Field(default_factory=dict)
-    sse_url: str | None = None
+
+class AskResponse(ClarifyBase):
+    status: Literal["ask"]
+    questions: Annotated[list[Text], Field(min_length=1, max_length=2)]
+    missing_fields: list[BriefField]
+    brief_draft: PartialResearchBrief
 
 
-class StatusResponse(BaseModel):
-    """GET /research/{id} response."""
+class ConfirmResponse(ClarifyBase):
+    status: Literal["confirm"]
+    research_brief: ResearchBrief
 
-    session_id: str
-    status: str
-    phase: str | None = None
+
+class ReadyResponse(Record):
+    session_id: UUID
+    run_id: UUID
+    status: Literal["ready"]
+    brief_version: Positive
+    sse_url: Text
+
+
+ClarifyResponse = Annotated[AskResponse | ConfirmResponse, Field(discriminator="status")]

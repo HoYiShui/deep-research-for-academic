@@ -7,15 +7,22 @@ the container accepts overrides so tests can inject fakes/mocks.
 
 from __future__ import annotations
 
+import asyncio
+from pathlib import Path
+
+import asyncpg
+
 from application.auth_service import AuthService
 from application.errors import AppError
+from application.identity import ensure_development_identity
 from application.knowledge_base_service import KnowledgeBaseService
 from application.orchestrator import Orchestrator
 from application.research_queries import ResearchQueries
-from application.research_service import ResearchService
-from application.session_service import LegacySessionService
+from application.research_service import LegacyResearchService, ResearchService
+from application.session_service import LegacySessionService, SessionService
 from application.settings import Settings
 from application.sse import EventBus
+from infrastructure.clock import SystemClock
 from infrastructure.embedding.bge_m3 import BGEM3Embedding
 from infrastructure.embedding.bge_reranker import BGEReranker
 from infrastructure.llm.deepseek import DeepSeekLLM
@@ -26,7 +33,9 @@ from infrastructure.search.arxiv import ArxivSearch
 from infrastructure.search.bocha import BochaSearch
 from infrastructure.search.composite import CompositeSearch
 from infrastructure.storage.memory import InMemoryCancel, InMemoryDocumentStore, InMemoryUserStore
+from infrastructure.storage.migrations import run_migrations
 from infrastructure.storage.postgres import PostgresStateStore
+from infrastructure.storage.research_postgres import PostgresResearchStore
 from infrastructure.vector.milvus import MilvusStore
 
 
@@ -100,7 +109,9 @@ class Container:
         self.orchestrator = Orchestrator(
             self.bus, self.cancel, self.store, self.llm, self.search, self.retrieval, self.execution
         )
-        self.research = ResearchService(self.sessions, self.orchestrator, self.store, self.cancel)
+        self.research = LegacyResearchService(
+            self.sessions, self.orchestrator, self.store, self.cancel
+        )
 
     async def aclose(self) -> None:
         """Release container-owned adapters even when one adapter fails to close."""
@@ -118,6 +129,96 @@ class Container:
                     errors.append(exc)
         if errors:
             raise ExceptionGroup("Adapter shutdown failed", errors)
+
+
+class _PendingAuth:
+    def verify_token(self, token):
+        # Fail closed until the persistent JWT/auth implementation in T053.
+        return None
+
+    async def register(self, *args):
+        raise AppError("service_not_ready", "Persistent authentication is not ready")
+
+    async def login(self, *args):
+        raise AppError("service_not_ready", "Persistent authentication is not ready")
+
+
+class HttpRuntime:
+    """Mono HTTP composition; never wires a legacy writable state store."""
+
+    def __init__(self, *, settings: Settings, research_store=None, llm=None, backup_dir=None):
+        self.settings, self.repository_store = settings, research_store
+        self.pool = None
+        self.backup_dir = (
+            Path(backup_dir)
+            if backup_dir is not None
+            else Path(__file__).resolve().parents[1] / ".local" / "legacy-backups"
+        )
+        if settings.llm_local and llm is None:
+            raise AppError(
+                "service_not_ready", "A local model adapter must be explicitly configured"
+            )
+        self.llm = (
+            llm
+            if llm is not None
+            else DeepSeekLLM(
+                api_key=settings.anthropic_api_key.get_secret_value(),
+                base_url=settings.anthropic_base_url,
+                model=settings.llm_model,
+                timeout_s=settings.llm_timeout_s,
+            )
+        )
+        self.clock = SystemClock()
+        self.auth = _PendingAuth()
+
+    async def prepare(self):
+        if self.repository_store is None:
+            self.pool = await asyncpg.create_pool(
+                self.settings.database_url.get_secret_value(), min_size=1, max_size=10
+            )
+            # Nonempty legacy data must be backed up before the transactional cutover.
+            await run_migrations(self.pool, backup_dir=self.backup_dir)
+            self.repository_store = PostgresResearchStore(self.pool)
+        store = self.repository_store
+        if not self.settings.dr4a_auth_required:
+            await ensure_development_identity(store, store.users, self.clock)
+        self.sessions = SessionService(
+            self.llm,
+            self.clock,
+            max_rounds=self.settings.clarify_rounds,
+            timeout_s=self.settings.llm_timeout_s,
+        )
+        self.research = ResearchService(
+            uow=store,
+            research=store.research,
+            requests=store.requests,
+            users=store.users,
+            sessions=self.sessions,
+            clock=self.clock,
+            settings=self.settings,
+        )
+        self.research_queries = ResearchQueries(store, store.research)
+
+    @property
+    def knowledge_base(self):
+        raise AppError("service_not_ready", "Knowledge base persistence is not ready")
+
+    @property
+    def retrieval(self):
+        raise AppError("service_not_ready", "Knowledge retrieval is not ready")
+
+    async def aclose(self):
+        try:
+            close = getattr(self.llm, "aclose", None)
+            if close is not None:
+                await close()
+        finally:
+            if self.pool is not None:
+                pool, self.pool = self.pool, None
+                try:
+                    await asyncio.wait_for(pool.close(), timeout=5)
+                except TimeoutError:
+                    pool.terminate()
 
 
 _container: Container | None = None

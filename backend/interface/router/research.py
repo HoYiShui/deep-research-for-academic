@@ -2,68 +2,100 @@
 
 from __future__ import annotations
 
+from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Request
-from fastapi.responses import StreamingResponse
+from fastapi import APIRouter, Depends, Header, Request
+from fastapi.responses import JSONResponse, StreamingResponse
+from pydantic import TypeAdapter
 
 from application.bootstrap import get_container
 from application.errors import AppError
-from application.sse import sse_format
 from interface.deps import require_user
 from interface.dto.research import (
+    AskResponse,
     ClarifyResponse,
+    ConfirmRequest,
+    EmptyRequest,
     MessageRequest,
+    ReadyResponse,
     ResearchRequest,
-    SessionResponse,
 )
 
 router = APIRouter()
+_clarify = TypeAdapter(ClarifyResponse)
+_confirmation = TypeAdapter(AskResponse | ReadyResponse)
 
 
-@router.post("/research", response_model=SessionResponse)
+async def request_key(
+    value: Annotated[str, Header(alias="Idempotency-Key", min_length=1, max_length=128)],
+) -> str:
+    if not value.strip():
+        raise AppError("validation_error", "Idempotency-Key cannot be blank")
+    return value.strip()
+
+
+@router.post("/research", status_code=201, response_model=ClarifyResponse)
 async def start_research(
-    body: ResearchRequest, request: Request, user: str = Depends(require_user)
-) -> dict:
-    """Create a session; returns status=clarify (no SSE URL yet)."""
-    return await get_container(request).research.start(body.query)
+    body: ResearchRequest,
+    request: Request,
+    user: str = Depends(require_user),
+    key: str = Depends(request_key),
+) -> JSONResponse:
+    """Create and initially assess; never start the pipeline before confirmation."""
+    result = await get_container(request).research.start(UUID(user), body, key)
+    body = _clarify.validate_python(result.body).model_dump(mode="json")
+    return JSONResponse(status_code=result.status_code, content=body)
 
 
 @router.post("/research/{session_id}/messages", response_model=ClarifyResponse)
 async def post_message(
-    session_id: str, body: MessageRequest, request: Request, user: str = Depends(require_user)
-) -> dict:
-    """Advance one clarify round; spawn the pipeline when ready."""
-    container = get_container(request)
-    result = await container.sessions.clarify_round(session_id, body.content)
-    if result["status"] == "ready":
-        container.research.spawn_pipeline(session_id, result.get("brief", {}))
-        result["sse_url"] = f"/research/{session_id}/events"
-    return result
+    session_id: UUID,
+    body: MessageRequest,
+    request: Request,
+    user: str = Depends(require_user),
+    key: str = Depends(request_key),
+) -> JSONResponse:
+    result = await get_container(request).research.message(UUID(user), session_id, body, key)
+    body = _clarify.validate_python(result.body).model_dump(mode="json")
+    return JSONResponse(status_code=result.status_code, content=body)
+
+
+@router.post(
+    "/research/{session_id}/confirm",
+    response_model=AskResponse | ReadyResponse,
+    responses={202: {"model": ReadyResponse}},
+)
+async def confirm(
+    session_id: UUID,
+    body: ConfirmRequest,
+    request: Request,
+    user: str = Depends(require_user),
+    key: str = Depends(request_key),
+) -> JSONResponse:
+    result = await get_container(request).research.confirm(UUID(user), session_id, body, key)
+    body = _confirmation.validate_python(result.body).model_dump(mode="json")
+    return JSONResponse(status_code=result.status_code, content=body)
 
 
 @router.get("/research/{session_id}/events")
 async def stream_events(
-    session_id: str, request: Request, user: str = Depends(require_user)
+    session_id: UUID, request: Request, user: str = Depends(require_user)
 ) -> StreamingResponse:
     """Stream SSE events for a session."""
-    queue = get_container(request).bus.queue(session_id)
-
-    async def generator():
-        while True:
-            event = await queue.get()
-            yield sse_format(event)
-
-    return StreamingResponse(generator(), media_type="text/event-stream")
+    view = await get_container(request).research_queries.session_view(UUID(user), session_id)
+    if view["run_id"] is None:
+        raise AppError("invalid_session_state", "Events require a frozen brief")
+    raise AppError("service_not_ready", "Durable run events are not ready")
 
 
 @router.get("/research/{session_id}/report")
-async def get_report(session_id: str, request: Request, user: str = Depends(require_user)) -> dict:
-    """Return the final report, or 404 if the pipeline has not completed."""
-    report = await get_container(request).research.get_report(session_id)
-    if report is None:
-        raise HTTPException(status_code=404, detail="report not ready")
-    return report
+async def get_report(session_id: UUID, request: Request, user: str = Depends(require_user)) -> dict:
+    """Authorize first; an unpublished report is a 409, never a fabricated report."""
+    view = await get_container(request).research_queries.session_view(UUID(user), session_id)
+    if view["status"] != "completed":
+        raise AppError("report_not_ready", "Report has not been published")
+    raise AppError("service_not_ready", "Published report reader is not ready")
 
 
 @router.get("/research/{session_id}")
@@ -76,7 +108,13 @@ async def get_status(session_id: UUID, request: Request, user: str = Depends(req
 
 
 @router.post("/research/{session_id}/cancel")
-async def cancel(session_id: str, request: Request, user: str = Depends(require_user)) -> dict:
-    """Set the cancellation flag; the orchestrator stops at the next phase boundary."""
-    get_container(request).research.cancel(session_id)
-    return {"session_id": session_id, "status": "cancelling"}
+async def cancel(
+    session_id: UUID,
+    body: EmptyRequest,
+    request: Request,
+    user: str = Depends(require_user),
+    key: str = Depends(request_key),
+) -> dict:
+    """Durable cancellation is staged next; never mutate the legacy memory flag."""
+    await get_container(request).research_queries.session_view(UUID(user), session_id)
+    raise AppError("service_not_ready", "Durable cancellation is not ready")

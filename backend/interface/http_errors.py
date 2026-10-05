@@ -136,12 +136,20 @@ async def adapter_error(request: Request, exc: AdapterError) -> JSONResponse:
 
 async def validation_error(request: Request, exc: RequestValidationError) -> JSONResponse:
     malformed = any(error["type"] == "json_invalid" for error in exc.errors())
+    unsupported_task = any(
+        error["type"] == "literal_error" and error["loc"][-1] == "task_type"
+        for error in exc.errors()
+    )
     # Do not serialize input, ctx or raw validator messages (they can contain secrets).
     fields = [{"location": list(error["loc"]), "type": error["type"]} for error in exc.errors()]
     return _response(
         request,
         400 if malformed else 422,
-        "malformed_json" if malformed else "validation_error",
+        "malformed_json"
+        if malformed
+        else "unsupported_task_type"
+        if unsupported_task
+        else "validation_error",
         "Invalid JSON." if malformed else "Request fields are invalid.",
         details={"fields": fields},
     )

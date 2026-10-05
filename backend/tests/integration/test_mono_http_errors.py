@@ -196,13 +196,23 @@ def test_request_id_is_server_generated_for_success_and_failure(client):
     ],
 )
 def test_actual_app_rejects_unknown_request_fields(monkeypatch, path, body):
-    from interface.main import app
+    from interface.main import create_app
 
     monkeypatch.setenv("DR4A_ENV", "development")
     monkeypatch.setenv("DR4A_AUTH_REQUIRED", "false")
+
     # No service or storage operation is allowed for invalid requests.
+    class ValidationRuntime:
+        async def aclose(self):
+            pass
+
+    app = create_app(container_factory=lambda config: ValidationRuntime())
     with TestClient(app, raise_server_exceptions=False) as http:
-        check_error(http.post(path, json=body), 422, "validation_error")
+        check_error(
+            http.post(path, json=body, headers={"Idempotency-Key": "invalid-body-test"}),
+            422,
+            "validation_error",
+        )
 
 
 async def test_container_closes_unique_adapters_even_after_failure():

@@ -5,7 +5,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
-from application.bootstrap import Container
+from application.bootstrap import Container, HttpRuntime
 from application.settings import Settings
 from interface.http_errors import install_http_errors
 from interface.router.auth import router as auth_router
@@ -24,7 +24,7 @@ def create_app(
     async def lifespan(app: FastAPI):
         # Validate before constructing adapters or accepting requests.
         config = settings or Settings.load()
-        factory = container_factory or (lambda config: Container(settings=config))
+        factory = container_factory or (lambda config: HttpRuntime(settings=config))
         container = factory(config)
         try:
             prepare = getattr(container, "prepare", None)

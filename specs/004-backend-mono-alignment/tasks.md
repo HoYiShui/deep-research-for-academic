@@ -42,7 +42,7 @@
 - [x] T004 [底座] 在 `backend/application/ports.py`、`backend/domain/ports.py` 定义本阶段 typed Service/Repository/UnitOfWork/Clock 契约，更新 `backend/infrastructure/fake.py` 与 `backend/tests/contract/test_ports.py`；同一事务句柄可跨 Repository，不让 Router 依赖 SDK。新契约测试拆分为 `test_mono_ports.py`，保留旧回归。证据：[共享事务与 typed 契约](evidence/t004-ports.md)。
 - [x] T005 [底座] 新增 `backend/infrastructure/storage/migrations/0002_mono_research.sql`，实现 users/sessions/messages/briefs/research_runs/phase_snapshots/reports/tool_calls/idempotency_requests 约束；检查现有 `0001_init.sql` 的兼容与旧数据映射。更新 `backend/infrastructure/storage/migrations.py` 防多进程迁移竞态；在 `backend/tests/integration/test_mono_migrations.py` 验证旧库升级、空库创建、重复执行和失败回滚。无法无损映射的旧记录保留且明确隔离，禁止静默丢弃。证据：[真实 PG 迁移与保留](evidence/t005-migrations.md)。
 - [x] T006 [底座] 重构 `backend/infrastructure/storage/postgres.py` 或其同目录拆分 Repository：owner 查询、revision CAS、幂等 reserve/重放/冲突、Session/Brief 原子提交、冻结与 Run/Checkpoint 原子创建。用 `backend/tests/integration/test_mono_transactions.py` 做真实 PG 并发/故障注入，证明半冻结不存在。依赖 T003–T005。实现拆分至 `research_postgres.py`。证据：[真实 PG Repository](evidence/t006-repositories.md)。
-- [ ] T007 [底座] 在 `backend/interface/deps.py`、`backend/interface/main.py`、`backend/interface/dto/` 实现服务端身份传递、固定开发 User、统一 Error/X-Request-ID、未知字段与 HTTP 状态码；组合根可注入受控模型且测试服务生命周期正确关闭。补 `backend/tests/integration/test_mono_http_errors.py`，证明跨 owner 404、生产不能匿名启动、所有校验错误形状一致。
+- [x] T007 [底座] 在 `backend/interface/deps.py`、`backend/interface/main.py`、`backend/interface/dto/` 实现服务端身份传递、固定开发 User、统一 Error/X-Request-ID、未知字段与 HTTP 状态码；组合根可注入受控模型且测试服务生命周期正确关闭。补 `backend/tests/integration/test_mono_http_errors.py`，证明跨 owner 404、生产不能匿名启动、所有校验错误形状一致。证据：[默认HTTP与事务接入](evidence/t007-t008-t011-t012-http-clarify.md)。
   - 首批已实现统一公共错误、请求 ID、未知字段拒绝、按应用实例装配与关闭、固定开发 UUID；全量232通过。证据：[HTTP 底座首批](evidence/t007-http-base.md)。仍未完成开发 User 落库、业务 owner 传递/跨 owner 404 和 mono DTO 接入；保持未勾选，旧业务端点不视为 mono-v1。
   - 第二批完成开发身份事务创建、并发/冲突保护与 owner-scoped GET SessionView，真实隔离PG+ASGI HTTP验证跨owner404、冻结后投影与只读不执行；全量242通过。证据：[身份与会话读边界](evidence/t007-identity-views.md)。开发用户初始化已可经显式 runtime.prepare 接入，但默认生产/开发组合根尚未切换新存储，默认GET因此明确503；写接口仍待接入，不勾选T007。
 
@@ -54,12 +54,13 @@
 
 设计：MODEL §2；FLOW §2；API §2.1–2.4；OPS §2–3。验收 A1–A3。此阶段允许 ready 排队而尚不执行 Pipeline，不返回虚假报告。
 
-- [ ] T008 [US1] 在 `backend/tests/integration/test_mono_clarify_http.py` 先写 HTTP 契约测试：初始不足201 ask、充分201 confirm、后续200、confirm前无Run、重复请求不增轮次/版本、旧版本与并发消息409；另写真实 PG 断点测试验证确认失败回滚。
+- [x] T008 [US1] 在 `backend/tests/integration/test_mono_clarify_http.py` 先写 HTTP 契约测试：初始不足201 ask、充分201 confirm、后续200、confirm前无Run、重复请求不增轮次/版本、旧版本与并发消息409；另写真实 PG 断点测试验证确认失败回滚。证据：[22项HTTP/真实PG反例](evidence/t007-t008-t011-t012-http-clarify.md)。
 - [x] T009 [US1] 更新 `backend/domain/research/agents/architect.py`、`backend/domain/research/machine.py` 与 `backend/tests/unit/test_clarify.py`：有界 ClarifyAssessment、十字段代码校验、task_type 闭集、保守默认披露、1–2个问题；空字段/语义关键缺口不因模型说完整而通过。补充反例位于 `test_mono_clarify.py`。证据：[严格 Clarify 与纯候选](evidence/t009-t010-clarify-candidates.md)。
 - [x] T010 [US1] 更新 `backend/application/session_service.py`：assess_initial/assess_round/validate_confirmation 返回候选且不保存或 spawn；实现3轮自动模型上限、上限后明确 brief_patch、accepted=false 退回、历史消息有界输入；补 `backend/tests/unit/test_session.py` 的轮次/版本/模型失败不改旧状态反例。证据：[严格 Clarify 与纯候选](evidence/t009-t010-clarify-candidates.md)。
   - 本批完成目标worker与纯候选的单测；旧装配显式隔离到LegacySessionService/legacy_clarify，不当作目标实现。T007剩余装配与T008/T011/T012必须一起完成、移除这些legacy调用路径；尚无A1–A3真实HTTP会话证明，不得以本批代替M1。
 - [ ] T011 [US1] 更新 `backend/application/research_service.py`：start/message/confirm 协调幂等与 CAS、来源授权、隐私检查、唯一 Run 冻结事务；start_frozen 复用同冻结校验并记录 CLI 确认身份。冻结后不允许改任务书，不在 SessionService 偷启流程。
-- [ ] T012 [US1] 更新 `backend/interface/dto/research.py`、`backend/interface/router/research.py`：实现 POST /research、/messages、/confirm 与 GET SessionView 的 mono DTO，传 owner/key/version，显式201/200/202；status查询由Session+Run一致投影生成，不倒序找phase。
+  - 公开来源、幂等续租/CAS/唯一冻结、start_frozen 已通过真实PG；KB ID明确404且零外部调用。KB授权/版本锁定/隐私桥接依赖T041/T050，未完成前不勾选。证据：[事务接入](evidence/t007-t008-t011-t012-http-clarify.md)。
+- [x] T012 [US1] 更新 `backend/interface/dto/research.py`、`backend/interface/router/research.py`：实现 POST /research、/messages、/confirm 与 GET SessionView 的 mono DTO，传 owner/key/version，显式201/200/202；status查询由Session+Run一致投影生成，不倒序找phase。证据：[HTTP接入](evidence/t007-t008-t011-t012-http-clarify.md)。
 - [ ] T013 [US1] 新增 `backend/scripts/verify_clarify_http.py` 与 `backend/tests/integration/test_verify_clarify_http.py`：只走活 HTTP，支持受控回答文件及用户明确确认，不自动同意假设；可用真实模型完成至少一条多轮会话，并用只读SQL核对1Session/冻结Brief/1Run/seq=1。保存 `evidence/us1.md`，列出实际请求/响应及模型模式。
 
 里程碑 M1：T008 的确定性 HTTP/PG反例全通过，T013真实模型会话通过；重启后 GET 仍恢复 ask/confirm/ready；没有用户确认就没有 Run。这里就能用请求日志审查真实 Clarify，不必等 Web/TUI 或完整 Pipeline。
