@@ -121,7 +121,11 @@ def test_cors_json_and_private_snapshot(tmp_path) -> None:
         environ={"CORS_ALLOW_ORIGINS": '["http://localhost:3000"]'},
     )
     assert settings.cors_allow_origins == ["http://localhost:3000"]
-    snapshot = settings.run_config_snapshot(categories=["knowledge_base"], private_only=True)
+    snapshot = settings.run_config_snapshot(
+        categories=["knowledge_base"],
+        knowledge_base_ids=["00000000-0000-4000-8000-000000000002"],
+        private_only=True,
+    )
     assert snapshot["source_policy"]["private_only"] is True
 
 

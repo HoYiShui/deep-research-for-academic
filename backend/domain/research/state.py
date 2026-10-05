@@ -9,16 +9,18 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-
-@dataclass
-class SessionState:
-    """Clarify-phase state, owned by session_service, stored in sessions/briefs."""
-
-    session_id: str = ""
-    brief_draft: dict = field(default_factory=dict)
-    clarification_history: list = field(default_factory=list)
-    status: str = "clarify"  # "clarify" | "ready"
-
+from domain.research.models import (  # noqa: F401 -- Public domain contracts.
+    BriefRecord,
+    ClarifyAssessment,
+    Failure,
+    Message,
+    PartialResearchBrief,
+    ResearchBrief,
+    ResearchRun,
+    RunConfig,
+    SessionState,
+    SourceSelection,
+)
 
 # ---- Entity contracts (field-level schema, aligned with data-model.md) ----
 

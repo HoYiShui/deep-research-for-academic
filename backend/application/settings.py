@@ -12,6 +12,8 @@ from urllib.parse import urlsplit
 from dotenv import dotenv_values
 from pydantic import BaseModel, ConfigDict, Field, SecretStr, field_validator, model_validator
 
+from domain.research.models import RunConfig
+
 Positive = Annotated[int, Field(gt=0)]
 BACKEND_ENV = Path(__file__).resolve().parents[1] / ".env"
 DEVELOPMENT_OWNER = "00000000-0000-4000-8000-000000000001"
@@ -58,8 +60,8 @@ class Settings(BaseModel):
     run_terminal_reserved_calls: Positive = 8
     run_terminal_reserved_tokens: Positive = 12000
     run_rework_rounds: Annotated[int, Field(ge=0, le=3)] = 3
-    citation_depth: Annotated[int, Field(ge=0, le=2)] = 2
-    gap_queries_per_spec: Annotated[int, Field(ge=0, le=2)] = 2
+    citation_depth: Annotated[int, Field(gt=0, le=2)] = 2
+    gap_queries_per_spec: Annotated[int, Field(gt=0, le=2)] = 2
     clarify_rounds: Annotated[int, Field(ge=0, le=3)] = 3
     llm_timeout_s: Positive = 60
     search_timeout_s: Positive = 20
@@ -222,7 +224,7 @@ class Settings(BaseModel):
         """Return fixed non-secret inputs; capability checks reject unconfigured versions."""
         operations = ("comparison_matrix", "pairwise_delta", "plot", "statistic", "aggregation")
         agents = ("clarify", "plan", "research", "analyze", "write", "review")
-        return {
+        snapshot = {
             "versions": {
                 "llm_provider": "local" if self.llm_local else "anthropic_compatible",
                 "llm_model": self.llm_model,
@@ -266,3 +268,4 @@ class Settings(BaseModel):
                 "local_inference": self.local_inference_concurrency,
             },
         }
+        return RunConfig.model_validate(snapshot).model_dump(mode="json")
