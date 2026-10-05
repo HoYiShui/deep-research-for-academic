@@ -168,6 +168,12 @@ class _Research:
         actual_revision = old.revision if old else 0
         if actual_revision != expected_revision or session.revision != expected_revision + 1:
             raise AppError("stale_resource", "Session revision changed")
+        if session.status not in {"ask", "confirm"}:
+            raise AppError("invalid_session_state", "Clarification candidate must ask or confirm")
+        if session.brief_version != (old.brief_version + 1 if old else 1):
+            raise AppError("stale_brief", "Processed clarification must advance brief version")
+        if old is not None and (old.query != session.query or old.created_at != session.created_at):
+            raise AppError("invalid_state", "Candidate changes immutable session fields")
         if old is not None and old.run_id is not None:
             raise AppError("invalid_session_state", "Frozen session cannot change brief")
         key = (session.session_id, change.brief.version)
@@ -301,6 +307,8 @@ class _Requests:
         return renewed
 
     async def complete(self, reservation, response_status, response_body, tx, *, resource_id=None):
+        if type(response_status) is int and response_status >= 500:
+            raise ValueError("Transient server failure must release reservation, not complete it")
         data, identity, current = self._current(reservation, tx)
         completed = IdempotencyRecord.model_validate(
             current.model_dump()

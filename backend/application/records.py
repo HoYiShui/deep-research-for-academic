@@ -163,6 +163,45 @@ class FreezeCommit(Record):
             raise ValueError("New run cannot have an execution or cancellation history")
         state = checkpoint.state
         if (
+            run.resume_allowed
+            or run.failure is not None
+            or state.draft_version != 0
+            or state.reviewed_draft_version is not None
+            or state.review_verdict is not None
+            or state.final_report is not None
+        ):
+            raise ValueError("New run cannot carry review, recovery or failure state")
+        if any(
+            getattr(state, field)
+            for field in (
+                "section_plans",
+                "sources",
+                "evidence",
+                "claims",
+                "claim_evidence_links",
+                "quantitative_observations",
+                "comparable_metrics",
+                "comparison_sets",
+                "analysis_artifacts",
+                "section_coverage",
+                "draft_sections",
+                "draft_claim_bindings",
+                "critic_feedback",
+                "errors",
+            )
+        ):
+            raise ValueError("Initial checkpoint outputs must be empty")
+        metadata = state.run_metadata
+        if (
+            any(metadata.budget_used.model_dump().values())
+            or metadata.rework_count != 0
+            or metadata.rework_targets
+            or metadata.degraded_sources
+            or metadata.unit_manifest
+            or metadata.stop_reason is not None
+        ):
+            raise ValueError("Initial checkpoint cannot claim prior execution")
+        if (
             state.session_id != session.session_id
             or state.brief_version != brief.version
             or state.brief_hash != brief.content_hash
