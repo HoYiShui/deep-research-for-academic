@@ -14,8 +14,16 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 from uuid import UUID, uuid4
 
+from pydantic import ValidationError
+
 from application.errors import AppError
-from application.records import FreezeCommit, IdempotencyRecord, SessionChange, User
+from application.records import (
+    DevelopmentUser,
+    FreezeCommit,
+    IdempotencyRecord,
+    SessionChange,
+    User,
+)
 from domain.research.models import BriefRecord, Message, ResearchRun, SessionState
 from domain.research.state import Checkpoint
 
@@ -100,6 +108,21 @@ class FakeResearchDatabase:
 class _Users:
     def __init__(self, db):
         self.db = db
+
+    async def ensure_development(self, user: DevelopmentUser, tx) -> DevelopmentUser:
+        user = DevelopmentUser.model_validate(user)
+        data = self.db.write_data(tx)
+        if user.user_id not in data.users and not any(
+            item.email == user.email for item in data.users.values()
+        ):
+            data.users[user.user_id] = copy.deepcopy(user)
+        current = data.users.get(user.user_id)
+        try:
+            return DevelopmentUser.model_validate(current.model_dump() if current else None)
+        except ValidationError:
+            raise AppError(
+                "service_not_ready", "Reserved development identity is unavailable"
+            ) from None
 
     async def create(self, user: User, tx) -> None:
         user = User.model_validate(user)

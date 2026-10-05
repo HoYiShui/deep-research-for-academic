@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+from uuid import UUID
+
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
 
 from application.bootstrap import get_container
+from application.errors import AppError
 from application.sse import sse_format
 from interface.deps import require_user
 from interface.dto.research import (
@@ -13,7 +16,6 @@ from interface.dto.research import (
     MessageRequest,
     ResearchRequest,
     SessionResponse,
-    StatusResponse,
 )
 
 router = APIRouter()
@@ -64,10 +66,13 @@ async def get_report(session_id: str, request: Request, user: str = Depends(requ
     return report
 
 
-@router.get("/research/{session_id}", response_model=StatusResponse)
-async def get_status(session_id: str, request: Request, user: str = Depends(require_user)) -> dict:
-    """Return the current status by recovering the latest phase snapshot."""
-    return await get_container(request).research.get_status(session_id)
+@router.get("/research/{session_id}")
+async def get_status(session_id: UUID, request: Request, user: str = Depends(require_user)) -> dict:
+    """Project committed owner-scoped state, never synthesize a missing session."""
+    queries = getattr(get_container(request), "research_queries", None)
+    if queries is None:
+        raise AppError("service_not_ready", "Research repositories are not ready", retryable=True)
+    return await queries.session_view(UUID(user), session_id)
 
 
 @router.post("/research/{session_id}/cancel")

@@ -12,7 +12,13 @@ import asyncpg
 from pydantic import ValidationError
 
 from application.errors import AppError
-from application.records import FreezeCommit, IdempotencyRecord, SessionChange, User
+from application.records import (
+    DevelopmentUser,
+    FreezeCommit,
+    IdempotencyRecord,
+    SessionChange,
+    User,
+)
 from domain.ports import AdapterError
 from domain.research.models import BriefRecord, Message, ResearchRun, SessionState
 from domain.research.state import Checkpoint
@@ -128,6 +134,19 @@ class PostgresResearchStore:
 class _Users:
     def __init__(self, store):
         self.store = store
+
+    async def ensure_development(self, user: DevelopmentUser, tx) -> DevelopmentUser:
+        user = DevelopmentUser.model_validate(user)
+        conn = self.store.connection(tx)
+        # DO NOTHING covers UUID and email collisions; never mutate an existing user.
+        await insert(conn, "users", encode(user, set()), " ON CONFLICT DO NOTHING")
+        current = await self.get_by_id(user.user_id, tx)
+        try:
+            return DevelopmentUser.model_validate(current.model_dump() if current else None)
+        except ValidationError:
+            raise AppError(
+                "service_not_ready", "Reserved development identity is unavailable"
+            ) from None
 
     async def create(self, user: User, tx) -> None:
         user = User.model_validate(user)

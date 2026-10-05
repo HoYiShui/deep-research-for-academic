@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+from uuid import UUID
+
 from fastapi import HTTPException, Request
 
 from application.bootstrap import get_container
+from application.records import DEVELOPMENT_USER_ID
 from application.settings import Settings
 
 
@@ -17,12 +20,15 @@ async def require_user(request: Request) -> str:
     """
     settings = getattr(request.app.state, "settings", None) or Settings.load()
     if not settings.dr4a_auth_required:
-        return "00000000-0000-4000-8000-000000000001"
+        return str(DEVELOPMENT_USER_ID)
     token = _extract_token(request)
     user_id = get_container(request).auth.verify_token(token) if token else None
     if user_id is None:
         raise HTTPException(status_code=401, detail="not authenticated")
-    return user_id
+    try:
+        return str(UUID(user_id))
+    except (ValueError, TypeError, AttributeError):
+        raise HTTPException(status_code=401, detail="not authenticated") from None
 
 
 def _extract_token(request: Request) -> str | None:

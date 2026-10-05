@@ -11,6 +11,7 @@ from application.auth_service import AuthService
 from application.errors import AppError
 from application.knowledge_base_service import KnowledgeBaseService
 from application.orchestrator import Orchestrator
+from application.research_queries import ResearchQueries
 from application.research_service import ResearchService
 from application.session_service import SessionService
 from application.settings import Settings
@@ -50,8 +51,14 @@ class Container:
         auth=None,
         bus=None,
         settings: Settings | None = None,
+        research_store=None,
     ) -> None:
         self.settings = settings or Settings.load()
+        self.research_queries = (
+            ResearchQueries(research_store, research_store.research)
+            if research_store is not None
+            else None
+        )
         config = self.settings
         if config.llm_local and llm is None:
             raise ValueError("a local LLM adapter must be configured explicitly")

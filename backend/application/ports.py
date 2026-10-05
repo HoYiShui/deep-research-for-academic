@@ -11,6 +11,7 @@ from typing import Protocol
 from uuid import UUID
 
 from application.records import (
+    DevelopmentUser,
     FreezeCommit,
     IdempotencyRecord,
     SessionChange,
@@ -34,6 +35,10 @@ class UnitOfWorkPort(Protocol):
 
 
 class UserRepositoryPort(Protocol):
+    async def ensure_development(
+        self, user: DevelopmentUser, tx: TransactionPort
+    ) -> DevelopmentUser: ...
+
     async def create(self, user: User, tx: TransactionPort) -> None: ...
 
     async def get_by_id(self, user_id: UUID, tx: TransactionPort | None = None) -> User | None: ...

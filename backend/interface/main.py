@@ -26,16 +26,20 @@ def create_app(
         config = settings or Settings.load()
         factory = container_factory or (lambda config: Container(settings=config))
         container = factory(config)
-        app.state.settings = config
-        app.state.container = container
         try:
+            prepare = getattr(container, "prepare", None)
+            if prepare is not None:
+                await prepare()
+            app.state.settings = config
+            app.state.container = container
             yield
         finally:
             try:
                 await container.aclose()
             finally:
-                del app.state.container
-                del app.state.settings
+                for name in ("container", "settings"):
+                    if hasattr(app.state, name):
+                        delattr(app.state, name)
 
     app = FastAPI(title="Deep Research Agent", lifespan=lifespan)
     install_http_errors(app)

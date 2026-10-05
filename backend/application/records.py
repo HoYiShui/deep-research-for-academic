@@ -23,6 +23,9 @@ from domain.research.models import (
 )
 from domain.research.state import Checkpoint
 
+DEVELOPMENT_USER_ID = UUID("00000000-0000-4000-8000-000000000001")
+DEVELOPMENT_EMAIL = "development@dr4a.invalid"
+
 
 class User(Record):
     user_id: UUID
@@ -42,6 +45,21 @@ class User(Record):
             raise ValueError("Development user must not have login credentials")
         if not self.is_development and self.password_hash is None:
             raise ValueError("Registered user requires password hash")
+        return self
+
+
+class DevelopmentUser(User):
+    """Reserved startup identity; collisions must fail rather than rewrite users."""
+
+    @model_validator(mode="after")
+    def reserved_identity(self):
+        if (
+            self.user_id != DEVELOPMENT_USER_ID
+            or self.email != DEVELOPMENT_EMAIL
+            or not self.is_development
+            or self.password_hash is not None
+        ):
+            raise ValueError("Reserved development identity is inconsistent")
         return self
 
 
