@@ -19,7 +19,14 @@ from application.records import (
     User,
     ValidatedFrozenInput,
 )
-from domain.research.models import BriefRecord, Message, ResearchRun, SessionState
+from domain.research.models import (
+    BriefRecord,
+    Message,
+    PartialResearchBrief,
+    ResearchRun,
+    SessionState,
+    SourceSelection,
+)
 from domain.research.state import Checkpoint
 
 
@@ -115,7 +122,18 @@ class RequestStorePort(Protocol):
 class SessionServicePort(Protocol):
     async def assess_initial(self, value: SessionInput) -> SessionChange: ...
 
-    async def assess_round(self, value: SessionInput, answer: str) -> SessionChange: ...
+    async def assess_round(
+        self,
+        value: SessionInput,
+        answer: str,
+        *,
+        brief_patch: PartialResearchBrief | None = None,
+        source_selection: SourceSelection | None = None,
+    ) -> SessionChange: ...
+
+    async def assess_rejection(
+        self, value: SessionInput, feedback: str, *, source_selection: SourceSelection | None = None
+    ) -> SessionChange: ...
 
     async def validate_confirmation(
         self, session: SessionState, expected_brief_version: int

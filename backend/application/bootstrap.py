@@ -13,7 +13,7 @@ from application.knowledge_base_service import KnowledgeBaseService
 from application.orchestrator import Orchestrator
 from application.research_queries import ResearchQueries
 from application.research_service import ResearchService
-from application.session_service import SessionService
+from application.session_service import LegacySessionService
 from application.settings import Settings
 from application.sse import EventBus
 from infrastructure.embedding.bge_m3 import BGEM3Embedding
@@ -96,7 +96,7 @@ class Container:
         self.knowledge_base = knowledge_base or KnowledgeBaseService(
             MinerUParser(), self.embedding, self.vector, self.documents
         )
-        self.sessions = SessionService(self.llm, self.store)
+        self.sessions = LegacySessionService(self.llm, self.store)
         self.orchestrator = Orchestrator(
             self.bus, self.cancel, self.store, self.llm, self.search, self.retrieval, self.execution
         )

@@ -7,7 +7,7 @@ import uuid
 
 from application.orchestrator import Orchestrator
 from application.ports import CancellationPort, StateStorePort
-from application.session_service import SessionService
+from application.session_service import LegacySessionService
 
 # Pipeline phases, in order, for recovering the latest phase from snapshots.
 _PHASES = ["plan", "research", "analyze", "write", "review", "done"]
@@ -18,7 +18,7 @@ class ResearchService:
 
     def __init__(
         self,
-        sessions: SessionService,
+        sessions: LegacySessionService,
         orchestrator: Orchestrator,
         store: StateStorePort,
         cancel: CancellationPort,
@@ -55,7 +55,10 @@ class ResearchService:
         for phase in reversed(_PHASES):
             snapshot = await self._store.load_latest_snapshot(session_id, phase)
             if snapshot is not None:
-                return {"session_id": session_id, "status": "done" if phase == "done" else "running",
-                        "phase": phase}
+                return {
+                    "session_id": session_id,
+                    "status": "done" if phase == "done" else "running",
+                    "phase": phase,
+                }
         status = await self._store.get_session_status(session_id)
         return {"session_id": session_id, "status": status or "clarify"}

@@ -2,7 +2,9 @@
 
 import pytest
 
+from domain.ports import AdapterError
 from domain.research.agents import architect
+from domain.research.models import PartialResearchBrief, SourceSelection
 from infrastructure.fake import FakeLLM
 
 
@@ -10,9 +12,19 @@ from infrastructure.fake import FakeLLM
 async def test_clarify_returns_judgment_without_status() -> None:
     llm = FakeLLM(
         response='{"missing_fields": ["decision_goal"], "questions": ["What is the goal?"], '
-        '"brief_patch": {}, "assumptions": []}'
+        '"brief_patch": {}, "assumptions": [], "field_reasons": {}}'
     )
-    result = await architect.clarify(llm, {}, "help")
+    result = (
+        await architect.clarify(
+            llm,
+            draft=PartialResearchBrief(),
+            query="help",
+            answer="",
+            source_selection=SourceSelection(),
+            pending_questions=[],
+            history=[],
+        )
+    ).model_dump()
     assert result["missing_fields"] == ["decision_goal"]
     assert result["questions"] == ["What is the goal?"]
     assert result["brief_patch"] == {}
@@ -21,8 +33,15 @@ async def test_clarify_returns_judgment_without_status() -> None:
 
 
 @pytest.mark.asyncio
-async def test_clarify_handles_dirty_llm_output() -> None:
+async def test_clarify_rejects_dirty_llm_output() -> None:
     llm = FakeLLM(response="not json at all")
-    result = await architect.clarify(llm, {}, "help")
-    assert result["missing_fields"] == []
-    assert result["questions"] == []
+    with pytest.raises(AdapterError, match="model_output_invalid"):
+        await architect.clarify(
+            llm,
+            draft=PartialResearchBrief(),
+            query="help",
+            answer="",
+            source_selection=SourceSelection(),
+            pending_questions=[],
+            history=[],
+        )

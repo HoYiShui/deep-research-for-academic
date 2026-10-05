@@ -55,8 +55,9 @@
 设计：MODEL §2；FLOW §2；API §2.1–2.4；OPS §2–3。验收 A1–A3。此阶段允许 ready 排队而尚不执行 Pipeline，不返回虚假报告。
 
 - [ ] T008 [US1] 在 `backend/tests/integration/test_mono_clarify_http.py` 先写 HTTP 契约测试：初始不足201 ask、充分201 confirm、后续200、confirm前无Run、重复请求不增轮次/版本、旧版本与并发消息409；另写真实 PG 断点测试验证确认失败回滚。
-- [ ] T009 [US1] 更新 `backend/domain/research/agents/architect.py`、`backend/domain/research/machine.py` 与 `backend/tests/unit/test_clarify.py`：有界 ClarifyAssessment、十字段代码校验、task_type 闭集、保守默认披露、1–2个问题；空字段/语义关键缺口不因模型说完整而通过。
-- [ ] T010 [US1] 更新 `backend/application/session_service.py`：assess_initial/assess_round/validate_confirmation 返回候选且不保存或 spawn；实现3轮自动模型上限、上限后明确 brief_patch、accepted=false 退回、历史消息有界输入；补 `backend/tests/unit/test_session.py` 的轮次/版本/模型失败不改旧状态反例。
+- [x] T009 [US1] 更新 `backend/domain/research/agents/architect.py`、`backend/domain/research/machine.py` 与 `backend/tests/unit/test_clarify.py`：有界 ClarifyAssessment、十字段代码校验、task_type 闭集、保守默认披露、1–2个问题；空字段/语义关键缺口不因模型说完整而通过。补充反例位于 `test_mono_clarify.py`。证据：[严格 Clarify 与纯候选](evidence/t009-t010-clarify-candidates.md)。
+- [x] T010 [US1] 更新 `backend/application/session_service.py`：assess_initial/assess_round/validate_confirmation 返回候选且不保存或 spawn；实现3轮自动模型上限、上限后明确 brief_patch、accepted=false 退回、历史消息有界输入；补 `backend/tests/unit/test_session.py` 的轮次/版本/模型失败不改旧状态反例。证据：[严格 Clarify 与纯候选](evidence/t009-t010-clarify-candidates.md)。
+  - 本批完成目标worker与纯候选的单测；旧装配显式隔离到LegacySessionService/legacy_clarify，不当作目标实现。T007剩余装配与T008/T011/T012必须一起完成、移除这些legacy调用路径；尚无A1–A3真实HTTP会话证明，不得以本批代替M1。
 - [ ] T011 [US1] 更新 `backend/application/research_service.py`：start/message/confirm 协调幂等与 CAS、来源授权、隐私检查、唯一 Run 冻结事务；start_frozen 复用同冻结校验并记录 CLI 确认身份。冻结后不允许改任务书，不在 SessionService 偷启流程。
 - [ ] T012 [US1] 更新 `backend/interface/dto/research.py`、`backend/interface/router/research.py`：实现 POST /research、/messages、/confirm 与 GET SessionView 的 mono DTO，传 owner/key/version，显式201/200/202；status查询由Session+Run一致投影生成，不倒序找phase。
 - [ ] T013 [US1] 新增 `backend/scripts/verify_clarify_http.py` 与 `backend/tests/integration/test_verify_clarify_http.py`：只走活 HTTP，支持受控回答文件及用户明确确认，不自动同意假设；可用真实模型完成至少一条多轮会话，并用只读SQL核对1Session/冻结Brief/1Run/seq=1。保存 `evidence/us1.md`，列出实际请求/响应及模型模式。
@@ -189,4 +190,4 @@ Web执行顺序：T063 → T064 → T065 → T066 → T061–T062；T064依赖T0
 
 验收覆盖索引：A1=T008–T013；A2=T006/T008/T011/T053；A3=T006/T015/T036；A4=T027/T033–T038；A5=T029–T032；A6=T034–T039；A7=T043–T048/T050/T052；A8=T040–T041/T047/T049/T052；A9=T020/T022/T055；A10=T014/T018–T019/T022；A11=T007/T050/T053–T054；A12=T021/T051/T059；A13=T056–T058/T061。
 
-**下一步唯一开工入口：T001。第一批可交付范围：T001–T013（M1）。** 不要求先把62项全写完才验证，也不把第一批闭环当成整个系统已完成。
+**当前下一步：T008 的 HTTP 反例 → T011/T012 用例与路由接入，同时关闭T007默认存储装配缺口。第一批可交付范围仍为T001–T013（M1）。** T001–T006已验证；为接入T007剩余写服务边界，本批提前完成T009/T010纯候选底座，不能因此跳过T008或真实M1。不要求先把全部任务写完才验证，也不把第一批闭环当成整个系统已完成。

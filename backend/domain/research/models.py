@@ -132,15 +132,32 @@ class SourceSelection(Record):
 
 class ClarifyAssessment(Record):
     missing_fields: list[BriefField]
-    questions: Annotated[list[Text], Field(max_length=2)]
+    questions: Annotated[list[BriefText], Field(max_length=2)]
     brief_patch: PartialResearchBrief
-    assumptions: list[Text]
-    field_reasons: dict[BriefField, Text]
+    assumptions: list[BriefText]
+    field_reasons: dict[BriefField, BriefText]
 
     @field_validator("missing_fields", "questions", "assumptions")
     @classmethod
     def deduplicate(cls, values):
         return list(dict.fromkeys(values))
+
+
+class BriefDecision(Record):
+    status: Literal["ask", "confirm"]
+    draft: PartialResearchBrief
+    missing_fields: list[BriefField]
+    questions: Annotated[list[BriefText], Field(max_length=2)]
+
+    @model_validator(mode="after")
+    def coherent_decision(self):
+        if self.status == "confirm":
+            ResearchBrief.model_validate(self.draft.model_dump())
+            if self.missing_fields or self.questions:
+                raise ValueError("Confirmation cannot retain pending questions or gaps")
+        elif not self.questions:
+            raise ValueError("Ask must contain a question")
+        return self
 
 
 class Failure(Record):

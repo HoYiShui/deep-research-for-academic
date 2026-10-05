@@ -1,15 +1,58 @@
 """Pure policy layer: deterministic transition rules for clarify and pipeline.
 
 The LLM only produces judgments (data); this module applies policy (control
-flow). decide_status drives clarify; next_phase drives the pipeline happy
+flow). assess_brief drives mono clarification; next_phase drives the pipeline happy
 path; route_after_review drives the rework routing table.
 """
+
 from __future__ import annotations
 
 from typing import Any
 
-# Fields that must be specified before the brief is considered frozen.
-CRITICAL_BRIEF_FIELDS = {"decision_goal", "research_object", "deliverable"}
+from domain.research.models import (
+    BriefDecision,
+    ClarifyAssessment,
+    PartialResearchBrief,
+    ResearchBrief,
+)
+
+EXPLICIT_BRIEF_FIELDS = ("task_type", "decision_goal", "research_object", "deliverable")
+SAFE_BRIEF_DEFAULTS = {
+    "scope": "Limit research to selected authorized sources; do not assume unspecified datasets, periods or deployment settings.",
+    "comparison_scope": "Compare only explicitly identified objects; do not invent baselines or rank incompatible results.",
+    "claims_to_verify": "Derive hypotheses from the decision goal and verify them; hypotheses are not established facts.",
+    "evidence_requirements": "Require locatable original evidence for key facts; record gaps rather than treating snippets as evidence.",
+    "conclusion_boundary": "Conclusions cannot exceed the evidence; do not assert unverified superiority, causality, novelty or production applicability.",
+}
+
+
+def assess_brief(draft: PartialResearchBrief, assessment: ClarifyAssessment) -> BriefDecision:
+    """The model suggests gaps; only code decides whether confirmation is safe."""
+    draft = PartialResearchBrief.model_validate(draft)
+    assessment = ClarifyAssessment.model_validate(assessment)
+    merged = draft.model_dump() | assessment.brief_patch.model_dump()
+    gaps = set(assessment.missing_fields) | set(assessment.field_reasons)
+    disclosures = [merged.get("assumptions", ""), *assessment.assumptions]
+    for name, default in SAFE_BRIEF_DEFAULTS.items():
+        if name not in merged and name not in gaps:
+            merged[name] = default
+            disclosures.append(f"Conservative default ({name}): {default}")
+    merged["assumptions"] = "\n".join(dict.fromkeys(item for item in disclosures if item))
+    gaps.update(name for name in EXPLICIT_BRIEF_FIELDS if name not in merged)
+    gaps.update(name for name in ResearchBrief.model_fields if name not in merged)
+    ordered = [name for name in ResearchBrief.model_fields if name in gaps]
+    candidate = PartialResearchBrief.model_validate(merged)
+    if not ordered:
+        ResearchBrief.model_validate(candidate.model_dump())
+        return BriefDecision(status="confirm", draft=candidate, missing_fields=[], questions=[])
+    questions = assessment.questions or [
+        f"请明确任务书中的 {name}，以便限定研究决策与结论。" for name in ordered[:2]
+    ]
+    return BriefDecision(status="ask", draft=candidate, missing_fields=ordered, questions=questions)
+
+
+# Explicitly pre-mono policy, removed with the legacy composition cutover.
+LEGACY_CRITICAL_BRIEF_FIELDS = {"decision_goal", "research_object", "deliverable"}
 
 # Pipeline phase order (happy path).
 _PHASE_ORDER = ["plan", "research", "analyze", "write", "review", "done"]
@@ -27,7 +70,7 @@ WORKERS = {
 _ACTION_PRIORITY = ["re_research", "re_analyze", "revise", "acknowledge_limit"]
 
 
-def decide_status(missing_fields: list[str]) -> str:
+def legacy_decide_status(missing_fields: list[str]) -> str:
     """Decide clarify status from missing fields.
 
     Args:
@@ -37,7 +80,7 @@ def decide_status(missing_fields: list[str]) -> str:
         "ask" if any critical field is missing, else "ready" (conservative
         defaults are used for non-critical gaps).
     """
-    if set(missing_fields) & CRITICAL_BRIEF_FIELDS:
+    if set(missing_fields) & LEGACY_CRITICAL_BRIEF_FIELDS:
         return "ask"
     return "ready"
 
