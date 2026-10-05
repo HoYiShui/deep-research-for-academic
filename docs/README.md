@@ -2,6 +2,8 @@
 
 本目录存放面向人阅读的项目文档，与规范层（`specs/`）和机器层（`.specify/`）互补：
 
+后端当前设计入口是 [docs/mono/architecture.md](mono/architecture.md)。五份 mono 文档是 `mono-v1` 的统一目标设计基线，涵盖架构、数据模型、数据流、接口和运行语义；开始后端或客户端实现前需读完整套。它们不表示现有实现已完成。旧 `contracts/`、`architecture/` 和 specs 中冲突的实现方案以 mono 为准，业务需求仍需保留；历史任务完成标记不能代替真实验收。
+
 - `specs/` — 功能规格（WHAT，验收标准）
 - `docs/contracts/` — 输入/输出契约参考（详细版，供实现参考）
 - `docs/cases/` — 端到端案例（完整期望输出，作为系统调试的 diff 基准）

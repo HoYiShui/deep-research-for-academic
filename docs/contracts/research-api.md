@@ -1,8 +1,8 @@
 # Research API 契约
 
-> **权威来源**：本文件定义 Web、Textual TUI 与后端之间的 HTTP(S) / SSE 传输契约。
+> **历史设计（已替代）**：当前后端与 Web/pi-tui 的 HTTP/SSE 契约见 [mono/api-contract.md](../mono/api-contract.md)，全局上下文见 [mono/architecture.md](../mono/architecture.md)。下文保留旧讨论记录，不作为实现依据。
 > 数据对象的语义见 [ResearchBrief 契约](researchbrief.md) 与 [统一报告骨架](report-skeleton.md)。
-> `specs/001-deep-research-agent/contracts/api.md` 是该契约的历史入口；如与本文件冲突，以本文件为准。
+> `specs/001-deep-research-agent/contracts/api.md` 同为历史入口；涉及状态、字段、确认、恢复等冲突时，以 mono 五份文档为准。
 
 ## 1. 交互总览
 
