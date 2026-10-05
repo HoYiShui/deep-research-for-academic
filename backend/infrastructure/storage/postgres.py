@@ -6,6 +6,7 @@ briefs/reports are versioned (V1 keeps version 1, load takes the latest).
 
 from __future__ import annotations
 
+import asyncio
 import json
 import os
 
@@ -33,6 +34,14 @@ class PostgresStateStore:
                 raise
             self._pool = pool
         return self._pool
+
+    async def aclose(self) -> None:
+        pool, self._pool = self._pool, None
+        if pool is not None:
+            try:
+                await asyncio.wait_for(pool.close(), timeout=5)
+            except TimeoutError:
+                pool.terminate()
 
     # ---- sessions ----
     async def create_session(self, session_id: str, status: str = "clarify") -> None:

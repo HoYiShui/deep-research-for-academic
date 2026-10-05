@@ -6,8 +6,10 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
+from interface.dto.base import RequestDTO
 
-class ResearchRequest(BaseModel):
+
+class ResearchRequest(RequestDTO):
     """POST /research body."""
 
     query: str = Field(min_length=1)
@@ -15,7 +17,7 @@ class ResearchRequest(BaseModel):
     sources: list[str] | None = None
 
 
-class MessageRequest(BaseModel):
+class MessageRequest(RequestDTO):
     """POST /research/{id}/messages body."""
 
     content: str = Field(min_length=1)

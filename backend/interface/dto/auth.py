@@ -4,15 +4,17 @@ from __future__ import annotations
 
 from pydantic import BaseModel, Field
 
+from interface.dto.base import RequestDTO
 
-class RegisterRequest(BaseModel):
+
+class RegisterRequest(RequestDTO):
     """POST /auth/register body."""
 
     email: str = Field(min_length=3, max_length=254)
     password: str = Field(min_length=8, max_length=128)
 
 
-class LoginRequest(BaseModel):
+class LoginRequest(RequestDTO):
     """POST /auth/login body."""
 
     email: str

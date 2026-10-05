@@ -7,7 +7,7 @@ import tempfile
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, File, UploadFile
+from fastapi import APIRouter, Depends, File, Request, UploadFile
 
 from application.bootstrap import get_container
 from interface.deps import require_user
@@ -23,9 +23,9 @@ router = APIRouter(prefix="/knowledge-base", tags=["knowledge-base"])
 
 
 @router.post("/search", response_model=SearchResponse)
-async def search(body: SearchRequest, user: str = Depends(require_user)) -> dict:
+async def search(body: SearchRequest, request: Request, user: str = Depends(require_user)) -> dict:
     """Retrieve chunks from the local KB via RetrievalPort (embed -> hybrid -> rerank)."""
-    retrieval = get_container().retrieval
+    retrieval = get_container(request).retrieval
     chunks = await retrieval.retrieve(body.query, body.kb_id, body.top_k)
     return {
         "chunks": [
@@ -37,10 +37,10 @@ async def search(body: SearchRequest, user: str = Depends(require_user)) -> dict
 
 @router.post("/documents", status_code=202, response_model=DocumentUploadResponse)
 async def upload_document(
-    file: Annotated[UploadFile, File()], user: str = Depends(require_user)
+    request: Request, file: Annotated[UploadFile, File()], user: str = Depends(require_user)
 ) -> dict:
     """Accept a PDF upload and start the background ingest pipeline."""
-    container = get_container()
+    container = get_container(request)
     document_id = uuid.uuid4().hex
     with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
         tmp.write(await file.read())
@@ -50,19 +50,23 @@ async def upload_document(
 
 
 @router.get("/documents", response_model=DocumentListResponse)
-async def list_documents(user: str = Depends(require_user)) -> dict:
+async def list_documents(request: Request, user: str = Depends(require_user)) -> dict:
     """List documents with their progress state."""
-    return {"documents": await get_container().knowledge_base.list_documents()}
+    return {"documents": await get_container(request).knowledge_base.list_documents()}
 
 
 @router.get("/documents/{document_id}")
-async def get_document(document_id: str, user: str = Depends(require_user)) -> dict:
+async def get_document(
+    document_id: str, request: Request, user: str = Depends(require_user)
+) -> dict:
     """Return a document's progress state."""
-    return await get_container().knowledge_base.get_document(document_id)
+    return await get_container(request).knowledge_base.get_document(document_id)
 
 
 @router.delete("/documents/{document_id}")
-async def delete_document(document_id: str, user: str = Depends(require_user)) -> dict:
+async def delete_document(
+    document_id: str, request: Request, user: str = Depends(require_user)
+) -> dict:
     """Delete a document from the progress registry."""
-    await get_container().knowledge_base.delete_document(document_id)
+    await get_container(request).knowledge_base.delete_document(document_id)
     return {"document_id": document_id, "status": "deleted"}

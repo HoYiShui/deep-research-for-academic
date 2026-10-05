@@ -8,6 +8,7 @@ the container accepts overrides so tests can inject fakes/mocks.
 from __future__ import annotations
 
 from application.auth_service import AuthService
+from application.errors import AppError
 from application.knowledge_base_service import KnowledgeBaseService
 from application.orchestrator import Orchestrator
 from application.research_service import ResearchService
@@ -59,16 +60,22 @@ class Container:
         self.bus = bus or EventBus()
         self.llm = llm or DeepSeekLLM(
             api_key=config.anthropic_api_key.get_secret_value(),
-            base_url=config.anthropic_base_url, model=config.llm_model,
+            base_url=config.anthropic_base_url,
+            model=config.llm_model,
             timeout_s=config.llm_timeout_s,
         )
-        self.search = search or CompositeSearch([
-            ("arxiv", ArxivSearch()),
-            ("bocha", BochaSearch(
-                api_key=config.bocha_api_key.get_secret_value(),
-                timeout_s=config.search_timeout_s,
-            )),
-        ])
+        self.search = search or CompositeSearch(
+            [
+                ("arxiv", ArxivSearch()),
+                (
+                    "bocha",
+                    BochaSearch(
+                        api_key=config.bocha_api_key.get_secret_value(),
+                        timeout_s=config.search_timeout_s,
+                    ),
+                ),
+            ]
+        )
         self.embedding = embedding or BGEM3Embedding(config.bge_m3_model_path)
         self.vector = vector or MilvusStore(config.milvus_uri)
         self.reranker = reranker or BGEReranker(config.bge_reranker_model_path)
@@ -88,12 +95,34 @@ class Container:
         )
         self.research = ResearchService(self.sessions, self.orchestrator, self.store, self.cancel)
 
+    async def aclose(self) -> None:
+        """Release container-owned adapters even when one adapter fails to close."""
+        errors = []
+        seen = set()
+        for adapter in (self.store, self.llm, self.search, self.vector, self.execution):
+            if id(adapter) in seen:
+                continue
+            seen.add(id(adapter))
+            close = getattr(adapter, "aclose", None)
+            if close is not None:
+                try:
+                    await close()
+                except Exception as exc:  # noqa: BLE001 -- finish cleanup, then re-raise all failures
+                    errors.append(exc)
+        if errors:
+            raise ExceptionGroup("Adapter shutdown failed", errors)
+
 
 _container: Container | None = None
 
 
-def get_container() -> Container:
-    """Return the singleton service container."""
+def get_container(request=None) -> Container:
+    """HTTP uses lifespan-owned state; legacy CLI still owns a local singleton."""
+    if request is not None:
+        container = getattr(request.app.state, "container", None)
+        if container is None:
+            raise AppError("service_not_ready", "Application has not started", retryable=True)
+        return container
     global _container
     if _container is None:
         _container = Container()

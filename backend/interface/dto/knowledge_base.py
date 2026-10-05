@@ -6,8 +6,10 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
+from interface.dto.base import RequestDTO
 
-class SearchRequest(BaseModel):
+
+class SearchRequest(RequestDTO):
     """POST /knowledge-base/search body."""
 
     query: str = Field(min_length=1)

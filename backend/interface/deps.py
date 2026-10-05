@@ -15,18 +15,14 @@ async def require_user(request: Request) -> str:
     workflow is being validated through the local TUI.  Production compose sets
     ``DR4A_AUTH_REQUIRED=true`` and retains the original JWT/cookie guard.
     """
-    if not _authentication_required():
-        return "development-user"
+    settings = getattr(request.app.state, "settings", None) or Settings.load()
+    if not settings.dr4a_auth_required:
+        return "00000000-0000-4000-8000-000000000001"
     token = _extract_token(request)
-    user_id = get_container().auth.verify_token(token) if token else None
+    user_id = get_container(request).auth.verify_token(token) if token else None
     if user_id is None:
         raise HTTPException(status_code=401, detail="not authenticated")
     return user_id
-
-
-def _authentication_required() -> bool:
-    """Read the explicit opt-in guard without loading secrets into the client."""
-    return Settings.load().dr4a_auth_required
 
 
 def _extract_token(request: Request) -> str | None:
