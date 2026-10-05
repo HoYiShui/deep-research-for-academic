@@ -1,15 +1,124 @@
-"""Application ports: abstract interfaces consumed by the orchestrator.
+"""Typed mono-v1 service and atomic repository contracts.
 
-StateStorePort is implemented by PostgreSQL (durable truth + snapshots);
-CancellationPort is an in-process dict in V1 (Redis in V2).
+The bottom section retains pre-mono ports for unmigrated callers; those do not
+describe target cancellation or durable ownership semantics.
 """
+
 from __future__ import annotations
 
+from contextlib import AbstractAsyncContextManager
 from typing import Protocol
+from uuid import UUID
+
+from application.records import (
+    FreezeCommit,
+    IdempotencyRecord,
+    SessionChange,
+    SessionInput,
+    User,
+    ValidatedFrozenInput,
+)
+from domain.research.models import BriefRecord, Message, ResearchRun, SessionState
+from domain.research.state import Checkpoint
+
+
+class TransactionPort(Protocol):
+    """Opaque adapter-owned transaction; application never touches its connection."""
+
+    @property
+    def transaction_id(self) -> UUID: ...
+
+
+class UnitOfWorkPort(Protocol):
+    def transaction(self) -> AbstractAsyncContextManager[TransactionPort]: ...
+
+
+class UserRepositoryPort(Protocol):
+    async def create(self, user: User, tx: TransactionPort) -> None: ...
+
+    async def get_by_id(self, user_id: UUID, tx: TransactionPort | None = None) -> User | None: ...
+
+    async def get_by_email(self, email: str, tx: TransactionPort | None = None) -> User | None: ...
+
+
+class ResearchRepositoryPort(Protocol):
+    """Stage-zero operations; run lease/termination extensions arrive in T015."""
+
+    async def get_session(
+        self,
+        owner: UUID,
+        session_id: UUID,
+        tx: TransactionPort | None = None,
+        *,
+        for_update: bool = False,
+    ) -> SessionState | None: ...
+
+    async def commit_session_change(
+        self, expected_revision: int, change: SessionChange, tx: TransactionPort
+    ) -> None: ...
+
+    async def list_messages(
+        self, owner: UUID, session_id: UUID, tx: TransactionPort | None = None
+    ) -> list[Message]: ...
+
+    async def load_brief(
+        self, owner: UUID, session_id: UUID, version: int, tx: TransactionPort | None = None
+    ) -> BriefRecord | None: ...
+
+    async def freeze_and_create_run(
+        self, commit: FreezeCommit, tx: TransactionPort
+    ) -> ResearchRun: ...
+
+    async def get_run(
+        self, owner: UUID, run_id: UUID, tx: TransactionPort | None = None
+    ) -> ResearchRun | None: ...
+
+    async def load_checkpoint(
+        self, owner: UUID, run_id: UUID, seq: int, tx: TransactionPort | None = None
+    ) -> Checkpoint | None: ...
+
+
+class RequestStorePort(Protocol):
+    async def reserve(
+        self,
+        owner: UUID,
+        operation: str,
+        key: str,
+        request_hash: str,
+        tx: TransactionPort,
+        *,
+        lease_s: int = 120,
+    ) -> IdempotencyRecord: ...
+
+    async def renew(
+        self, reservation: IdempotencyRecord, tx: TransactionPort, *, lease_s: int = 120
+    ) -> IdempotencyRecord: ...
+
+    async def complete(
+        self,
+        reservation: IdempotencyRecord,
+        response_status: int,
+        response_body: dict | None,
+        tx: TransactionPort,
+        *,
+        resource_id: UUID | None = None,
+    ) -> IdempotencyRecord: ...
+
+    async def release(self, reservation: IdempotencyRecord, tx: TransactionPort) -> None: ...
+
+
+class SessionServicePort(Protocol):
+    async def assess_initial(self, value: SessionInput) -> SessionChange: ...
+
+    async def assess_round(self, value: SessionInput, answer: str) -> SessionChange: ...
+
+    async def validate_confirmation(
+        self, session: SessionState, expected_brief_version: int
+    ) -> ValidatedFrozenInput: ...
 
 
 class StateStorePort(Protocol):
-    """Persist the durable truth: sessions, clarify history, briefs, reports, snapshots.
+    """Legacy port, removed as ResearchService/Orchestrator migrate in T011/T017.
 
     Mirrors the seven stable tables (users is UserStorePort; audit_log is V2).
     Messages are append-only (audit); briefs/reports are versioned.

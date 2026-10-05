@@ -5,10 +5,30 @@ in infrastructure. Read/write asymmetry: reads go through RetrievalPort
 (embed -> hybrid -> rerank); writes (ingest) use EmbeddingPort + VectorStorePort
 directly.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from datetime import datetime
 from typing import Any, Protocol
+
+
+class ClockPort(Protocol):
+    """Deadlines use monotonic; UTC wall time is for records, not PG leases."""
+
+    def now_utc(self) -> datetime: ...
+
+    def monotonic(self) -> float: ...
+
+
+class AdapterError(Exception):
+    def __init__(self, dependency: str, code: str, message: str, retryable: bool, operation: str):
+        super().__init__(f"{dependency}/{code}: {message}")
+        self.dependency = dependency
+        self.code = code
+        self.message = message
+        self.retryable = retryable
+        self.operation = operation
 
 
 @dataclass
@@ -69,7 +89,9 @@ class VectorStorePort(Protocol):
 
     async def hybrid_search(self, kb_id: str, embedding: Embedding, top_k: int) -> list[Chunk]: ...
 
-    async def insert(self, kb_id: str, chunk_id: str, embedding: Embedding, metadata: dict) -> None: ...
+    async def insert(
+        self, kb_id: str, chunk_id: str, embedding: Embedding, metadata: dict
+    ) -> None: ...
 
 
 class RerankPort(Protocol):

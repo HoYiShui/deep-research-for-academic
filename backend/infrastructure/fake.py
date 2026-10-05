@@ -8,6 +8,10 @@ from __future__ import annotations
 import json
 
 from domain.ports import SearchResult
+from infrastructure.fake_research import (  # noqa: F401 -- Public test adapters.
+    FakeClock,
+    FakeResearchDatabase,
+)
 
 
 class FakeLLM:
