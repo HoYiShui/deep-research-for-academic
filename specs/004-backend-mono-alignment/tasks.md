@@ -2,6 +2,8 @@
 
 > 状态：实施中，2026-10-05。这是用户要求的直接任务拆解，不是新增设计规范。任务只在实际验证后勾选并附证据，不继承旧 tasks 的完成标记。
 
+> 范围追加（2026-10-05）：用户要求本轮同时实现 Web 前端，参考 ChatGPT 的聊天布局，消费事件级 SSE。追加任务 T063–T066；在后端闭环后、最终回归前完成，不以“剩余 token”作为省略验收的理由。
+
 ## 1. 输入与执行约定
 
 唯一设计输入是 [架构](../../docs/mono/architecture.md)、[数据模型](../../docs/mono/data-model.md)、[数据流](../../docs/mono/dataflow.md)、[API 契约](../../docs/mono/api-contract.md)、[运行语义](../../docs/mono/operations.md) 五份文档，简称 ARCH/MODEL/FLOW/API/OPS。验收编号 A1–A13 指 OPS §8。项目章程仍优先。
@@ -155,10 +157,21 @@
 
 - [ ] T059 [交接] 更新 `backend/cli/README.md`、现有 `backend/scripts/smoke_e2e.py`/`smoke_real.py` 的用途/命令：移除旧端口、隐式freeze、最高phase恢复和“全real”误称；实现指向mono及新验证入口的准确说明，不再复制API规范。
 - [ ] T060 [交接] 更新 `tui/src/api-client.ts`、`app.ts`、`tui/test/api-client.test.ts`：当前brief_version/Idempotency-Key、SourceSelection、SessionView、失败done/统一error、重连只读状态；保留无登录开发用法、401明确解释。用活后端手工/脚本验证多轮、退回、确认、进度、取消、报告，不以客户端mock测试代替HTTP集成。
-- [ ] T061 [交接] 新增 `backend/scripts/verify_mono_suite.py`，调度前述HTTP/phase/KB/deployment验证脚本，逐项声明依赖与结果；缺资源/网络/模型不标通过。跑backend全量pytest、TUI test/typecheck及真实代表性E2E，保存 `evidence/final.md` 对应A1–A13，列出未通过项与不能承诺exactly-once的窗口。
+- [ ] T061 [交接] 新增 `backend/scripts/verify_mono_suite.py`，调度前述HTTP/phase/KB/deployment验证脚本，逐项声明依赖与结果；缺资源/网络/模型不标通过。跑backend全量pytest、TUI test/typecheck、Web测试/typecheck/build及真实代表性E2E，保存 `evidence/final.md` 对应A1–A13与T066 Web验收，列出未通过项与不能承诺exactly-once的窗口。依赖T063–T066。
 - [ ] T062 [交接] 审核实际代码与五份mono的Schema/枚举/状态码/事务/阶段/隐私/版本一致性，核对三报告引用及失败路径证据；必要设计修订同时修改受影响mono而非局部客户端设计。确认所有完成任务有证据链接，工作区未包含密钥/私有正文/不相关用户文件；只有全部验收通过才宣布后端mono-v1完成。
 
 ## 10. 依赖、执行入口与完成定义
+
+### 追加：Web 研究聊天客户端
+
+沿用五份 mono 文档中的 HTTP/SSE，不新增客户端专属业务规则。实现落点为根目录 `frontend/`；参考 ChatGPT 的布局与交互，不复制品牌资源。本轮交付研究聊天客户端，不额外扩张为完整 KB 管理后台。
+
+- [ ] T063 [Web] 建立 `frontend/` 的 TypeScript Web 工程、依赖锁与开发/构建/测试命令，提供配置明确的后端地址或同源代理；实现响应式侧栏、聊天记录、底部输入框与空状态，键盘可操作、窄屏可用。在 `frontend/README.md` 记录启动方式与配置；不把密钥或后端 `.env` 打进浏览器包。通过 typecheck/build 与基础组件测试。
+- [ ] T064 [Web] 实现 typed HTTP 客户端与研究交互：创建201 ask/confirm、多轮回答、展示十字段 Brief、显式确认或退回修改、brief_version与幂等 key、GET恢复会话。开发匿名和正式 cookie 登录使用同一契约，401给出明确操作；不自动确认 Brief、不在浏览器维护第二套权威状态。测试初始确认、缺字段、版本冲突、重复请求与网络失败。
+- [ ] T065 [Web] 实现 SSE 事件级展示：bootstrap/phase/progress/rework/error/done更新同一对话中的运行卡片，区分运行状态与研究质量；断线后只读状态并重新订阅，不重新启动研究。支持取消、契约允许时显式resume、报告读取与安全 Markdown/附件展示；离开会话关闭旧订阅。测试失败/取消done、迟到订阅、重复事件、重连、脚本注入与未知事件，不伪装逐 token 输出。
+- [ ] T066 [Web] 使用真实浏览器与活 HTTP 后端验证完整研究聊天流程：新建、多轮、退回、确认、进度、刷新恢复、取消/恢复、报告；检查宽屏/窄屏布局、键盘、加载/错误反馈与安全渲染。复用已通过的真实业务报告，并记录模型/依赖模式，不能把 mock 页面称真实 E2E。保存 `evidence/web.md`，所有测试/typecheck/build通过后才勾选。
+
+Web执行顺序：T063 → T064 → T065 → T066 → T061–T062；T064依赖T012/T053，T065依赖T018–T019/T036–T037。可以提前做布局与客户端确定性测试，但不能提前宣称真实业务闭环。
 
 推荐主线：底座 T001–T007 → US1 T008–T013 → US2 T014–T022 → US3 T023–T028 → US4 T029–T039 → US5 T040–T052 → US6 T053–T058 → 交接 T059–T062。
 
