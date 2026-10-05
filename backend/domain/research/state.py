@@ -1,186 +1,335 @@
-"""Domain state: SessionState, PipelineState, and field-level entity contracts.
+"""Complete mono-v1 snapshots. Legacy callers are isolated until T017/T021."""
 
-The two states split at the freeze point: brief_draft lives in SessionState;
-the frozen brief is the input to PipelineState (research_brief, read-only).
-Pipeline entities are stored id-keyed so claims/evidence/metrics/artifacts/
-draft_sections can be traced back to their source (traceability, charter I).
-"""
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from typing import Annotated, Literal
+from uuid import UUID
 
-from domain.research.models import (  # noqa: F401 -- Public domain contracts.
+from pydantic import Field, StrictFloat, StrictInt, field_validator, model_validator
+
+from domain.research.facts import (
+    AnalysisArtifact,
+    Claim,
+    ClaimEvidenceLink,
+    ComparableMetric,
+    ComparisonSet,
+    CriticFeedback,
+    DraftClaimBinding,
+    DraftSection,
+    Evidence,
+    FinalReport,
+    QuantitativeObservation,
+    ReworkTarget,
+    SectionCoverage,
+    SectionID,
+    SectionPlan,
+    SourceRecord,
+)
+from domain.research.ids import canonical_hash
+from domain.research.models import (  # noqa: F401 -- Public lifecycle contracts.
+    UTC,
     BriefRecord,
     ClarifyAssessment,
     Failure,
+    Hash,
     Message,
+    Nonnegative,
     PartialResearchBrief,
+    Positive,
+    Record,
     ResearchBrief,
+    ResearchPhase,
     ResearchRun,
+    ReviewVerdict,
     RunConfig,
     SessionState,
     SourceSelection,
+    Text,
 )
 
-# ---- Entity contracts (field-level schema, aligned with data-model.md) ----
+
+class BudgetUsage(Record):
+    llm_calls: Nonnegative
+    search_calls: Nonnegative
+    fetch_calls: Nonnegative
+    tokens: Nonnegative
+    elapsed_s: Annotated[StrictFloat | StrictInt, Field(ge=0, allow_inf_nan=False)]
 
 
-@dataclass
-class SourceRecord:
-    """A registered source (each source is registered once)."""
-
-    source_id: str = ""
-    source_type: str = ""  # paper / dataset / code / standard / local_document
-    title: str = ""
-    authors_or_publisher: str = ""
-    published_at: str = ""
-    version: str = ""
-    canonical_url: str = ""
-    provenance: str = ""
-    source_tier: str = "unknown"  # primary / official / peer_reviewed / secondary / unknown
+class VersionReference(Record):
+    kb_id: UUID
+    document_id: UUID
+    document_version_id: UUID
+    index_version: Text
 
 
-@dataclass
-class Evidence:
-    """A minimal citable unit with a source location."""
-
-    evidence_id: str = ""
-    source_id: str = ""
-    evidence_type: str = ""
-    location: str = ""  # page / table / line number
-    quote_or_raw_content: str = ""
-    extraction_method: str = ""
+class Degradation(Record):
+    source: Text
+    reason: Text
+    operation: Text
+    section_id: SectionID | None
+    occurred_at: UTC
 
 
-@dataclass
-class Claim:
-    """A research assertion, supported/limited/refuted by evidence."""
-
-    claim_id: str = ""
-    text: str = ""
-    conditions: dict = field(default_factory=dict)
-    status: str = "open"  # open / supported / limited / refuted / insufficient
-
-
-@dataclass
-class ClaimEvidenceLink:
-    """A claim -> evidence relation."""
-
-    claim_id: str = ""
-    evidence_id: str = ""
-    relation: str = "supports"  # supports / refutes / limits
+class UnitResult(Record):
+    unit_id: Text
+    phase: ResearchPhase
+    input_hash: Hash
+    result_hash: Hash
+    checkpoint_seq: Positive
+    completed_at: UTC
+    affected_ids: list[Text]
 
 
-@dataclass
-class QuantitativeObservation:
-    """A structured projection of a result-table cell (back-linked to evidence)."""
+class RunMetadata(Record):
+    config: RunConfig
+    budget_used: BudgetUsage
+    rework_count: Nonnegative
+    rework_targets: list[ReworkTarget]
+    degraded_sources: list[Degradation]
+    unit_manifest: dict[Text, UnitResult]
+    knowledge_snapshot: list[VersionReference]
+    stop_reason: Text | None = None
 
-    observation_id: str = ""
-    evidence_id: str = ""
-    kind: str = ""
-    row_key: str = ""
-    column_key: str = ""
-    value: str = ""
-    uncertainty: str = ""
-    statistic: str = ""
-
-
-@dataclass
-class ComparableMetric:
-    """A normalized metric with a comparability verdict."""
-
-    comparable_metric_id: str = ""
-    observation_ids: list = field(default_factory=list)
-    metric_definition: str = ""
-    evaluated_method: str = ""
-    evaluation_context: dict = field(default_factory=dict)
-    value: str = ""
-    unit: str = ""
-    comparability: str = "compatible"  # compatible / partial / incompatible
-    reasons: list = field(default_factory=list)
+    @model_validator(mode="after")
+    def check_accounting(self):
+        for name in ("llm_calls", "search_calls", "fetch_calls", "tokens"):
+            if getattr(self.budget_used, name) > getattr(self.config.limits, name):
+                raise ValueError(f"Budget exceeded: {name}")
+        if self.rework_count > self.config.limits.rework_rounds:
+            raise ValueError("Rework budget exceeded")
+        if any(key != unit.unit_id for key, unit in self.unit_manifest.items()):
+            raise ValueError("Manifest key differs from unit ID")
+        if any(
+            version.kb_id not in self.config.source_policy.knowledge_base_ids
+            for version in self.knowledge_snapshot
+        ):
+            raise ValueError("Knowledge snapshot outside frozen scope")
+        return self
 
 
-@dataclass
-class AnalysisArtifact:
-    """A controlled analysis output with input provenance."""
+class PipelineState(Record):
+    """All keys are required on read; only initial() fills empty outputs."""
 
-    artifact_id: str = ""
-    section_id: str = ""
-    input_metric_ids: list = field(default_factory=list)
-    input_evidence_ids: list = field(default_factory=list)
-    operation: str = ""  # comparison_matrix / pairwise_delta / plot / statistic / aggregation
-    code_or_recipe: str = ""
-    output: dict = field(default_factory=dict)
-    execution_status: str = "completed"  # completed / failed
+    schema_version: Literal[1]
+    session_id: UUID
+    run_id: UUID
+    brief_version: Positive
+    brief_hash: Hash
+    phase: ResearchPhase
+    research_brief: ResearchBrief
+    source_selection: SourceSelection
+    section_plans: list[SectionPlan]
+    sources: dict[Text, SourceRecord]
+    evidence: dict[Text, Evidence]
+    claims: dict[Text, Claim]
+    claim_evidence_links: list[ClaimEvidenceLink]
+    quantitative_observations: dict[Text, QuantitativeObservation]
+    comparable_metrics: dict[Text, ComparableMetric]
+    comparison_sets: dict[Text, ComparisonSet]
+    analysis_artifacts: dict[Text, AnalysisArtifact]
+    section_coverage: dict[SectionID, SectionCoverage]
+    draft_sections: dict[SectionID, DraftSection]
+    draft_claim_bindings: list[DraftClaimBinding]
+    critic_feedback: list[CriticFeedback]
+    draft_version: Nonnegative
+    reviewed_draft_version: Positive | None
+    review_verdict: ReviewVerdict | None
+    final_report: FinalReport | None
+    run_metadata: RunMetadata
+    errors: list[Failure]
+
+    @field_validator("schema_version", mode="before")
+    @classmethod
+    def strict_version(cls, value):
+        if type(value) is not int or value != 1:
+            raise ValueError("Unsupported schema version")
+        return value
+
+    @classmethod
+    def initial(
+        cls, *, session_id, run_id, brief_version, research_brief, source_selection, config
+    ):
+        brief = ResearchBrief.model_validate(research_brief)
+        return cls(
+            schema_version=1,
+            session_id=session_id,
+            run_id=run_id,
+            brief_version=brief_version,
+            brief_hash=canonical_hash(brief),
+            phase="plan",
+            research_brief=brief,
+            source_selection=source_selection,
+            section_plans=[],
+            sources={},
+            evidence={},
+            claims={},
+            claim_evidence_links=[],
+            quantitative_observations={},
+            comparable_metrics={},
+            comparison_sets={},
+            analysis_artifacts={},
+            section_coverage={},
+            draft_sections={},
+            draft_claim_bindings=[],
+            critic_feedback=[],
+            draft_version=0,
+            reviewed_draft_version=None,
+            review_verdict=None,
+            final_report=None,
+            errors=[],
+            run_metadata={
+                "config": config,
+                "budget_used": {
+                    "llm_calls": 0,
+                    "search_calls": 0,
+                    "fetch_calls": 0,
+                    "tokens": 0,
+                    "elapsed_s": 0,
+                },
+                "rework_count": 0,
+                "rework_targets": [],
+                "degraded_sources": [],
+                "unit_manifest": {},
+                "knowledge_snapshot": [],
+                "stop_reason": None,
+            },
+        )
+
+    @model_validator(mode="after")
+    def check_snapshot(self):
+        if self.brief_hash != canonical_hash(self.research_brief):
+            raise ValueError("Frozen research brief hash mismatch")
+        if self.section_plans:
+            if {plan.section_id for plan in self.section_plans} != {
+                "section_1",
+                "section_2",
+                "section_3",
+                "section_4",
+                "section_5",
+            } or len(self.section_plans) != 5:
+                raise ValueError("Plan must cover exactly five sections")
+            if not any(plan.claim_specs for plan in self.section_plans) or not any(
+                plan.sub_questions for plan in self.section_plans
+            ):
+                raise ValueError("Plan needs a claim spec and retrieval question")
+        elif self.phase != "plan":
+            raise ValueError("Cannot advance an empty plan")
+        policy = self.run_metadata.config.source_policy
+        if (
+            self.source_selection.categories != policy.categories
+            or self.source_selection.knowledge_base_ids != policy.knowledge_base_ids
+        ):
+            raise ValueError("Run source policy differs from frozen selection")
+        for collection, id_field in (
+            (self.sources, "source_id"),
+            (self.evidence, "evidence_id"),
+            (self.claims, "claim_id"),
+            (self.quantitative_observations, "observation_id"),
+            (self.comparable_metrics, "comparable_metric_id"),
+            (self.comparison_sets, "comparison_set_id"),
+            (self.analysis_artifacts, "artifact_id"),
+            (self.section_coverage, "section_id"),
+            (self.draft_sections, "section_id"),
+        ):
+            if any(key != getattr(record, id_field) for key, record in collection.items()):
+                raise ValueError(f"Collection key differs from {id_field}")
+        if any(ev.source_id not in self.sources for ev in self.evidence.values()):
+            raise ValueError("Evidence references an unregistered source")
+        relations = [
+            (link.claim_id, link.evidence_id, link.relation) for link in self.claim_evidence_links
+        ]
+        if len(set(relations)) != len(relations):
+            raise ValueError("Duplicate claim-evidence relation")
+        if any(
+            link.claim_id not in self.claims or link.evidence_id not in self.evidence
+            for link in self.claim_evidence_links
+        ):
+            raise ValueError("Dangling claim-evidence link")
+        if any(
+            obs.evidence_id not in self.evidence for obs in self.quantitative_observations.values()
+        ):
+            raise ValueError("Observation references missing evidence")
+        if any(
+            obs_id not in self.quantitative_observations
+            for metric in self.comparable_metrics.values()
+            for obs_id in metric.observation_ids
+        ):
+            raise ValueError("Metric references missing observations")
+        if any(
+            metric_id not in self.comparable_metrics
+            for group in self.comparison_sets.values()
+            for metric_id in group.metric_ids
+        ):
+            raise ValueError("Comparison set references missing metrics")
+        for artifact in self.analysis_artifacts.values():
+            group = self.comparison_sets.get(artifact.comparison_set_id)
+            if group is None or group.section_id != artifact.section_id:
+                raise ValueError("Artifact references missing or wrong-section comparison set")
+            if not set(artifact.input_metric_ids) <= set(group.metric_ids) or not set(
+                artifact.input_evidence_ids
+            ) <= set(self.evidence):
+                raise ValueError("Artifact input chain is incomplete")
+        if any(
+            section.draft_version != self.draft_version for section in self.draft_sections.values()
+        ):
+            raise ValueError("Draft sections must share the current version")
+        if any(
+            binding.draft_version != self.draft_version for binding in self.draft_claim_bindings
+        ):
+            raise ValueError("Bindings must share the current version")
+        for binding in self.draft_claim_bindings:
+            section = self.draft_sections.get(binding.section_id)
+            if section is None or binding.statement_id not in {
+                statement.statement_id for statement in section.statements
+            }:
+                raise ValueError("Binding does not locate a draft statement")
+            if (
+                not set(binding.claim_ids) <= set(self.claims)
+                or not set(binding.cited_evidence_ids) <= set(self.evidence)
+                or not set(binding.artifact_ids) <= set(self.analysis_artifacts)
+            ):
+                raise ValueError("Binding references missing facts")
+        if (
+            self.reviewed_draft_version is not None
+            and self.reviewed_draft_version != self.draft_version
+        ):
+            raise ValueError("Review targets a stale draft")
+        if self.final_report is not None:
+            report = self.final_report
+            if (
+                self.phase != "done"
+                or report.run_id != self.run_id
+                or report.session_id != self.session_id
+                or report.brief_version != self.brief_version
+                or report.draft_version != self.draft_version
+                or report.review_verdict != self.review_verdict
+            ):
+                raise ValueError("Report identity or delivery state mismatch")
+        return self
 
 
-@dataclass
-class DraftSection:
-    """A section draft."""
+class Checkpoint(Record):
+    snapshot_id: UUID
+    run_id: UUID
+    seq: Positive
+    schema_version: Literal[1]
+    phase: ResearchPhase
+    state: PipelineState
+    state_hash: Hash
+    created_at: UTC
 
-    section_id: str = ""
-    title: str = ""
-    content: str = ""
+    @field_validator("schema_version", mode="before")
+    @classmethod
+    def strict_version(cls, value):
+        if type(value) is not int or value != 1:
+            raise ValueError("Unsupported schema version")
+        return value
 
-
-@dataclass
-class DraftClaimBinding:
-    """A program-level binding of a draft conclusion to claims/evidence/artifacts."""
-
-    section_id: str = ""
-    statement_id: str = ""
-    claim_ids: list = field(default_factory=list)
-    cited_evidence_ids: list = field(default_factory=list)
-    artifact_ids: list = field(default_factory=list)
-
-
-@dataclass
-class CriticFeedback:
-    """A review issue (judgment only; routing is the policy table's job)."""
-
-    issue_id: str = ""
-    target_type: str = ""  # source / evidence / claim / artifact / draft_section
-    target_id: str = ""
-    issue_type: str = ""  # missing_source / comparability_violation / overclaim / hallucination / outdated / logic_error
-    severity: str = "minor"  # critical / major / minor
-    fillable: bool = False  # only meaningful for missing_source
-    description: str = ""
-    resolved: bool = False
-
-
-@dataclass
-class SectionCoverage:
-    """Per-section coverage index (covered claims + gaps)."""
-
-    section_id: str = ""
-    covered_claim_ids: list = field(default_factory=list)
-    gaps: list = field(default_factory=list)
-
-
-@dataclass
-class PipelineState:
-    """Pipeline state, owned by orchestrator, stored in phase_snapshots.
-
-    research_brief is read-only input; everything else is produced phase by
-    phase. Id-keyed fields (sources/evidence/claims/observations/metrics/
-    artifacts/draft_sections/coverage) enable traceability (charter I).
-    """
-
-    session_id: str = ""
-    phase: str = "plan"
-    research_brief: dict = field(default_factory=dict)  # frozen ResearchBrief (input)
-    section_plans: list = field(default_factory=list)  # list[SectionPlan]
-    sources: dict = field(default_factory=dict)  # dict[source_id, SourceRecord]
-    evidence: dict = field(default_factory=dict)  # dict[evidence_id, Evidence]
-    claims: dict = field(default_factory=dict)  # dict[claim_id, Claim]
-    claim_evidence_links: list = field(default_factory=list)  # list[ClaimEvidenceLink]
-    quantitative_observations: dict = field(default_factory=dict)  # dict[observation_id, QuantitativeObservation]
-    comparable_metrics: dict = field(default_factory=dict)  # dict[metric_id, ComparableMetric]
-    analysis_artifacts: dict = field(default_factory=dict)  # dict[artifact_id, AnalysisArtifact]
-    draft_sections: dict = field(default_factory=dict)  # dict[section_id, DraftSection]
-    draft_claim_bindings: list = field(default_factory=list)  # list[DraftClaimBinding]
-    critic_feedback: list = field(default_factory=list)  # list[CriticFeedback]
-    final_report: dict | None = None  # FinalReport
-    section_coverage: dict = field(default_factory=dict)  # dict[section_id, SectionCoverage]
-    run_metadata: dict = field(default_factory=dict)  # RunMetadata
-    errors: list = field(default_factory=list)  # failure-semantics errors
+    @model_validator(mode="after")
+    def check_state_identity(self):
+        if self.run_id != self.state.run_id or self.phase != self.state.phase:
+            raise ValueError("Checkpoint identity/phase differs from state")
+        if self.state_hash != canonical_hash(self.state):
+            raise ValueError("Checkpoint state hash mismatch")
+        return self

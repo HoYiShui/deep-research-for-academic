@@ -74,6 +74,8 @@ def test_partial_brief_omission_is_not_explicit_null():
         PartialResearchBrief(scope=None)
     with pytest.raises(ValidationError):
         PartialResearchBrief(query="not a brief field")
+    draft = PartialResearchBrief(scope="public")
+    assert PartialResearchBrief.model_validate(draft) == draft
 
 
 def test_source_selection_deduplicates_and_enforces_kb_relationship():

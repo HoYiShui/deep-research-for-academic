@@ -60,7 +60,9 @@ AgentMethod = Literal["clarify", "plan", "research", "analyze", "write", "review
 
 
 class Record(BaseModel):
-    model_config = ConfigDict(extra="forbid", frozen=True, hide_input_in_errors=True)
+    model_config = ConfigDict(
+        extra="forbid", frozen=True, hide_input_in_errors=True, revalidate_instances="always"
+    )
 
 
 class ResearchBrief(Record):
@@ -89,6 +91,13 @@ class PartialResearchBrief(Record):
     conclusion_boundary: BriefText | None = None
     deliverable: BriefText | None = None
     assumptions: Assumptions | None = None
+
+    @model_validator(mode="wrap")
+    @classmethod
+    def preserve_omission_on_revalidation(cls, data, handler):
+        if isinstance(data, cls):
+            data = data.model_dump(exclude_unset=True)
+        return handler(data)
 
     @model_serializer(mode="wrap")
     def serialize_present_fields(self, handler):

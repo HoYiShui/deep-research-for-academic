@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from cli import output
-from domain.research.state import PipelineState
+from domain.research.legacy_state import PipelineState
 
 _BRIEF_FIELDS = (
     "task_type",

@@ -2,6 +2,8 @@
 
 日期：2026-10-05。基于提交 `f26d675` 实施。本记录不是 T003 完成声明，也不是业务 E2E。
 
+后续状态：本首批的未完成类型已由 [完整快照证据](t003-checkpoints.md) 补齐；下文记录的是首批提交时的边界，不覆盖后续验证。
+
 ## 实现与设计来源
 
 - MODEL §1–3、OPS §1：`backend/domain/research/models.py` 实现十字段 ResearchBrief、PartialResearchBrief、SourceSelection、ClarifyAssessment、SessionState、Message、BriefRecord、ResearchRun、RunConfig、Failure。`state.py` 导出这些契约；没有建立另一个 Service 或事实库。

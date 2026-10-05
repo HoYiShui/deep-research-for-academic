@@ -17,8 +17,8 @@ from application.sse import EventBus
 from domain.ports import CodeExecutionPort, LLMPort, RetrievalPort, SearchPort
 from domain.research.agents import architect, code_crafter, critic, data_analyst, scout, writer
 from domain.research.events import DoneEvent, ErrorEvent, PhaseEvent, ReworkEvent
+from domain.research.legacy_state import PipelineState
 from domain.research.machine import WORKERS, next_phase, phase_after_review, route_after_review
-from domain.research.state import PipelineState
 
 # Cap on rework loops so an unfillable issue never spins forever (FR-017).
 _MAX_REWORK = 3

@@ -11,7 +11,7 @@ import pytest
 from application.bootstrap import Container
 from application.orchestrator import Orchestrator
 from application.sse import EventBus
-from domain.research.state import PipelineState
+from domain.research.legacy_state import PipelineState
 from infrastructure.fake import FakeExecution, FakeLLM, FakeRetrieval, FakeSearch, FakeStateStore
 from infrastructure.storage.memory import InMemoryCancel
 
