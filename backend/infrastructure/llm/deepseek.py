@@ -16,12 +16,20 @@ from anthropic import AsyncAnthropic
 class DeepSeekLLM:
     """LLMPort implementation via the Anthropic SDK pointed at DeepSeek."""
 
-    def __init__(self, retries: int = 2, backoff: float = 0.5) -> None:
+    def __init__(
+        self, retries: int = 2, backoff: float = 0.5, *,
+        api_key: str | None = None, base_url: str | None = None,
+        model: str | None = None, timeout_s: float = 60,
+    ) -> None:
         self._client = AsyncAnthropic(
-            api_key=os.environ.get("ANTHROPIC_API_KEY", ""),
-            base_url=os.environ.get("ANTHROPIC_BASE_URL", "https://api.deepseek.com/anthropic"),
+            api_key=api_key if api_key is not None else os.environ.get("ANTHROPIC_API_KEY", ""),
+            base_url=base_url or os.environ.get(
+                "ANTHROPIC_BASE_URL", "https://api.deepseek.com/anthropic"
+            ),
+            timeout=timeout_s,
+            max_retries=0,
         )
-        self._model = os.environ.get("LLM_MODEL", "deepseek-flash")
+        self._model = model or os.environ.get("LLM_MODEL", "deepseek-flash")
         self._retries = retries
         self._backoff = backoff
 

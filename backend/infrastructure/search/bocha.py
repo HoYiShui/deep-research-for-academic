@@ -16,13 +16,18 @@ from domain.ports import SearchResult
 class BochaSearch:
     """SearchPort implementation via the Bocha web search API."""
 
+    def __init__(self, api_key: str | None = None, timeout_s: float = 20) -> None:
+        self._api_key = api_key
+        self._timeout_s = timeout_s
+
     async def search(self, query: str) -> list[SearchResult]:
         """Search the web and return candidates."""
-        async with httpx.AsyncClient(timeout=30) as client:
+        key = self._api_key if self._api_key is not None else os.environ.get("BOCHA_API_KEY", "")
+        async with httpx.AsyncClient(timeout=self._timeout_s) as client:
             resp = await client.post(
                 "https://api.bochaai.com/v1/web-search",
                 json={"query": query, "freshness": "noLimit"},
-                headers={"Authorization": f"Bearer {os.environ.get('BOCHA_API_KEY', '')}"},
+                headers={"Authorization": f"Bearer {key}"},
             )
             resp.raise_for_status()
             data = resp.json()

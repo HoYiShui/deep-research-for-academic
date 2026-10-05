@@ -2,11 +2,10 @@
 
 from __future__ import annotations
 
-import os
-
 from fastapi import HTTPException, Request
 
 from application.bootstrap import get_container
+from application.settings import Settings
 
 
 async def require_user(request: Request) -> str:
@@ -27,7 +26,7 @@ async def require_user(request: Request) -> str:
 
 def _authentication_required() -> bool:
     """Read the explicit opt-in guard without loading secrets into the client."""
-    return os.environ.get("DR4A_AUTH_REQUIRED", "false").lower() in {"1", "true", "yes"}
+    return Settings.load().dr4a_auth_required
 
 
 def _extract_token(request: Request) -> str | None:

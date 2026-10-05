@@ -12,6 +12,7 @@ from application.knowledge_base_service import KnowledgeBaseService
 from application.orchestrator import Orchestrator
 from application.research_service import ResearchService
 from application.session_service import SessionService
+from application.settings import Settings
 from application.sse import EventBus
 from infrastructure.embedding.bge_m3 import BGEM3Embedding
 from infrastructure.embedding.bge_reranker import BGEReranker
@@ -47,20 +48,37 @@ class Container:
         knowledge_base=None,
         auth=None,
         bus=None,
+        settings: Settings | None = None,
     ) -> None:
+        self.settings = settings or Settings.load()
+        config = self.settings
+        if config.llm_local and llm is None:
+            raise ValueError("a local LLM adapter must be configured explicitly")
+        if config.dr4a_env == "production" and execution is None:
+            raise ValueError("an isolated production execution adapter must be configured")
         self.bus = bus or EventBus()
-        self.llm = llm or DeepSeekLLM()
-        self.search = search or CompositeSearch([("arxiv", ArxivSearch()), ("bocha", BochaSearch())])
-        self.embedding = embedding or BGEM3Embedding()
-        self.vector = vector or MilvusStore()
-        self.reranker = reranker or BGEReranker()
+        self.llm = llm or DeepSeekLLM(
+            api_key=config.anthropic_api_key.get_secret_value(),
+            base_url=config.anthropic_base_url, model=config.llm_model,
+            timeout_s=config.llm_timeout_s,
+        )
+        self.search = search or CompositeSearch([
+            ("arxiv", ArxivSearch()),
+            ("bocha", BochaSearch(
+                api_key=config.bocha_api_key.get_secret_value(),
+                timeout_s=config.search_timeout_s,
+            )),
+        ])
+        self.embedding = embedding or BGEM3Embedding(config.bge_m3_model_path)
+        self.vector = vector or MilvusStore(config.milvus_uri)
+        self.reranker = reranker or BGEReranker(config.bge_reranker_model_path)
         self.retrieval = retrieval or LocalRetrieval(self.embedding, self.vector, self.reranker)
         self.execution = execution or DockerExecution()
-        self.store = store or PostgresStateStore()
+        self.store = store or PostgresStateStore(config.database_url.get_secret_value())
         self.cancel = cancel or InMemoryCancel()
         self.documents = documents or InMemoryDocumentStore()
         self.users = users or InMemoryUserStore()
-        self.auth = auth or AuthService(self.users)
+        self.auth = auth or AuthService(self.users, secret=config.jwt_secret.get_secret_value())
         self.knowledge_base = knowledge_base or KnowledgeBaseService(
             MinerUParser(), self.embedding, self.vector, self.documents
         )

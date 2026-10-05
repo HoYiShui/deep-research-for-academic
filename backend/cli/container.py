@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from application.bootstrap import Container
+from application.settings import Settings
 from cli import output
 from infrastructure.fake import (
     FakeExecution,
@@ -32,14 +33,20 @@ class _VerboseLLM:
 
 def build_container(*, fake: bool, seed: int | None, verbose: bool = False) -> Container:
     """Assemble the container; ``fake=True`` wires seeded in-memory fakes."""
-    llm = FakeLLM(seed=seed if seed is not None else 0) if fake else DeepSeekLLM()
+    settings = Settings.load()
+    llm = FakeLLM(seed=seed if seed is not None else 0) if fake else DeepSeekLLM(
+        api_key=settings.anthropic_api_key.get_secret_value(),
+        base_url=settings.anthropic_base_url, model=settings.llm_model,
+        timeout_s=settings.llm_timeout_s,
+    )
     llm = _VerboseLLM(llm, verbose) if verbose else llm
     if fake:
         return Container(
+            settings=settings,
             llm=llm,
             search=FakeSearch(),
             retrieval=FakeRetrieval(),
             execution=FakeExecution(),
             store=FakeStateStore(),
         )
-    return Container(llm=llm)
+    return Container(llm=llm, settings=settings)

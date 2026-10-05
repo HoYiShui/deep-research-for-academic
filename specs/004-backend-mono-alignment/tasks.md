@@ -1,6 +1,6 @@
 # Tasks：后端对齐 mono-v1
 
-> 状态：待实施，2026-10-05。这是用户要求的直接任务拆解，不是新增设计规范，也不是已执行记录。所有任务初始未完成；不继承旧 tasks 的完成标记。
+> 状态：实施中，2026-10-05。这是用户要求的直接任务拆解，不是新增设计规范。任务只在实际验证后勾选并附证据，不继承旧 tasks 的完成标记。
 
 ## 1. 输入与执行约定
 
@@ -33,8 +33,8 @@
 
 设计：ARCH §3–5；MODEL §1–3/§6；API §1/§6–7；OPS §3/§7。后续各阶段继续扩展类型和迁移。
 
-- [ ] T001 [底座] 在 `backend/tests/` 与 `backend/scripts/` 审计现有验证入口，运行并记录现有 pytest 基线、当前 CLI help 与已配置依赖的 doctor；建立 `evidence/baseline.md`，区分存根/fake/真实路径，不把历史 124 通过当当前事实。
-- [ ] T002 [底座] 在 `backend/application/settings.py`（新）、`backend/cli/env.py`、`backend/application/bootstrap.py`、`backend/.env.example` 统一 Settings：环境优先级、development/production、端点、固定版本与预算配置；校验生产鉴权强制开启，脱敏。用 `backend/tests/unit/test_settings.py` 覆盖环境覆盖、非法配置、密钥不入快照。
+- [x] T001 [底座] 在 `backend/tests/` 与 `backend/scripts/` 审计现有验证入口，运行并记录现有 pytest 基线、当前 CLI help 与已配置依赖的 doctor；建立 `evidence/baseline.md`，区分存根/fake/真实路径，不把历史 124 通过当当前事实。证据：[baseline](evidence/baseline.md)。
+- [x] T002 [底座] 在 `backend/application/settings.py`（新）、`backend/cli/env.py`、`backend/application/bootstrap.py`、`backend/.env.example` 统一 Settings：环境优先级、development/production、端点、固定版本与预算配置；校验生产鉴权强制开启，脱敏。用 `backend/tests/unit/test_settings.py` 覆盖环境覆盖、非法配置、密钥不入快照。证据：[settings](evidence/t002-settings.md)。
 - [ ] T003 [底座] 更新 `backend/domain/research/state.py` 与 `backend/domain/research/ids.py`：实现十字段 Brief、SourceSelection、Session/Run/Checkpoint、RunConfig/Failure 的严格 Schema、枚举和稳定 ID；补 `backend/tests/unit/test_state.py`，覆盖 string/list 错型、未知字段、hash 与 status/phase 区分。研究事实详细 Schema 在 T027，KB Schema 在 T041 补齐。
 - [ ] T004 [底座] 在 `backend/application/ports.py`、`backend/domain/ports.py` 定义本阶段 typed Service/Repository/UnitOfWork/Clock 契约，更新 `backend/infrastructure/fake.py` 与 `backend/tests/contract/test_ports.py`；同一事务句柄可跨 Repository，不让 Router 依赖 SDK。
 - [ ] T005 [底座] 新增 `backend/infrastructure/storage/migrations/0002_mono_research.sql`，实现 users/sessions/messages/briefs/research_runs/phase_snapshots/reports/tool_calls/idempotency_requests 约束；检查现有 `0001_init.sql` 的兼容与旧数据映射。更新 `backend/infrastructure/storage/migrations.py` 防多进程迁移竞态；在 `backend/tests/integration/test_mono_migrations.py` 验证旧库升级、空库创建、重复执行和失败回滚。无法无损映射的旧记录保留且明确隔离，禁止静默丢弃。
