@@ -2,6 +2,13 @@
 
 - [文档目录](README.md)
 
+- [后端统一设计（编写中）]()
+  - [后端架构设计](mono/architecture.md)
+  - [数据流与状态设计](mono/dataflow.md)
+  - [数据模型设计](mono/data-model.md)
+  - [API 契约](mono/api-contract.md)
+  - [运行与失败语义](mono/operations.md)
+
 - [输入/输出契约]()
   - [Research API 契约](contracts/research-api.md)
   - [ResearchBrief 契约](contracts/researchbrief.md)
