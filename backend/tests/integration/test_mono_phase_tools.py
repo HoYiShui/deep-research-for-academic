@@ -35,8 +35,8 @@ class ControlledModel:
         )
 
 
-async def setup(pg_database, object_cache, **model_fields):
-    pool, store, user, commit, claimed = await started(pg_database)
+async def setup(pg_database, object_cache, *, task="evaluation_design", **model_fields):
+    pool, store, user, commit, claimed = await started(pg_database, task=task)
     versions = claimed.run.config_snapshot.versions
     model = ControlledModel(versions.llm_model, **model_fields)
     binding = ModelBinding(

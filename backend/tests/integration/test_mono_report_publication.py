@@ -7,35 +7,19 @@ from uuid import uuid4
 import pytest
 
 from application.errors import AppError
+from application.report_serializer import serialize_report
 from domain.ports import AdapterError
-from domain.research.facts import FinalReport
 from domain.research.ids import canonical_hash
 from domain.research.state import Checkpoint, PipelineState
 from tests.integration.test_mono_run_lifecycle import cancel, checkpoint, claim, ready
 from tests.integration.test_mono_transactions import setup_store
+from tests.report_fixtures import insufficient_review
 
 
 async def reviewed(store, owner):
     commit = await ready(store, owner)
     claimed = await claim(store, str(uuid4()))
-    base = checkpoint(commit, 2, phase="review").state.model_dump(mode="json")
-    base.update(
-        draft_version=1,
-        reviewed_draft_version=1,
-        review_verdict="needs_more_work",
-        draft_sections={
-            f"section_{index}": {
-                "section_id": f"section_{index}",
-                "title": "Controlled transaction fixture",
-                "content": "Insufficient evidence; this fixture is not a research report.",
-                "draft_version": 1,
-                "statements": [],
-                "task_payload": None,
-            }
-            for index in range(1, 6)
-        },
-    )
-    state = PipelineState.model_validate(base)
+    state = insufficient_review(checkpoint(commit, 2, phase="review").state)
     point = Checkpoint(
         snapshot_id=uuid4(),
         run_id=commit.run.run_id,
@@ -48,22 +32,7 @@ async def reviewed(store, owner):
     )
     async with store.transaction() as tx:
         claimed = await store.research.commit_checkpoint(claimed, 1, point, tx)
-    report = FinalReport(
-        report_id=uuid4(),
-        session_id=commit.session.session_id,
-        run_id=commit.run.run_id,
-        version=1,
-        brief_version=1,
-        draft_version=1,
-        review_verdict="needs_more_work",
-        title="Controlled insufficient-evidence fixture",
-        markdown="# Controlled test\n\nNot a real research deliverable.",
-        sections=state.draft_sections,
-        bindings=[],
-        references=[],
-        risks=[],
-        created_at=datetime.now(UTC),
-    )
+    report = serialize_report(state, report_id=uuid4(), created_at=datetime.now(UTC))
     final_state = PipelineState.model_validate(
         state.model_dump() | {"phase": "done", "final_report": report}
     )
@@ -190,5 +159,38 @@ async def test_report_publication_rejects_stale_worker_or_sequence(pg_database, 
     with pytest.raises(AppError, match="stale_resource"):
         async with store.transaction() as tx:
             await store.research.publish_report(claimed, seq, final, tx)
+    assert await pool.fetchval("SELECT count(*) FROM reports") == 0
+    assert await pool.fetchval("SELECT count(*) FROM phase_snapshots") == 2
+
+
+@pytest.mark.parametrize("field", ["markdown", "references", "risks", "title"])
+async def test_repository_rechecks_deterministic_report_not_only_schema(pg_database, field):
+    pool, store, user = await setup_store(pg_database)
+    _, claimed, final, report = await reviewed(store, user.user_id)
+    replacement = {
+        "markdown": report.markdown + "\nUnreviewed extra conclusion",
+        "references": [
+            {
+                "reference_id": "R9",
+                "source_id": "unknown",
+                "title": "Invented citation",
+                "canonical_url": "https://example.org/fake",
+                "version": None,
+                "locations": [],
+                "evidence_ids": [],
+            }
+        ],
+        "risks": [],
+        "title": "Unreviewed title",
+    }[field]
+    altered = type(report).model_validate(report.model_dump() | {field: replacement})
+    state = PipelineState.model_validate(final.state.model_dump() | {"final_report": altered})
+    point = Checkpoint.model_validate(
+        final.model_dump() | {"state": state, "state_hash": canonical_hash(state)}
+    )
+    with pytest.raises(AppError, match="invalid_state"):
+        await publish(store, claimed, point)
+    assert await pool.fetchval("SELECT status FROM research_runs") == "running"
+    assert await pool.fetchval("SELECT checkpoint_seq FROM research_runs") == 2
     assert await pool.fetchval("SELECT count(*) FROM reports") == 0
     assert await pool.fetchval("SELECT count(*) FROM phase_snapshots") == 2

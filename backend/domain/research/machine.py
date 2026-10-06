@@ -209,7 +209,7 @@ def _review_claim_ids(state, issue):
     )
 
 
-def _research_complete(state):
+def validate_research_coverage(state):
     expected = {plan.section_id for plan in state.section_plans}
     if set(state.section_coverage) != expected:
         raise ValueError("Research must record coverage or explicit gaps for every section")
@@ -256,7 +256,7 @@ def decide_pipeline(state: PipelineState) -> PipelineDecision:
     if state.phase != "review":
         validate_plans(state.section_plans)
         if state.phase == "research":
-            _research_complete(state)
+            validate_research_coverage(state)
         if state.phase == "analyze":
             required = {
                 r.requirement_id for plan in state.section_plans for r in plan.analysis_requirements

@@ -66,9 +66,9 @@ async def succeed(store, claimed, receipt, tokens=0):
         )
 
 
-async def started(pg_database):
+async def started(pg_database, *, task="evaluation_design"):
     pool, store, user = await setup_store(pg_database)
-    commit = await ready(store, user.user_id)
+    commit = await ready(store, user.user_id, task=task)
     claimed = await claim(store, str(uuid4()))
     return pool, store, user, commit, claimed
 

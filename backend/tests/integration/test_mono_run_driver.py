@@ -9,21 +9,28 @@ import pytest
 from application.errors import AppError
 from application.phase_executor import PhaseExecutor
 from application.phase_workers import plan_worker
+from application.report_serializer import ReportPublisher
 from application.run_driver import RunDriver
-from domain.research.facts import FinalReport
-from domain.research.ids import canonical_hash
 from domain.research.phase_contracts import PhaseResult
-from domain.research.state import Checkpoint, PipelineState
 from infrastructure.clock import SystemClock
 from tests.integration.test_mono_phase_tools import setup
 from tests.integration.test_mono_run_lifecycle import cancel, claim, resume
 from tests.integration.test_mono_task_runner import runner, wait_for_status
-from tests.unit.test_phase_contracts import drafts, issue, writing_state
+from tests.report_fixtures import insufficient_drafts, proposal_claim
+from tests.unit.test_phase_contracts import issue, writing_state
 
 
-async def world(pg_database, object_cache, *, rework=False, before_worker=None, publish=None):
+async def world(
+    pg_database,
+    object_cache,
+    *,
+    rework=False,
+    before_worker=None,
+    publish=None,
+    task="evaluation_design",
+):
     pool, store, user, commit, claimed, model, binding, _, _ = await setup(
-        pg_database, object_cache
+        pg_database, object_cache, task=task
     )
     units, phases, terminal, visits = [], [], [], []
 
@@ -37,6 +44,8 @@ async def world(pg_database, object_cache, *, rework=False, before_worker=None, 
         if value.phase == "research" and context.unit.parameters["kind"] == "coverage":
             section = context.unit.section_ids[0]
             changes = {"section_coverage": {section: writing_state().section_coverage[section]}}
+            if section == "section_3":
+                changes["claims"] = {"c-proposal": proposal_claim()}
         elif value.phase == "analyze":
             degradations = [
                 {
@@ -53,7 +62,9 @@ async def world(pg_database, object_cache, *, rework=False, before_worker=None, 
                 "draft_version": version,
                 "draft_sections": {
                     key: section
-                    for key, section in drafts(version).items()
+                    for key, section in insufficient_drafts(
+                        version, value.values["research_brief"].task_type
+                    ).items()
                     if key in context.unit.section_ids
                 },
                 "draft_claim_bindings": [],
@@ -86,40 +97,6 @@ async def world(pg_database, object_cache, *, rework=False, before_worker=None, 
             failures=[],
         )
 
-    async def controlled_publish(current, point):
-        # Explicit transaction fixture, NOT the production quality gate/serializer.
-        report = FinalReport(
-            report_id=uuid4(),
-            session_id=point.state.session_id,
-            run_id=point.run_id,
-            version=1,
-            brief_version=point.state.brief_version,
-            draft_version=point.state.draft_version,
-            review_verdict=point.state.review_verdict,
-            title="Controlled phase-loop fixture",
-            markdown="# Fixture\n\nNot a research-quality acceptance report.",
-            sections=point.state.draft_sections,
-            bindings=point.state.draft_claim_bindings,
-            references=[],
-            risks=[],
-            created_at=datetime.now(UTC),
-        )
-        state = PipelineState.model_validate(
-            point.state.model_dump() | {"phase": "done", "final_report": report}
-        )
-        final = Checkpoint(
-            snapshot_id=uuid4(),
-            run_id=point.run_id,
-            seq=point.seq + 1,
-            schema_version=1,
-            phase="done",
-            state=state,
-            state_hash=canonical_hash(state),
-            created_at=datetime.now(UTC),
-        )
-        async with store.transaction() as tx:
-            await store.research.publish_report(current, point.seq, final, tx)
-
     def driver(publisher=None, **options):
         return RunDriver(
             store=store,
@@ -130,7 +107,7 @@ async def world(pg_database, object_cache, *, rework=False, before_worker=None, 
             model=binding,
             model_slots=asyncio.Semaphore(2),
             clock=SystemClock(),
-            publish=publisher or publish or controlled_publish,
+            publish=publisher or publish or ReportPublisher(store, SystemClock()).publish,
             unit_committed=units.append,
             phase_committed=phases.append,
             finished=terminal.append,
@@ -141,7 +118,12 @@ async def world(pg_database, object_cache, *, rework=False, before_worker=None, 
     return pool, store, user, commit, claimed, model, units, phases, terminal, visits, driver
 
 
-async def test_full_driver_commits_units_then_routes_then_publishes(pg_database, object_cache):
+@pytest.mark.parametrize(
+    "task", ["idea_exploration", "method_differentiation", "evaluation_design"]
+)
+async def test_full_driver_commits_units_then_routes_then_publishes(
+    pg_database, object_cache, task
+):
     (
         pool,
         store,
@@ -154,7 +136,7 @@ async def test_full_driver_commits_units_then_routes_then_publishes(pg_database,
         terminal,
         visits,
         driver,
-    ) = await world(pg_database, object_cache)
+    ) = await world(pg_database, object_cache, task=task)
     await driver().execute(claimed, asyncio.Event())
     latest = await store.research.load_latest_checkpoint(user.user_id, commit.run.run_id)
     assert latest.phase == "done" and latest.seq == 20
@@ -170,6 +152,7 @@ async def test_full_driver_commits_units_then_routes_then_publishes(pg_database,
     assert await pool.fetchval("SELECT status FROM sessions") == "completed"
     assert len(model.prompts) == 1 and latest.state.run_metadata.budget_used.tokens == 70
     assert latest.state.final_report.review_verdict == "needs_more_work"
+    assert latest.state.final_report.sections["section_3"].task_payload.task_type == task
 
 
 async def test_driver_rework_keeps_seq_and_updates_global_draft_without_repeating_plan(
@@ -283,6 +266,8 @@ async def test_runner_with_driver_requires_persisted_completion_not_coroutine_re
     try:
         await worker.tick()
         run = await wait_for_status(store, user.user_id, commit.run.run_id, "completed")
+        if worker.active is not None:
+            await asyncio.wait_for(worker.active, timeout=5)
         assert run.phase == "done" and run.failure is None
         assert len(model.prompts) == 1 and len(terminal) == 1
         assert await pool.fetchval("SELECT count(*) FROM reports") == 1

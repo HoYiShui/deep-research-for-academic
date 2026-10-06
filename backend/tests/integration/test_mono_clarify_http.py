@@ -187,7 +187,7 @@ async def test_http_report_is_committed_markdown_and_completion_blocks_cancel(co
             "review_verdict": "needs_more_work",
             "report": report.markdown,
             "references": [],
-            "risks": [],
+            "risks": [item.model_dump(mode="json") for item in report.risks],
         }
         assert "\n" in result.json()["report"]
         view = (await http.get(path)).json()

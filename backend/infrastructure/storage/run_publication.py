@@ -5,6 +5,7 @@ import json
 from application.errors import AppError
 from domain.research.facts import FinalReport
 from domain.research.models import ResearchRun
+from domain.research.reporting import validate_publication
 from domain.research.state import Checkpoint
 from infrastructure.storage.run_leases import RunLeases
 
@@ -42,6 +43,12 @@ class RunPublication:
                 raise AppError(
                     "invalid_state", "Report reference does not locate committed evidence"
                 )
+        try:
+            validate_publication(before, report)
+        except (ValueError, TypeError, KeyError):
+            raise AppError(
+                "invalid_state", "Report violates deterministic delivery checks"
+            ) from None
 
     async def publish_report(self, claimed, expected_seq, checkpoint, tx):
         from infrastructure.storage.research_postgres import RUN_JSON, decode, encode, insert

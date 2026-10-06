@@ -16,8 +16,8 @@ from infrastructure.storage import research_postgres
 from tests.integration.test_mono_transactions import candidate, freezing, setup_store
 
 
-async def ready(store, owner):
-    change = candidate(owner)
+async def ready(store, owner, *, task="evaluation_design"):
+    change = candidate(owner, task)
     commit = freezing(change)
     async with store.transaction() as tx:
         await store.research.commit_session_change(0, change, tx)

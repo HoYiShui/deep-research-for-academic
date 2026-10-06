@@ -19,10 +19,10 @@ from infrastructure.storage.migrations import run_migrations
 from infrastructure.storage.research_postgres import PostgresResearchStore
 
 
-def candidate(owner):
+def candidate(owner, task="evaluation_design"):
     now = datetime.now(UTC)
     brief = {
-        "task_type": "evaluation_design",
+        "task_type": task,
         "assumptions": "",
         **{
             key: "Synthetic explicit boundary"
