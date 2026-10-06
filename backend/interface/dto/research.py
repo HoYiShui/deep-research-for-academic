@@ -10,6 +10,7 @@ from pydantic import Field, StrictBool
 from application.research_inputs import (
     ConfirmResearchInput,
     ResearchMessageInput,
+    ResumeResearchInput,
     StartResearchInput,
 )
 from domain.research.models import (
@@ -39,6 +40,15 @@ class ConfirmRequest(ConfirmResearchInput):
 
 class EmptyRequest(RequestDTO):
     """An explicit empty body rejects unexpected control fields."""
+
+
+class ResumeRequest(ResumeResearchInput):
+    """Resume the exact latest committed checkpoint, not a phase label."""
+
+
+class CancelResponse(Record):
+    session_id: UUID
+    status: Literal["cancelling", "cancelled"]
 
 
 class ClarifyBase(Record):

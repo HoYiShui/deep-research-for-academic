@@ -92,3 +92,33 @@ class ResearchQueries:
             False,
             "session_view",
         )
+
+    async def report_view(self, owner: UUID, session_id: UUID) -> dict:
+        async with self.uow.transaction() as tx:
+            session = await self.research.get_session(owner, session_id, tx, for_update=True)
+            if session is None:
+                raise AppError("session_not_found", "Session not found")
+            if session.status != "completed" or session.run_id is None:
+                raise AppError("report_not_ready", "Report has not been published")
+            run = await self.research.get_run(owner, session.run_id, tx)
+            report = await self.research.load_report(owner, session.run_id, tx)
+            point = await self.research.load_latest_checkpoint(owner, session.run_id, tx)
+            if (
+                run is None
+                or report is None
+                or point is None
+                or run.status != "completed"
+                or run.phase != "done"
+                or point.phase != "done"
+                or point.state.final_report != report
+            ):
+                self._inconsistent()
+            return {
+                "session_id": str(session_id),
+                "report_id": str(report.report_id),
+                "version": report.version,
+                "review_verdict": report.review_verdict,
+                "report": report.markdown,
+                "references": [item.model_dump(mode="json") for item in report.references],
+                "risks": [item.model_dump(mode="json") for item in report.risks],
+            }

@@ -77,3 +77,7 @@ class ConfirmResearchInput(Record):
 class ResearchResponse(Record):
     status_code: Annotated[int, Field(ge=200, lt=400)]
     body: dict
+
+
+class ResumeResearchInput(Record):
+    checkpoint_seq: Positive

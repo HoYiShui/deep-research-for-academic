@@ -14,12 +14,14 @@ from application.errors import AppError
 from interface.deps import require_user
 from interface.dto.research import (
     AskResponse,
+    CancelResponse,
     ClarifyResponse,
     ConfirmRequest,
     EmptyRequest,
     MessageRequest,
     ReadyResponse,
     ResearchRequest,
+    ResumeRequest,
 )
 
 router = APIRouter()
@@ -92,10 +94,7 @@ async def stream_events(
 @router.get("/research/{session_id}/report")
 async def get_report(session_id: UUID, request: Request, user: str = Depends(require_user)) -> dict:
     """Authorize first; an unpublished report is a 409, never a fabricated report."""
-    view = await get_container(request).research_queries.session_view(UUID(user), session_id)
-    if view["status"] != "completed":
-        raise AppError("report_not_ready", "Report has not been published")
-    raise AppError("service_not_ready", "Published report reader is not ready")
+    return await get_container(request).research_queries.report_view(UUID(user), session_id)
 
 
 @router.get("/research/{session_id}")
@@ -107,14 +106,31 @@ async def get_status(session_id: UUID, request: Request, user: str = Depends(req
     return await queries.session_view(UUID(user), session_id)
 
 
-@router.post("/research/{session_id}/cancel")
+@router.post("/research/{session_id}/cancel", response_model=CancelResponse)
 async def cancel(
     session_id: UUID,
     body: EmptyRequest,
     request: Request,
     user: str = Depends(require_user),
     key: str = Depends(request_key),
-) -> dict:
-    """Durable cancellation is staged next; never mutate the legacy memory flag."""
-    await get_container(request).research_queries.session_view(UUID(user), session_id)
-    raise AppError("service_not_ready", "Durable cancellation is not ready")
+) -> JSONResponse:
+    result = await get_container(request).research.cancel(UUID(user), session_id, key)
+    return JSONResponse(
+        status_code=result.status_code,
+        content=CancelResponse.model_validate(result.body).model_dump(mode="json"),
+    )
+
+
+@router.post("/research/{session_id}/resume", status_code=202, response_model=ReadyResponse)
+async def resume(
+    session_id: UUID,
+    body: ResumeRequest,
+    request: Request,
+    user: str = Depends(require_user),
+    key: str = Depends(request_key),
+) -> JSONResponse:
+    result = await get_container(request).research.resume(UUID(user), session_id, body, key)
+    return JSONResponse(
+        status_code=result.status_code,
+        content=ReadyResponse.model_validate(result.body).model_dump(mode="json"),
+    )

@@ -16,6 +16,7 @@ from application.research_inputs import (
     ConfirmResearchInput,
     ResearchMessageInput,
     ResearchResponse,
+    ResumeResearchInput,
     StartResearchInput,
 )
 from application.session_service import LegacySessionService, SessionService
@@ -456,6 +457,63 @@ class ResearchService:
             run=run,
             checkpoint=checkpoint,
             messages=[message],
+        )
+
+    async def cancel(self, owner: UUID, session_id: UUID, key: str) -> ResearchResponse:
+        async def work(lease):
+            async with lease.lock, self.uow.transaction() as tx:
+                current = await self.repository.request_cancel(owner, session_id, tx)
+                status = 202 if current.status == "cancelling" else 200
+                body = {"session_id": str(session_id), "status": current.status}
+                await self.requests.complete(
+                    lease.reservation, status, body, tx, resource_id=session_id
+                )
+            self._wake_runner()
+            return ResearchResponse(status_code=status, body=body)
+
+        return await self._request(
+            owner, f"research:{session_id}:cancel", key, {}, work, resource=session_id
+        )
+
+    async def resume(
+        self, owner: UUID, session_id: UUID, request: ResumeResearchInput, key: str
+    ) -> ResearchResponse:
+        request = ResumeResearchInput.model_validate(request)
+
+        async def work(lease):
+            async with lease.lock, self.uow.transaction() as tx:
+                session = await self._owned(owner, session_id, tx, lock=True)
+                run = (
+                    await self.repository.get_run(owner, session.run_id, tx)
+                    if session.run_id
+                    else None
+                )
+                if run is None:
+                    raise AppError("resume_not_allowed", "Research has no accepted Run")
+                # Reuse the frozen configuration. Availability of pinned model /
+                # index versions is validated by the executor, never substituted.
+                run = await self.repository.resume_run(
+                    owner,
+                    session_id,
+                    request.checkpoint_seq,
+                    run.config_snapshot,
+                    tx,
+                    queue_limit=self.settings.owner_queue_limit,
+                )
+                body = self._ready(session, run)
+                await self.requests.complete(
+                    lease.reservation, 202, body, tx, resource_id=session_id
+                )
+            self._wake_runner()
+            return ResearchResponse(status_code=202, body=body)
+
+        return await self._request(
+            owner,
+            f"research:{session_id}:resume",
+            key,
+            request.model_dump(mode="json"),
+            work,
+            resource=session_id,
         )
 
     async def confirm(

@@ -95,6 +95,140 @@ async def test_initial_clarify_is_201_and_does_not_create_run(live, complete, st
     assert view["status"] == status and view["run_id"] is None
 
 
+async def test_http_cancel_unfrozen_replays_without_new_model_or_run(live):
+    http, pool, model = live
+    initial = (
+        await http.post("/research", json={"query": "Controlled lifecycle question"}, headers=key())
+    ).json()
+    path = f"/research/{initial['session_id']}/cancel"
+    headers = key()
+    first = await http.post(path, json={}, headers=headers)
+    replay = await http.post(path, json={}, headers=headers)
+    assert first.status_code == replay.status_code == 200
+    assert (
+        first.json()
+        == replay.json()
+        == {"session_id": initial["session_id"], "status": "cancelled"}
+    )
+    assert model.calls == 1 and await pool.fetchval("SELECT count(*) FROM research_runs") == 0
+    assert (await http.get(path.removesuffix("/cancel"))).json()["status"] == "cancelled"
+
+
+async def test_http_cancel_ready_reports_accepted_not_stopped(live):
+    http, pool, _model = live
+    initial = (
+        await http.post("/research", json={"query": "Controlled lifecycle question"}, headers=key())
+    ).json()
+    path = f"/research/{initial['session_id']}"
+    await http.post(path + "/confirm", json={"accepted": True, "brief_version": 1}, headers=key())
+    result = await http.post(path + "/cancel", json={}, headers=key())
+    assert result.status_code == 202 and result.json()["status"] == "cancelling"
+    assert (await http.get(path)).json()["status"] == "cancelling"
+    assert (await http.get(path + "/report")).status_code == 409
+    assert await pool.fetchval("SELECT count(*) FROM reports") == 0
+
+
+async def test_http_resume_replays_same_run_without_resetting_checkpoint(configured):
+    app, pool, model, runtime = configured
+    async with httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=app), base_url="http://test"
+    ) as http:
+        initial = (
+            await http.post(
+                "/research", json={"query": "Controlled lifecycle question"}, headers=key()
+            )
+        ).json()
+        path = f"/research/{initial['session_id']}"
+        original = (
+            await http.post(
+                path + "/confirm", json={"accepted": True, "brief_version": 1}, headers=key()
+            )
+        ).json()
+        async with runtime.repository_store.transaction() as tx:
+            await runtime.repository_store.research.claim_run("test-worker", tx)
+        await pool.execute(
+            "UPDATE research_runs SET lease_expires_at=clock_timestamp()-interval '1 second'"
+        )
+        async with runtime.repository_store.transaction() as tx:
+            await runtime.repository_store.research.scan_interrupted(tx)
+        old = await http.post(path + "/resume", json={"checkpoint_seq": 2}, headers=key())
+        assert old.status_code == 409 and old.json()["error"]["code"] == "stale_resource"
+        headers = key()
+        result = await http.post(path + "/resume", json={"checkpoint_seq": 1}, headers=headers)
+        assert result.status_code == 202 and result.json() == original
+        again = await http.post(path + "/resume", json={"checkpoint_seq": 1}, headers=headers)
+        assert again.status_code == 202 and again.json() == original
+        conflict = await http.post(path + "/resume", json={"checkpoint_seq": 1}, headers=key())
+        assert (
+            conflict.status_code == 409 and conflict.json()["error"]["code"] == "resume_not_allowed"
+        )
+        assert (await http.get(path)).json()["checkpoint_seq"] == 1
+        assert (
+            model.calls == 1 and await pool.fetchval("SELECT attempt_count FROM research_runs") == 1
+        )
+
+
+async def test_http_report_is_committed_markdown_and_completion_blocks_cancel(configured):
+    from tests.integration.test_mono_report_publication import publish, reviewed
+
+    app, _pool, model, runtime = configured
+    commit, claimed, point, report = await reviewed(runtime.repository_store, DEVELOPMENT_USER_ID)
+    await publish(runtime.repository_store, claimed, point)
+    async with httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=app), base_url="http://test"
+    ) as http:
+        path = f"/research/{commit.session.session_id}"
+        result = await http.get(path + "/report")
+        assert result.status_code == 200
+        assert result.json() == {
+            "session_id": str(commit.session.session_id),
+            "report_id": str(report.report_id),
+            "version": 1,
+            "review_verdict": "needs_more_work",
+            "report": report.markdown,
+            "references": [],
+            "risks": [],
+        }
+        assert "\n" in result.json()["report"]
+        view = (await http.get(path)).json()
+        assert (
+            view["status"] == "completed"
+            and view["phase"] == "done"
+            and view["checkpoint_seq"] == 3
+        )
+        cancelled = await http.post(path + "/cancel", json={}, headers=key())
+        assert (
+            cancelled.status_code == 409
+            and cancelled.json()["error"]["code"] == "invalid_session_state"
+        )
+        assert model.calls == 0
+
+
+async def test_http_cancel_cache_failure_rolls_back_resource(configured, monkeypatch):
+    app, pool, _model, runtime = configured
+    async with httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=app), base_url="http://test"
+    ) as http:
+        initial = (
+            await http.post(
+                "/research", json={"query": "Controlled lifecycle question"}, headers=key()
+            )
+        ).json()
+        path = f"/research/{initial['session_id']}"
+
+        async def fail_cache(*args, **kwargs):
+            await runtime.repository_store.connection(args[3]).execute("SELECT 1/0")
+
+        headers = key()
+        with monkeypatch.context() as patch:
+            patch.setattr(runtime.repository_store.requests, "complete", fail_cache)
+            result = await http.post(path + "/cancel", json={}, headers=headers)
+        assert result.status_code == 503
+        assert (await http.get(path)).json()["status"] == "confirm"
+        assert await pool.fetchval("SELECT count(*) FROM research_runs") == 0
+        assert (await http.post(path + "/cancel", json={}, headers=headers)).status_code == 200
+
+
 async def test_idempotent_start_message_and_confirm(live):
     http, pool, model = live
     model.complete_brief = False
