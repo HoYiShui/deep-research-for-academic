@@ -22,9 +22,11 @@ from application.records import (
 )
 from domain.research.models import (
     BriefRecord,
+    Failure,
     Message,
     PartialResearchBrief,
     ResearchRun,
+    RunConfig,
     SessionState,
     SourceSelection,
 )
@@ -79,7 +81,7 @@ class ResearchRepositoryPort(Protocol):
     ) -> BriefRecord | None: ...
 
     async def freeze_and_create_run(
-        self, commit: FreezeCommit, tx: TransactionPort
+        self, commit: FreezeCommit, tx: TransactionPort, *, queue_limit: int = 20
     ) -> ResearchRun: ...
 
     async def get_run(
@@ -113,6 +115,35 @@ class ResearchRepositoryPort(Protocol):
     async def commit_checkpoint(
         self, claimed: ClaimedRun, expected_seq: int, checkpoint: Checkpoint, tx: TransactionPort
     ) -> ClaimedRun: ...
+
+    async def request_cancel(
+        self, owner: UUID, session_id: UUID, tx: TransactionPort
+    ) -> SessionState: ...
+
+    async def finish_cancelled(self, claimed: ClaimedRun, tx: TransactionPort) -> ResearchRun: ...
+
+    async def fail_run(
+        self, claimed: ClaimedRun, failure: Failure, tx: TransactionPort
+    ) -> ResearchRun: ...
+
+    async def resume_run(
+        self,
+        owner: UUID,
+        session_id: UUID,
+        seq: int,
+        config: RunConfig,
+        tx: TransactionPort,
+        *,
+        queue_limit: int = 20,
+    ) -> ResearchRun: ...
+
+    async def scan_interrupted(
+        self,
+        tx: TransactionPort,
+        *,
+        queue_timeout_s: int = 1800,
+        limit: int = 100,
+    ) -> list[ResearchRun]: ...
 
 
 class RequestStorePort(Protocol):

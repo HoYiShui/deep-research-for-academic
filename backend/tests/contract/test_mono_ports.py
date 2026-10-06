@@ -241,6 +241,21 @@ async def test_fake_run_leases_follow_capacity_time_and_latest_seq_contract():
     with pytest.raises(AppError, match="stale_resource"):
         async with db.transaction() as tx:
             await db.research.renew_lease(renewed, tx)
+    async with db.transaction() as tx:
+        recovered = await db.research.scan_interrupted(tx)
+    assert recovered[0].status == "failed" and recovered[0].failure.code == "interrupted"
+    async with db.transaction() as tx:
+        resumed = await db.research.resume_run(
+            owner.user_id, commit.session.session_id, 2, commit.run.config_snapshot, tx
+        )
+    assert resumed.run_id == commit.run.run_id and resumed.checkpoint_seq == 2
+    async with db.transaction() as tx:
+        claimed = await db.research.claim_run("next-worker", tx)
+        assert claimed.run.lease_token == 2 and claimed.run.attempt_count == 2
+        cancelled = await db.research.request_cancel(owner.user_id, commit.session.session_id, tx)
+        assert cancelled.status == "cancelling"
+        stopped = await db.research.finish_cancelled(claimed, tx)
+        assert stopped.status == "cancelled" and stopped.lease_owner is None
 
 
 @pytest.mark.asyncio

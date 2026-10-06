@@ -23,6 +23,7 @@ from domain.ports import AdapterError
 from domain.research.models import BriefRecord, Message, ResearchRun, SessionState
 from domain.research.state import Checkpoint
 from infrastructure.storage.run_leases import RunLeases
+from infrastructure.storage.run_termination import RunTermination
 
 SESSION_JSON = {"brief_draft", "pending_questions", "missing_fields", "source_selection", "failure"}
 BRIEF_JSON = {"content", "source_selection"}
@@ -171,7 +172,7 @@ class _Users:
             )
 
 
-class _Research(RunLeases):
+class _Research(RunLeases, RunTermination):
     def __init__(self, store):
         self.store = store
 
@@ -300,7 +301,9 @@ class _Research(RunLeases):
             )
             return decode(BriefRecord, row, BRIEF_JSON)
 
-    async def freeze_and_create_run(self, commit: FreezeCommit, tx) -> ResearchRun:
+    async def freeze_and_create_run(
+        self, commit: FreezeCommit, tx, *, queue_limit=20
+    ) -> ResearchRun:
         commit = FreezeCommit.model_validate(commit)
         conn = self.store.connection(tx)
         session, brief = commit.session, commit.brief
@@ -313,6 +316,7 @@ class _Research(RunLeases):
             raise AppError("stale_brief", "Brief version changed")
         if old.status != "confirm" or old.run_id is not None:
             raise AppError("invalid_session_state", "Session is not awaiting confirmation")
+        await self._ready_capacity(session.owner_id, tx, queue_limit=queue_limit)
         self._immutable_session(
             old, session, {"status", "revision", "run_id", "failure", "updated_at"}
         )

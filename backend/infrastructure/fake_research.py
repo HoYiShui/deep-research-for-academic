@@ -25,9 +25,10 @@ from application.records import (
     SessionChange,
     User,
 )
-from domain.research.models import BriefRecord, Message, ResearchRun, SessionState, Text
+from domain.research.models import BriefRecord, Failure, Message, ResearchRun, SessionState, Text
 from domain.research.state import Checkpoint
 from infrastructure.storage.run_leases import RunLeases
+from infrastructure.storage.run_termination import RunTermination
 
 
 class FakeClock:
@@ -222,7 +223,9 @@ class _Research:
             return None
         return copy.deepcopy(self.db.data(tx).briefs.get((session_id, version)))
 
-    async def freeze_and_create_run(self, commit: FreezeCommit, tx) -> ResearchRun:
+    async def freeze_and_create_run(
+        self, commit: FreezeCommit, tx, *, queue_limit=20
+    ) -> ResearchRun:
         commit = FreezeCommit.model_validate(commit)
         data = self.db.write_data(tx)
         current = await self.get_session(commit.session.owner_id, commit.session.session_id, tx)
@@ -234,6 +237,7 @@ class _Research:
             raise AppError("stale_brief", "Brief version changed")
         if current.status != "confirm" or current.run_id is not None:
             raise AppError("invalid_session_state", "Session is not awaiting confirmation")
+        self._ready_capacity(current.owner_id, tx, queue_limit=queue_limit)
         if current.brief_draft.model_dump() != commit.brief.content.model_dump():
             raise AppError("stale_brief", "Confirmation changes the assessed brief")
         if current.source_selection != commit.brief.source_selection:
@@ -397,6 +401,191 @@ class _Research:
             }
         )
         return ClaimedRun(owner_id=claimed.owner_id, run=copy.deepcopy(updated))
+
+    def _ready_capacity(self, owner, tx, *, queue_limit=20):
+        RunLeases._positive(queue_limit)
+        data = self.db.write_data(tx)
+        count = sum(
+            run.status == "ready" and data.sessions[run.session_id].owner_id == owner
+            for run in data.runs.values()
+        )
+        if count >= queue_limit:
+            raise AppError("rate_limited", "Research queue is full", retryable=True)
+
+    def _terminal(self, session, run, status, tx, failure=None):
+        data, now = self.db.write_data(tx), self.db.clock.now_utc()
+        updated_session = SessionState.model_validate(
+            session.model_dump()
+            | {
+                "status": status,
+                "failure": failure,
+                "revision": session.revision + 1,
+                "updated_at": now,
+            }
+        )
+        data.sessions[session.session_id] = updated_session
+        updated_run = None
+        if run:
+            updated_run = ResearchRun.model_validate(
+                run.model_dump()
+                | {
+                    "status": status,
+                    "failure": failure,
+                    "resume_allowed": bool(failure and failure.resume_allowed),
+                    "lease_owner": None,
+                    "lease_expires_at": None,
+                    "finished_at": now,
+                }
+            )
+            data.runs[run.run_id] = updated_run
+        return copy.deepcopy(updated_session), copy.deepcopy(updated_run)
+
+    async def request_cancel(self, owner, session_id, tx):
+        data, now = self.db.write_data(tx), self.db.clock.now_utc()
+        session = await self.get_session(owner, session_id, tx)
+        if session is None:
+            raise AppError("session_not_found", "Session not found")
+        if session.status == "completed":
+            raise AppError("invalid_session_state", "Completed research cannot be cancelled")
+        if session.status in {"cancelled", "cancelling"}:
+            return session
+        run = await self.get_run(owner, session.run_id, tx) if session.run_id else None
+        if run:
+            run = ResearchRun.model_validate(
+                run.model_dump()
+                | {
+                    "cancel_requested_at": run.cancel_requested_at or now,
+                    "resume_allowed": False,
+                }
+            )
+            data.runs[run.run_id] = run
+        if session.status in {"ask", "confirm", "failed"}:
+            return self._terminal(session, run, "cancelled", tx)[0]
+        if session.status not in {"ready", "running"} or run is None:
+            raise AppError("invalid_session_state", "Research cannot be cancelled")
+        updated = SessionState.model_validate(
+            session.model_dump()
+            | {
+                "status": "cancelling",
+                "revision": session.revision + 1,
+                "updated_at": now,
+            }
+        )
+        data.sessions[session_id] = updated
+        data.runs[run.run_id] = ResearchRun.model_validate(
+            run.model_dump() | {"status": "cancelling"}
+        )
+        return copy.deepcopy(updated)
+
+    async def _owned_lease(self, claimed, tx):
+        claimed = ClaimedRun.model_validate(claimed)
+        original = await self.get_run(claimed.owner_id, claimed.run.run_id, tx)
+        if original is None:
+            raise AppError("session_not_found", "Session not found")
+        if (
+            original.status not in {"running", "cancelling"}
+            or original.lease_owner != claimed.run.lease_owner
+            or original.lease_token != claimed.run.lease_token
+            or original.lease_expires_at is None
+            or original.lease_expires_at <= self.db.clock.now_utc()
+        ):
+            raise AppError("stale_resource", "Run lease is no longer owned")
+        return await self.get_session(claimed.owner_id, original.session_id, tx), original
+
+    async def finish_cancelled(self, claimed, tx):
+        session, run = await self._owned_lease(claimed, tx)
+        if run.status != "cancelling" or run.cancel_requested_at is None:
+            raise AppError("invalid_session_state", "Cancellation was not requested")
+        return self._terminal(session, run, "cancelled", tx)[1]
+
+    async def fail_run(self, claimed, failure, tx):
+        session, run = await self._owned_lease(claimed, tx)
+        failure = RunTermination._failure_input(run, failure)
+        if await self.load_latest_checkpoint(claimed.owner_id, run.run_id, tx) is None:
+            raise AppError("invalid_state", "Failure requires the last safe checkpoint")
+        return self._terminal(session, run, "failed", tx, failure)[1]
+
+    async def resume_run(self, owner, session_id, seq, config, tx, *, queue_limit=20):
+        data, now = self.db.write_data(tx), self.db.clock.now_utc()
+        session = await self.get_session(owner, session_id, tx)
+        if session is None:
+            raise AppError("session_not_found", "Session not found")
+        run = await self.get_run(owner, session.run_id, tx) if session.run_id else None
+        point = await self.load_latest_checkpoint(owner, run.run_id, tx) if run else None
+        RunTermination._resume_input(session, run, seq, config, point)
+        self._ready_capacity(owner, tx, queue_limit=queue_limit)
+        updated = ResearchRun.model_validate(
+            run.model_dump()
+            | {
+                "status": "ready",
+                "failure": None,
+                "resume_allowed": False,
+                "finished_at": None,
+                "lease_owner": None,
+                "lease_expires_at": None,
+            }
+        )
+        data.runs[run.run_id] = updated
+        data.sessions[session_id] = SessionState.model_validate(
+            session.model_dump()
+            | {
+                "status": "ready",
+                "failure": None,
+                "revision": session.revision + 1,
+                "updated_at": now,
+            }
+        )
+        return copy.deepcopy(updated)
+
+    async def scan_interrupted(self, tx, *, queue_timeout_s=1800, limit=100):
+        RunLeases._positive(queue_timeout_s)
+        RunLeases._positive(limit)
+        data, now = self.db.write_data(tx), self.db.clock.now_utc()
+        changed = []
+        for run in sorted(
+            data.runs.values(),
+            key=lambda item: (data.sessions[item.session_id].updated_at, str(item.session_id)),
+        ):
+            session = data.sessions[run.session_id]
+            if run.status in {"running", "cancelling"}:
+                if run.lease_expires_at is not None and run.lease_expires_at > now:
+                    continue
+            elif (
+                run.status != "ready"
+                or (now - session.updated_at).total_seconds() < queue_timeout_s
+            ):
+                continue
+            if run.status == "cancelling":
+                result = self._terminal(session, run, "cancelled", tx)[1]
+            else:
+                point = await self.load_latest_checkpoint(session.owner_id, run.run_id, tx)
+                resumable = bool(
+                    point
+                    and point.phase == run.phase
+                    and point.state.brief_hash == run.brief_hash
+                    and point.state.brief_version == run.brief_version
+                    and point.state.session_id == session.session_id
+                    and point.state.source_selection == session.source_selection
+                    and point.state.run_metadata.config == run.config_snapshot
+                )
+                code = "interrupted" if run.status == "running" else "queue_timeout"
+                failure = Failure(
+                    code=code if resumable else "schema_incompatible",
+                    dependency=None,
+                    operation="recovery_scan",
+                    phase=run.phase,
+                    message="Run requires operator attention",
+                    retryable=False,
+                    resume_allowed=resumable,
+                    attempt=run.attempt_count,
+                    occurred_at=now,
+                    details=None,
+                )
+                result = self._terminal(session, run, "failed", tx, failure)[1]
+            changed.append(result)
+            if len(changed) >= limit:
+                break
+        return changed
 
 
 class _Requests:

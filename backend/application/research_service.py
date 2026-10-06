@@ -339,7 +339,9 @@ class ResearchService:
             async with lease.lock, self.uow.transaction() as tx:
                 await self.repository.commit_session_change(0, initial, tx)
                 await self._sources(owner, selection, tx)
-                await self.repository.freeze_and_create_run(commit, tx)
+                await self.repository.freeze_and_create_run(
+                    commit, tx, queue_limit=self.settings.owner_queue_limit
+                )
                 await self.requests.complete(
                     lease.reservation, 202, body, tx, resource_id=session.session_id
                 )
@@ -488,7 +490,9 @@ class ResearchService:
                     body = self._ready(current, run)
                 else:
                     await self._sources(owner, current.source_selection, tx)
-                    run = await self.repository.freeze_and_create_run(commit, tx)
+                    run = await self.repository.freeze_and_create_run(
+                        commit, tx, queue_limit=self.settings.owner_queue_limit
+                    )
                     body = self._ready(commit.session, run)
                 await self.requests.complete(
                     lease.reservation, 202, body, tx, resource_id=session_id
