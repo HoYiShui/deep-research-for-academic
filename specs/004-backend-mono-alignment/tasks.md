@@ -79,6 +79,7 @@
 - [ ] T016 [US2] 新增 `backend/application/task_runner.py` 并更新 `backend/application/bootstrap.py`、`backend/interface/main.py`：单worker扫描ready、强引用与异常观察、90s租约/20s续租/5s扫描、排队超时、graceful shutdown；服务器与CLI共同遵PG容量，进程死亡研究不自动付费重跑。
   - 调度核心与显式受控executor经过6项真实PG验证，全量349通过；默认HttpRuntime尚不启动，待T017正式执行器后组合，不勾选。证据：[Runner核心](evidence/t016-runner-core.md)。
 - [ ] T017 [US2] 更新 `backend/application/orchestrator.py`：execute_phase输入切片/白名单PhaseResult、单元验证合并、unit_manifest、完整seq快照、Machine转换；禁止空计划成功、禁止全局State交给Agent修改，终态先提交再发事件。
+  - `phase_contracts.py`已实现五阶段严格读写白名单、稳定input hash及目标范围纯合并；27项新增反例、全量388通过。正式execute_phase/Worker/manifest/快照/Machine/默认Runner组合尚待接入，不勾选。证据：[阶段契约](evidence/t017-phase-contracts.md)。
 - [ ] T018 [US2] 更新 `backend/application/sse.py`、`backend/domain/research/events.py`：每订阅独立有界队列、bootstrap竞态、心跳、slow consumer、JWT过期、phase/progress/rework/error/done统一帧；为CLI持租Run轮询PG当前投影，不假装共享跨进程内存队列。
   - 默认HTTP已使用`run_sse.py`/`run_events.py`严格事件、每订阅队列与PG bootstrap/poll；全量361通过。旧CLI事件隔离，实时Orchestrator发布/JWT截止传递/独立TCP尚待接入，不勾选。证据：[SSE核心](evidence/t018-sse-core.md)。
 - [ ] T019 [US2] 更新 `backend/application/research_service.py` 与 `backend/interface/router/research.py` 的status/report/events/cancel/resume：所有权、前置、最新seq、失败恢复资格、报告未就绪409；PG不可用只诊断error，不能发已完成持久失败的假done。
