@@ -10,6 +10,7 @@ import json
 import sys
 import time
 from typing import Any
+from uuid import uuid4
 
 # Exit codes (contracts/cli.md).
 EXIT_SUCCESS = 0
@@ -33,10 +34,27 @@ def log(message: str) -> None:
 
 def emit_json(status: str, data: dict[str, Any] | None = None) -> None:
     """Write a single JSON result object to stdout."""
-    payload: dict[str, Any] = {"status": status}
+    payload: dict[str, Any] = {"status": status, "error": None}
     if data:
         payload.update(data)
     print(json.dumps(payload, ensure_ascii=False, default=str))
+
+
+def emit_error(args, exit_code: int, code: str, message: str, retryable=False) -> int:
+    status = {1: "failed", 2: "usage_error", 3: "env_error"}[exit_code]
+    error = {
+        "code": code,
+        "message": message,
+        "details": None,
+        "retryable": retryable,
+        "request_id": str(uuid4()),
+    }
+    if args.json:
+        emit_json(status, {"error": error})
+    else:
+        emit_human(status, f"{code}: {message}")
+    log(f"{status}: {code}")
+    return exit_code
 
 
 def emit_human(status: str, body: str = "") -> None:

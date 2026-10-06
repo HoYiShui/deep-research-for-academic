@@ -2,6 +2,8 @@
 
 `python -m cli` 是给 Agent 和开发者的后端调试入口。它不是用户研究入口：Clarify 的多轮对话由 HTTP/API 或前端处理；CLI 只消费已经冻结的 ResearchBrief。
 
+当前正在迁移到 [mono CLI 契约](../../docs/mono/api-contract.md#5-cli-契约)。`dump` 已读取新的 owner-scoped Run Checkpoint；`run/phase/ingest/search` 仍使用旧执行链，尚不能用来验收 mono 流水线。下文这些旧命令的输入说明会随迁移更新。
+
 在 `backend/` 目录中运行：
 
 ```bash
@@ -20,7 +22,7 @@ python -m cli dump <session-id> --json
 | `doctor` | 检查真实环境的 env、PostgreSQL、Milvus、MinIO 和模型权重。 |
 | `run --brief FILE` | 用完整冻结 Brief 跑 pipeline 到报告。 |
 | `phase PHASE --state FILE` | 用快照状态只执行一个 phase。 |
-| `dump SESSION_ID` | 从 PostgreSQL 读取真实运行的最新 phase snapshot。 |
+| `dump SESSION_ID` | 从 PostgreSQL 读取当前 Run 的最新 seq，不按阶段倒序。 |
 | `ingest PDF` / `search QUERY` | 独立调试知识库入库与检索。 |
 
 `run` 的 Brief 必须含 ResearchBrief 的 10 个字段，且 `task_type` 为 `idea_exploration`、`method_differentiation`、`evaluation_design` 或 `reviewer_response`。CLI 会在调用 Agent 前拒绝不完整输入。
@@ -47,3 +49,14 @@ python -m cli dump <session-id> --json
 - 退出码：`0` 成功、`1` 运行失败、`2` 用法/调试输入错误、`3` 环境错误。
 
 正式契约见 [`specs/002-cli/contracts/cli.md`](../../specs/002-cli/contracts/cli.md)；冻结 Brief 与报告约定见 `specs/001-deep-research-agent/`。
+
+## mono 状态读取
+
+```bash
+uv run python -m cli dump SESSION_UUID --json
+uv run python -m cli dump SESSION_UUID --owner OWNER_UUID --json
+```
+
+开发环境默认使用固定开发 owner；`--owner` 指定已有用户，production 必须显式提供。dump 不创建用户、不迁移数据库、不领取或恢复 Run。没有该 owner 的会话返回 `session_not_found`；会话尚无 Run 返回 `checkpoint_not_found`；旧 schema 明确失败，不退回旧快照。成功输出 `state`、`phase`、`run_id`、`checkpoint_seq`，返工后仍读取最新 seq。该 `state` 是严格 mono PipelineState，当前旧 `phase` 命令还不能直接消费。
+
+JSON 模式错误也返回单个对象，`error` 包含 code/message/details/retryable/request_id；成功 error 为 null。未知 SDK 异常不打印原异常正文。

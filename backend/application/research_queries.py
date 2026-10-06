@@ -93,6 +93,39 @@ class ResearchQueries:
             "session_view",
         )
 
+    async def checkpoint_view(self, owner: UUID, session_id: UUID) -> dict:
+        """Trusted CLI projection of current seq, including a reworked phase."""
+        async with self.uow.transaction() as tx:
+            session = await self.research.get_session(owner, session_id, tx, for_update=True)
+            if session is None:
+                raise AppError("session_not_found", "Session not found")
+            if session.run_id is None:
+                raise AppError("checkpoint_not_found", "Session has no Run checkpoint")
+            run = await self.research.get_run(owner, session.run_id, tx)
+            if run is None or run.session_id != session_id or run.status != session.status:
+                self._inconsistent()
+            point = await self.research.load_checkpoint(owner, run.run_id, run.checkpoint_seq, tx)
+            if (
+                point is None
+                or point.seq != run.checkpoint_seq
+                or point.run_id != run.run_id
+                or point.state.run_id != run.run_id
+                or point.phase != run.phase
+                or point.state.session_id != session_id
+                or point.state.brief_version != run.brief_version
+                or point.state.brief_hash != run.brief_hash
+                or point.state.source_selection != session.source_selection
+                or point.state.run_metadata.config != run.config_snapshot
+            ):
+                self._inconsistent()
+            return {
+                "session_id": str(session_id),
+                "run_id": str(run.run_id),
+                "checkpoint_seq": point.seq,
+                "phase": point.phase,
+                "state": point.state.model_dump(mode="json"),
+            }
+
     async def report_view(self, owner: UUID, session_id: UUID) -> dict:
         async with self.uow.transaction() as tx:
             session = await self.research.get_session(owner, session_id, tx, for_update=True)

@@ -5,6 +5,8 @@ import json
 import pytest
 
 from cli import output
+from cli.__main__ import main
+from cli.commands import doctor
 from infrastructure.fake import FakeLLM
 
 
@@ -25,7 +27,7 @@ async def test_seeded_fake_llm_varies_by_seed() -> None:
 def test_emit_json_is_a_single_parseable_object(capsys) -> None:
     output.emit_json("ok", {"final_report": {"sections": {}}})
     parsed = json.loads(capsys.readouterr().out.strip())
-    assert parsed == {"status": "ok", "final_report": {"sections": {}}}
+    assert parsed == {"status": "ok", "error": None, "final_report": {"sections": {}}}
 
 
 def test_log_goes_to_stderr(capsys) -> None:
@@ -33,3 +35,15 @@ def test_log_goes_to_stderr(capsys) -> None:
     captured = capsys.readouterr()
     assert captured.out == ""
     assert "hello" in captured.err
+
+
+def test_foreign_exception_does_not_leak_sdk_text_and_has_json_error(monkeypatch, capsys):
+    async def broken(args):
+        raise RuntimeError("secret-key-and-private-prompt")
+
+    monkeypatch.setattr(doctor, "run", broken)
+    assert main(["doctor", "--json"]) == 1
+    captured = capsys.readouterr()
+    body = json.loads(captured.out)
+    assert body["error"]["code"] == "execution_failed"
+    assert "secret-key-and-private-prompt" not in captured.out + captured.err
