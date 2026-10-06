@@ -14,7 +14,9 @@ class _FakeRetrieval:
 @pytest.mark.asyncio
 async def test_scout_dedups_by_source_location_quote() -> None:
     search = FakeSearch()
-    result = await scout.research({"sub_questions": ["q1", "q2"]}, search, _FakeRetrieval(), FakeLLM())
+    result = await scout.research(
+        {"sub_questions": ["q1", "q2"]}, search, _FakeRetrieval(), FakeLLM()
+    )
     # FakeSearch returns the same candidate for both queries; dedup keeps one.
     assert len(result["evidence"]) == 1
 
@@ -34,8 +36,8 @@ async def test_scout_registers_sources() -> None:
     result = await scout.research({"objective": "o"}, search, _FakeRetrieval(), FakeLLM())
     source = result["sources"]["fake-1"]
     assert source["title"] == "Fake paper"
-    assert source["source_tier"] == "peer_reviewed"  # paper source
-    assert source["provenance"] == "arxiv"
+    assert source["source_tier"] == "unknown"  # paper alone does not prove peer review
+    assert source["provenance"] == "unknown"
 
 
 @pytest.mark.asyncio
@@ -56,8 +58,7 @@ async def test_scout_extracts_claims_via_llm() -> None:
 async def test_scout_computes_section_coverage() -> None:
     search = FakeSearch()
     llm = FakeLLM(
-        response='{"claims": [{"text": "method A works", "conditions": {}, '
-        '"evidence_ids": []}]}'
+        response='{"claims": [{"text": "method A works", "conditions": {}, "evidence_ids": []}]}'
     )
     result = await scout.research(
         {"section_id": "s1", "objective": "o"}, search, _FakeRetrieval(), llm

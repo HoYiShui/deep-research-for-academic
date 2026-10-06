@@ -12,6 +12,8 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any, Protocol
 
+from domain.research.search import SearchResult
+
 
 class ClockPort(Protocol):
     """Deadlines use monotonic; UTC wall time is for records, not PG leases."""
@@ -29,17 +31,6 @@ class AdapterError(Exception):
         self.message = message
         self.retryable = retryable
         self.operation = operation
-
-
-@dataclass
-class SearchResult:
-    """A candidate document returned by an external search source (paper/web)."""
-
-    source_id: str
-    source_type: str  # "paper" | "web"
-    title: str
-    snippet: str
-    url: str = ""
 
 
 @dataclass

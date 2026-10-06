@@ -5,12 +5,11 @@ unavailable -> skip the source (degrade) and keep going; and that the
 orchestrator drains gaps and emits a non-fatal "source_unavailable" error.
 """
 
-
 import pytest
 
 from application.orchestrator import Orchestrator
 from application.sse import EventBus
-from domain.ports import SearchResult
+from domain.ports import AdapterError, SearchResult
 from infrastructure.fake import FakeExecution, FakeLLM, FakeRetrieval, FakeStateStore
 from infrastructure.search.composite import CompositeSearch
 from infrastructure.storage.memory import InMemoryCancel
@@ -24,7 +23,13 @@ class _GoodSource:
     async def search(self, query: str) -> list[SearchResult]:
         self.calls += 1
         return [
-            SearchResult(source_id="good-1", source_type="paper", title="t", snippet="s")
+            SearchResult(
+                source_id="good-1",
+                source_type="paper",
+                title="t",
+                snippet="s",
+                url="https://example.com/paper",
+            )
         ]
 
 
@@ -58,7 +63,8 @@ async def test_composite_skips_unavailable_and_records_gaps() -> None:
 async def test_timeout_source_is_retried_once() -> None:
     slow = _TimeoutSource()
     composite = CompositeSearch([("slow", slow)])
-    await composite.search("query")
+    with pytest.raises(AdapterError, match="all_search_sources_failed"):
+        await composite.search("query")
     assert slow.calls == 2  # one attempt + one retry
     assert composite.take_gaps() == [{"source": "slow", "reason": "timeout"}]
 

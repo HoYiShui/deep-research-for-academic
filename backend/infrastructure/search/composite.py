@@ -1,70 +1,165 @@
-"""Multi-source search with per-source failure semantics.
+"""Bounded parallel search; explicit local outcomes, no shared pipeline gaps.
 
-plan.md failure table for Search:
-- timeout -> retry once -> give up, mark a coverage gap
-- empty -> mark a coverage gap (not an error)
-- unavailable -> degrade: skip the source, keep using the others
-
-Each source is a named SearchPort; gaps are recorded on this composite and
-drained by the orchestrator after the research phase.
+Providers do exactly one physical request. An optional attempt invoker lets the
+application meter/cache EVERY source attempt before I/O. Ledger/lease/budget
+errors from that invoker must propagate, never become source degradation.
+The list-returning search/take_gaps pair is a legacy compatibility surface only.
 """
 
 from __future__ import annotations
 
-from typing import Any
+import asyncio
+import math
+from collections.abc import Awaitable, Callable
+from typing import Any, Literal
 
 import httpx
 
-from domain.ports import SearchPort, SearchResult
+from domain.ports import AdapterError, SearchPort, SearchResult
+from domain.research.search import SearchBatch, SearchFailure, SearchOutcome
+from infrastructure.search.http import error, query_text
 
-
-class _SourceUnavailable(Exception):
-    """A source is down and should be skipped (degraded), not retried."""
+SearchOperation = Callable[[], Awaitable[list[SearchResult]]]
+AttemptInvoker = Callable[[str, str, int, SearchOperation], Awaitable[list[SearchResult]]]
 
 
 class CompositeSearch:
-    """SearchPort that fans out across named sources and degrades per-source."""
-
-    def __init__(self, sources: list[tuple[str, SearchPort]]) -> None:
-        self._sources = sources
+    def __init__(
+        self,
+        sources: list[tuple[str, SearchPort]],
+        *,
+        timeout_s: float = 20,
+        semaphore: asyncio.Semaphore | None = None,
+        source_categories: dict[str, Literal["papers", "web"]] | None = None,
+    ):
+        if not sources or len(sources) > 16 or len({name for name, _ in sources}) != len(sources):
+            raise ValueError("Search requires 1-16 uniquely named sources")
+        if any(not name.strip() or len(name) > 100 for name, _ in sources):
+            raise ValueError("Invalid search source name")
+        if not math.isfinite(timeout_s) or timeout_s <= 0:
+            raise ValueError("Search timeout must be finite and positive")
+        self._sources = list(sources)
+        self._timeout_s = timeout_s
+        self._semaphore = semaphore if semaphore is not None else asyncio.Semaphore(4)
+        self._categories = dict(
+            {"arxiv": "papers", "bocha": "web"} if source_categories is None else source_categories
+        )
+        if any(value not in {"papers", "web"} for value in self._categories.values()):
+            raise ValueError("Invalid search source category")
         self.gaps: list[dict[str, Any]] = []
 
+    async def search_batch(
+        self,
+        query: str,
+        *,
+        categories: frozenset[str] | None = None,
+        invoke: AttemptInvoker | None = None,
+        retry: bool = True,
+    ) -> SearchBatch:
+        query = query_text(query)
+        if type(retry) is not bool:
+            raise ValueError("Search retry authority must be an explicit boolean")
+        if categories is not None and not categories <= {"papers", "web"}:
+            raise ValueError("External search cannot access knowledge_base")
+        sources = self._sources
+        if categories is not None:
+            if any(name not in self._categories for name, _ in sources):
+                raise ValueError("Category-filtered search requires explicit source categories")
+            sources = [
+                (name, source) for name, source in sources if self._categories[name] in categories
+            ]
+        if not sources:
+            raise AdapterError(
+                "search", "no_search_sources", "No authorized search source", False, "search"
+            )
+        # TaskGroup cancels and joins siblings when invoker/ledger/control fails.
+        # Ordinary provider errors are returned as outcomes inside each task.
+        try:
+            async with asyncio.TaskGroup() as group:
+                tasks = [
+                    group.create_task(self._search_source(name, source, query, invoke, retry))
+                    for name, source in sources
+                ]
+        except ExceptionGroup as exc:
+            # Preserve a single application failure for Runner's typed failure path.
+            if len(exc.exceptions) == 1:
+                raise exc.exceptions[0] from exc
+            raise
+        return SearchBatch(outcomes=[task.result() for task in tasks])
+
     async def search(self, query: str) -> list[SearchResult]:
-        """Search every source, skipping degraded ones and recording gaps."""
-        results: list[SearchResult] = []
-        for name, source in self._sources:
-            try:
-                found, gap = await self._search_with_retry(source, query)
-            except _SourceUnavailable:
-                self.gaps.append({"source": name, "reason": "unavailable"})
-                continue
-            if gap:
-                self.gaps.append({"source": name, "reason": gap})
-            elif not found:
-                self.gaps.append({"source": name, "reason": "empty"})
-            results.extend(found)
-        return results
+        batch = await self.search_batch(query)
+        self.gaps.extend(
+            {
+                "source": outcome.source,
+                "reason": (
+                    "empty"
+                    if outcome.status == "empty"
+                    else "timeout"
+                    if outcome.failure.code == "search_timeout"
+                    else "unavailable"
+                ),
+            }
+            for outcome in batch.outcomes
+            if outcome.status != "ok"
+        )
+        if batch.all_failed:
+            raise AdapterError(
+                "search", "all_search_sources_failed", "All search sources failed", False, "search"
+            )
+        return batch.items
 
     def take_gaps(self) -> list[dict[str, Any]]:
         """Return and clear the accumulated coverage gaps."""
         gaps, self.gaps = self.gaps, []
         return gaps
 
-    async def _search_with_retry(
-        self, source: SearchPort, query: str
-    ) -> tuple[list[SearchResult], str | None]:
-        """Search one source, retrying once on timeout.
+    async def _search_source(self, name, source, query, invoke, retry) -> SearchOutcome:
+        async def operation():
+            # Deadline applies to one provider operation, not ledger reservation/cache.
+            async with self._semaphore:
+                try:
+                    async with asyncio.timeout(self._timeout_s):
+                        found = await source.search(query)
+                    if not isinstance(found, list) or len(found) > 50:
+                        raise ValueError("Invalid search result list")
+                    return [SearchResult.model_validate(item) for item in found]
+                except AdapterError:
+                    raise
+                except (TimeoutError, httpx.TimeoutException) as exc:
+                    raise error(name, "search_timeout", True) from exc
+                except (ValueError, TypeError) as exc:
+                    raise error(name, "search_response_invalid") from exc
+                except Exception as exc:
+                    raise error(name, "search_unavailable") from exc
 
-        Returns:
-            (results, gap_reason_or_none) where gap_reason is "timeout" when
-            both attempts time out.
-        """
-        try:
-            return await source.search(query), None
-        except (TimeoutError, httpx.TimeoutException):
+        for attempt in range(1, 3 if retry else 2):
             try:
-                return await source.search(query), None
-            except (TimeoutError, httpx.TimeoutException):
-                return [], "timeout"
-        except Exception as exc:
-            raise _SourceUnavailable from exc
+                found = (
+                    await operation()
+                    if invoke is None
+                    else await invoke(name, query, attempt, operation)
+                )
+                return SearchOutcome(
+                    source=name,
+                    attempts=attempt,
+                    status="ok" if found else "empty",
+                    items=found,
+                )
+            except AdapterError as exc:
+                if exc.operation != "search":
+                    raise
+                failure = SearchFailure(code=exc.code, retryable=exc.retryable)
+                if not retry or attempt == 2 or not exc.retryable:
+                    return SearchOutcome(
+                        source=name, attempts=attempt, status="failed", failure=failure
+                    )
+                # Bounded backoff outside physical provider request; attempts remain visible.
+                await asyncio.sleep(0.05)
+        raise AssertionError("Unreachable search retry state")
+
+    async def aclose(self):
+        for _, source in self._sources:
+            close = getattr(source, "aclose", None)
+            if close is not None:
+                await close()

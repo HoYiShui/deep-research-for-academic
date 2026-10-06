@@ -83,7 +83,7 @@ class Container:
         )
         self.search = search or CompositeSearch(
             [
-                ("arxiv", ArxivSearch()),
+                ("arxiv", ArxivSearch(timeout_s=config.search_timeout_s)),
                 (
                     "bocha",
                     BochaSearch(
@@ -91,7 +91,8 @@ class Container:
                         timeout_s=config.search_timeout_s,
                     ),
                 ),
-            ]
+            ],
+            timeout_s=config.search_timeout_s,
         )
         self.embedding = embedding or BGEM3Embedding(config.bge_m3_model_path)
         self.vector = vector or MilvusStore(config.milvus_uri)

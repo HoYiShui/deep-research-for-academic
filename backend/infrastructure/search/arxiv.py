@@ -1,45 +1,86 @@
-"""arXiv search adapter (free public API, no key required)."""
+"""arXiv Atom candidates: one request, no hidden retries or invented peer review."""
 
 from __future__ import annotations
 
+import re
 import xml.etree.ElementTree as ET
+from urllib.parse import urlsplit
 
 import httpx
+from pydantic import ValidationError
 
 from domain.ports import SearchResult
+from infrastructure.search.http import RequestSpacing, SearchHTTP, error, query_text
 
-_NAMESPACE = {"a": "http://www.w3.org/2005/Atom"}
+_ATOM = "{http://www.w3.org/2005/Atom}"
 
 
 class ArxivSearch:
-    """SearchPort implementation via the arXiv API."""
+    def __init__(
+        self,
+        timeout_s: float = 20,
+        *,
+        client: httpx.AsyncClient | None = None,
+        spacing: RequestSpacing | None = None,
+    ):
+        self._http = SearchHTTP("arxiv", timeout_s, client)
+        self._spacing = spacing or RequestSpacing(3)
 
     async def search(self, query: str) -> list[SearchResult]:
-        """Search arXiv and return candidates."""
-        async with httpx.AsyncClient() as client:
-            resp = await client.get(
-                "https://export.arxiv.org/api/query",
-                params={"search_query": f"all:{query}", "max_results": 10},
-            )
-            resp.raise_for_status()
-        return _parse(resp.text)
-
-
-def _parse(xml: str) -> list[SearchResult]:
-    """Parse an arXiv Atom response into SearchResult list."""
-    root = ET.fromstring(xml)
-    results: list[SearchResult] = []
-    for entry in root.findall("a:entry", _NAMESPACE):
-        title = (entry.findtext("a:title", default="", namespaces=_NAMESPACE) or "").strip()
-        summary = (entry.findtext("a:summary", default="", namespaces=_NAMESPACE) or "").strip()
-        link = (entry.findtext("a:id", default="", namespaces=_NAMESPACE) or "").strip()
-        results.append(
-            SearchResult(
-                source_id=link,
-                source_type="paper",
-                title=title,
-                snippet=summary,
-                url=link,
-            )
+        query = query_text(query)
+        await self._spacing.wait()
+        body = await self._http.request(
+            "GET",
+            "https://export.arxiv.org/api/query",
+            params={"search_query": f"all:{query}", "max_results": 10},
         )
-    return results
+        return _parse(body)
+
+    async def aclose(self):
+        await self._http.aclose()
+
+
+def _parse(xml: str | bytes) -> list[SearchResult]:
+    try:
+        lowered = (xml if isinstance(xml, str) else xml.decode("utf-8-sig")).lower()
+        if "<!doctype" in lowered or "<!entity" in lowered:
+            raise ValueError("XML declarations are forbidden")
+        root = ET.fromstring(xml)
+        if root.tag != f"{_ATOM}feed":
+            raise ValueError("Expected Atom feed")
+        entries = root.findall(f"{_ATOM}entry")
+        if len(entries) > 10:
+            raise ValueError("Too many candidates")
+        results = []
+        for entry in entries:
+
+            def text(name, entry=entry):
+                return (entry.findtext(f"{_ATOM}{name}") or "").strip()
+
+            link = text("id")
+            parsed = urlsplit(link)
+            if parsed.hostname != "arxiv.org" or not parsed.path.startswith("/abs/"):
+                # arXiv can return a 200 Atom error feed, not an empty search.
+                raise ValueError("Invalid arXiv candidate or error feed")
+            version = re.search(r"v\d+$", parsed.path)
+            results.append(
+                SearchResult(
+                    source_id=link,
+                    source_type="paper",
+                    title=" ".join(text("title").split()),
+                    snippet=text("summary"),
+                    url=link,
+                    authors_or_publisher=[
+                        (author.findtext(f"{_ATOM}name") or "").strip()
+                        for author in entry.findall(f"{_ATOM}author")
+                    ],
+                    published_at=text("published"),
+                    version=version.group() if version else "",
+                    provider="arxiv",
+                    source_tier="primary",
+                    fulltext_url=f"https://arxiv.org/pdf/{parsed.path.removeprefix('/abs/')}",
+                )
+            )
+        return results
+    except (ET.ParseError, ValueError, ValidationError) as exc:
+        raise error("arxiv", "search_response_invalid") from exc

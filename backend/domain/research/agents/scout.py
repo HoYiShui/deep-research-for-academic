@@ -4,6 +4,7 @@ Gathers evidence from paper/web (SearchPort) and the local KB (RetrievalPort),
 registers each source once, and extracts research claims (via the LLM) bound to
 their evidence. Deduplicates evidence by (source_id, location, quote).
 """
+
 from __future__ import annotations
 
 from typing import Any
@@ -115,9 +116,7 @@ async def gap_fill(
     return {"evidence": evidence, "sources": sources}
 
 
-async def citation_trace(
-    sources: dict[str, dict[str, Any]], search: SearchPort
-) -> dict[str, Any]:
+async def citation_trace(sources: dict[str, dict[str, Any]], search: SearchPort) -> dict[str, Any]:
     """Trace secondary sources to primary ones (FR-007)."""
     evidence: dict[str, dict[str, Any]] = {}
     new_sources: dict[str, dict[str, Any]] = {}
@@ -154,17 +153,17 @@ async def _search_for(
 
 
 def _register_source(result: SearchResult) -> dict[str, Any]:
-    """Map a search result to a SourceRecord (paper -> peer_reviewed, web -> secondary)."""
+    """Legacy projection only; candidate metadata cannot prove peer review."""
     return {
         "source_id": result.source_id,
         "source_type": result.source_type,
         "title": result.title,
-        "authors_or_publisher": "",
-        "published_at": "",
-        "version": "",
+        "authors_or_publisher": "; ".join(result.authors_or_publisher),
+        "published_at": result.published_at,
+        "version": result.version,
         "canonical_url": result.url,
-        "provenance": "arxiv" if result.source_type == "paper" else "web",
-        "source_tier": "peer_reviewed" if result.source_type == "paper" else "secondary",
+        "provenance": result.provider,
+        "source_tier": result.source_tier,
     }
 
 
