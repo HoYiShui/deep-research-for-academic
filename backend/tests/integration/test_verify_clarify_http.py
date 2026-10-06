@@ -18,7 +18,7 @@ from scripts.verify_clarify_http import VerificationError, verify
 
 
 @asynccontextmanager
-async def server(database, *, real=False):
+async def server(database, *, real=False, run_bucket=None):
     settings = Settings.load()
     parts = urlsplit(settings.database_url.get_secret_value())
     dsn = urlunsplit(parts._replace(path="/" + database))
@@ -32,6 +32,11 @@ async def server(database, *, real=False):
         "DR4A_TEST_HTTP_MODE": "controlled",
     }
     target = "interface.main:app" if real else "tests.support.mono_http_server:create_test_app"
+    if run_bucket is not None:
+        if real:
+            raise ValueError("Controlled Run server cannot be labeled real")
+        env["DR4A_TEST_CACHE_BUCKET"] = run_bucket
+        target = "tests.support.mono_http_server:create_run_test_app"
     args = [sys.executable, "-m", "uvicorn", target, "--host", "127.0.0.1", "--port", str(port)]
     if not real:
         args.append("--factory")

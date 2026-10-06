@@ -101,6 +101,7 @@
   - `dump`已切换owner-scoped正式Repository与当前Run.seq读取；真实CLI子进程验证返工最新seq、归属、无快照与旧schema拒绝。统一JSON错误及未知异常脱敏已补。`run/phase`仍旧执行链，signals/fake确定性与完整组合待迁移，T021不勾选。证据：[CLI dump迁移](evidence/t021-cli-cutover.md)。
   - `phase`已移除旧Orchestrator调用，复用严格State/PhaseInput/execute_phase/merge，正式plan worker已通过真实CLI+供应商调用；仅注册plan，其余阶段在worker实施前明确未配置。phase无PG写入，物理debug用量单列；控制错误不被模型重试吞掉。`run`、多单元阶段/其他工具及完整HTTP组合仍待迁移。证据：[phase迁移与真实CLI plan](evidence/t021-cli-cutover.md#后续phase迁移及真实模型验证)。
 - [ ] T022 [US2] 新增 `backend/scripts/verify_run_http.py`：活HTTP启动/确认/订阅/取消/恢复/取状态，支持显式受控依赖模式；配合 `backend/tests/integration/test_mono_process_recovery.py` 用独立进程SIGKILL测试确认提交后未wake、返工阶段中断、成功缓存后中断。输出SQL终态/seq/attempt证据 `evidence/us2.md`。
+  - 已新增接受Run的HTTP/SSE探针（支持显式cancel/resume；创建/确认复用verify_clarify_http，不自动接受模型假设），验证帧Schema/身份/单调seq及终态与状态/报告一致。独立进程活TCP完成Driver报告并重启读取，真实探针CLI子进程无额外attempt/工具调用；受控服务器只允许唯一测试PG/bucket，生产不导入。仍缺HTTP取消/恢复及确认未wake/返工SIGKILL的完整组合证据，不勾选。证据：[US2活HTTP验证](evidence/us2.md)。
 
 里程碑 M2：T014/T020/T022证明生命周期与恢复；内存/task/SSE丢失不能抹掉PG事实；受控报告不作为A6真实业务验收。
 

@@ -71,3 +71,13 @@ uv run python -m cli dump SESSION_UUID --owner OWNER_UUID --json
 开发环境默认使用固定开发 owner；`--owner` 指定已有用户，production 必须显式提供。dump 不创建用户、不迁移数据库、不领取或恢复 Run。没有该 owner 的会话返回 `session_not_found`；会话尚无 Run 返回 `checkpoint_not_found`；旧 schema 明确失败，不退回旧快照。成功输出 `state`、`phase`、`run_id`、`checkpoint_seq`，返工后仍读取最新 seq。保存JSON结果中的 `state` 字段作为phase输入，并保持阶段标记与命令一致。
 
 JSON 模式错误也返回单个对象，`error` 包含 code/message/details/retryable/request_id；成功 error 为 null。未知 SDK 异常不打印原异常正文。
+
+## 活 HTTP Run 验证
+
+`run`仍在迁移时，不要用其旧结果验收mono。先通过HTTP Clarify探针审阅并明确确认Brief，再观察已接受的Run：
+
+```bash
+uv run python -m scripts.verify_run_http --session SESSION_UUID --model-mode real
+```
+
+该命令只订阅SSE并核对最新HTTP状态/报告，不直接执行或创建Run。`--action cancel`或`--action resume`才发送对应控制请求；resume需要failed且resume_allowed。`--url`可指定后端，`--timeout`限制整个过程。`--model-mode controlled`用于明确受控测试，不代表真实研究能力通过。当前生产完整worker尚未组合，缺能力时超时/失败是有效诊断，不会自动退回fake。

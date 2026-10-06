@@ -1,13 +1,21 @@
 """Explicit test-only server factory, never imported by the production root."""
 
+import asyncio
 import json
 import os
 import re
 from urllib.parse import urlsplit
 
 from application.bootstrap import HttpRuntime
+from application.phase_executor import PhaseExecutor
+from application.phase_tools import ModelBinding
+from application.report_serializer import ReportPublisher
+from application.run_driver import RunDriver
 from application.settings import Settings
+from infrastructure.storage.content_cache import MinioResultCache
 from interface.main import create_app
+from tests.integration.test_mono_phase_tools import ControlledModel as PlanModel
+from tests.integration.test_mono_run_driver import controlled_worker
 
 
 class ControlledModel:
@@ -44,4 +52,65 @@ def create_test_app():
     return create_app(
         settings=settings,
         container_factory=lambda config: HttpRuntime(settings=config, llm=ControlledModel()),
+    )
+
+
+def create_run_test_app():
+    """Explicit full controlled Driver, only in invocation-owned PG and bucket."""
+    settings = Settings.load()
+    database = urlsplit(settings.database_url.get_secret_value()).path.removeprefix("/")
+    bucket = os.environ.get("DR4A_TEST_CACHE_BUCKET", "")
+    if (
+        os.environ.get("DR4A_TEST_HTTP_MODE") != "controlled"
+        or not re.fullmatch(r"dr4a_test_[a-f0-9]{32}", database)
+        or not re.fullmatch(r"dr4a-test-[a-f0-9]{32}", bucket)
+    ):
+        raise RuntimeError("Controlled Run server requires isolated PG and MinIO")
+
+    class Runtime(HttpRuntime):
+        async def aclose(self):
+            try:
+                await super().aclose()
+            finally:
+                await cache.close()
+
+    cache = MinioResultCache(
+        settings.minio_endpoint,
+        settings.minio_access_key.get_secret_value(),
+        settings.minio_secret_key.get_secret_value(),
+        bucket,
+        secure=settings.minio_secure,
+    )
+
+    def executor(runtime):
+        driver = RunDriver(
+            store=runtime.repository_store,
+            cache=cache,
+            executor=PhaseExecutor(
+                dict.fromkeys(
+                    ["plan", "research", "analyze", "write", "review"], controlled_worker([])
+                )
+            ),
+            model=ModelBinding(
+                PlanModel(settings.llm_model),
+                "anthropic_compatible",
+                settings.llm_model,
+                settings.llm_revision,
+                1000,
+            ),
+            model_slots=asyncio.Semaphore(settings.llm_concurrency),
+            clock=runtime.clock,
+            publish=ReportPublisher(runtime.repository_store, runtime.clock).publish,
+            unit_committed=lambda event: None,
+            phase_committed=lambda event: None,
+            finished=lambda event: None,
+            diagnostic=lambda event: None,
+        )
+        return driver.execute
+
+    return create_app(
+        settings=settings,
+        container_factory=lambda config: Runtime(
+            settings=config, llm=ControlledModel(), run_executor_factory=executor
+        ),
     )
