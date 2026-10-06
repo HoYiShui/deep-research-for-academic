@@ -97,6 +97,7 @@
   - 正式plan的LLM callback已绑定预算/cache及共享进程模型并发门；其他工具将随对应worker接入，完整Orchestrator尚未组合。最终全量487通过；T020仍不勾选。证据：[phase绑定](evidence/t017-phase-dispatch.md)。
 - [ ] T021 [US2] 更新 `backend/cli/container.py`、`commands/run.py`、`commands/phase.py`、`commands/dump.py`、`phase_state.py`、`output.py`、`__main__.py`：复用start_frozen/execute_phase/最新seq；phase只调一阶段且不写Session/Report；stdout单JSON、退出码、signals/owner/租约符合API §5，日志脱敏；fake seed固定ID/时间/结果且real不宣称确定；更新现有CLI单测。
   - `dump`已切换owner-scoped正式Repository与当前Run.seq读取；真实CLI子进程验证返工最新seq、归属、无快照与旧schema拒绝。统一JSON错误及未知异常脱敏已补。`run/phase`仍旧执行链，signals/fake确定性与完整组合待迁移，T021不勾选。证据：[CLI dump迁移](evidence/t021-cli-cutover.md)。
+  - `phase`已移除旧Orchestrator调用，复用严格State/PhaseInput/execute_phase/merge，正式plan worker已通过真实CLI+供应商调用；仅注册plan，其余阶段在worker实施前明确未配置。phase无PG写入，物理debug用量单列；控制错误不被模型重试吞掉。`run`、多单元阶段/其他工具及完整HTTP组合仍待迁移。证据：[phase迁移与真实CLI plan](evidence/t021-cli-cutover.md#后续phase迁移及真实模型验证)。
 - [ ] T022 [US2] 新增 `backend/scripts/verify_run_http.py`：活HTTP启动/确认/订阅/取消/恢复/取状态，支持显式受控依赖模式；配合 `backend/tests/integration/test_mono_process_recovery.py` 用独立进程SIGKILL测试确认提交后未wake、返工阶段中断、成功缓存后中断。输出SQL终态/seq/attempt证据 `evidence/us2.md`。
 
 里程碑 M2：T014/T020/T022证明生命周期与恢复；内存/task/SSE丢失不能抹掉PG事实；受控报告不作为A6真实业务验收。

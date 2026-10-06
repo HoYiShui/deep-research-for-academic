@@ -2,34 +2,59 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
-from dataclasses import asdict
+from datetime import UTC, datetime, timedelta
 
-from application.orchestrator import Orchestrator
-from cli import container, output
+from application.phase_executor import ExecutionContext, PhaseExecutor
+from application.phase_workers import plan_worker
+from application.records import DEVELOPMENT_USER_ID
+from cli import output
 from cli.phase_state import load_phase_state, read_json, state_delta
-from infrastructure.storage.memory import InMemoryCancel
+from cli.phase_tools import DebugTools
+from domain.research.ids import canonical_hash
+from domain.research.phase_contracts import PhaseInput, merge_phase_result
 
 
 async def run(args) -> int:
     state = load_phase_state(read_json(args.state, "--state"), args.phase)
-    session_id = state.session_id or "phase"
-    before = asdict(state)
+    workers = {"plan": plan_worker}
+    if args.phase not in workers:
+        raise output.EnvError(f"Formal {args.phase} worker is not configured")
+    before = state.model_dump(mode="json")
+    value = PhaseInput.from_state(state)
+    config = state.run_metadata.config
+    tools = DebugTools(state, fake=args.fake, seed=args.seed)
+    events = []
 
-    c = container.build_container(fake=args.fake, seed=args.seed, verbose=args.verbose)
-    orchestrator = Orchestrator(
-        c.bus, InMemoryCancel(), c.store, c.llm, c.search, c.retrieval, c.execution
+    async def stopping():
+        return False
+
+    context = ExecutionContext(
+        owner_id=DEVELOPMENT_USER_ID,
+        run_id=state.run_id,
+        config=config,
+        brief_hash=state.brief_hash,
+        lease_token=1,
+        unit_id="debug-" + canonical_hash(value),
+        deadline=datetime.now(UTC) + timedelta(seconds=config.limits.deadline_s),
+        cancel_check=stopping,
+        invoke=tools.invoke,
+        emit=events.append,
     )
-    # Reuse the orchestrator's single-phase dispatch (no parallel agent path).
-    await orchestrator.run_phase(state)
-
-    post_state = asdict(state)
-    events = [output.event_to_dict(e) for e in output.drain_events(c.bus, session_id)]
+    try:
+        async with asyncio.timeout(config.limits.deadline_s):
+            changes = await PhaseExecutor(workers).execute_phase(value, context)
+        post_state = merge_phase_result(state, changes).model_dump(mode="json")
+    finally:
+        await tools.close()
     result = {
         "phase": args.phase,
         "state": post_state,
         "state_delta": state_delta(before, post_state),
         "events": events,
+        "dependency_mode": "fake" if args.fake else "real",
+        "debug_usage": tools.usage,
     }
     if args.json:
         output.emit_json("ok", result)

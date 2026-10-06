@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
+from application.errors import AppError
 from domain.ports import AdapterError
 from domain.research.agents import architect
 from domain.research.ids import canonical_hash
@@ -78,6 +79,23 @@ async def test_planner_cancellation_propagates_without_retry():
     with pytest.raises(asyncio.CancelledError):
         await architect.plan(llm, initial_state().research_brief)
     assert llm.calls == 1
+
+
+@pytest.mark.parametrize("code", ["budget_exhausted", "stale_resource", "invalid_session_state"])
+async def test_trusted_tool_control_error_propagates_without_repair_or_retry(code):
+    failure = AppError(code, "Controlled stop")
+
+    class Model:
+        calls = 0
+
+        async def complete(self, prompt):
+            self.calls += 1
+            raise failure
+
+    model = Model()
+    with pytest.raises(AppError) as caught:
+        await architect.plan(model, initial_state().research_brief)
+    assert caught.value is failure and model.calls == 1
 
 
 def test_recorded_real_plan_fixture_has_verified_hashes_and_no_prose_numeric_requirements():

@@ -2,10 +2,14 @@
 
 import json
 
+from application.errors import AppError
 from cli.__main__ import main
+from cli.phase_tools import DebugTools
+from domain.research.state import PipelineState
+from tests.unit.test_state import initial_state
 
 
-def test_phase_review_fake(tmp_path, capsys) -> None:
+def test_phase_rejects_legacy_partial_review_instead_of_approving(tmp_path, capsys) -> None:
     state = {
         "session_id": "s1",
         "phase": "review",
@@ -18,9 +22,10 @@ def test_phase_review_fake(tmp_path, capsys) -> None:
     path.write_text(json.dumps(state))
     code = main(["phase", "review", "--state", str(path), "--json"])
     out = capsys.readouterr().out
-    assert code == 0
-    assert '"phase": "review"' in out
-    assert '"state_delta"' in out
+    assert code == 2
+    body = json.loads(out)
+    assert body["status"] == "usage_error"
+    assert "schema_version" in body["error"]["message"]
 
 
 def test_phase_rejects_unknown_phase() -> None:
@@ -45,3 +50,22 @@ def test_phase_rejects_phase_mismatch(tmp_path) -> None:
 
 def test_phase_rejects_missing_state_file() -> None:
     assert main(["phase", "plan", "--state", "not-found.json", "--json"]) == 2
+
+
+def test_private_real_phase_rejected_before_sdk_creation(monkeypatch):
+    from uuid import uuid4
+
+    import pytest
+
+    data = initial_state().model_dump(mode="json")
+    selection = {"categories": ["knowledge_base"], "knowledge_base_ids": [str(uuid4())]}
+    data["source_selection"] = selection
+    data["run_metadata"]["config"]["source_policy"] = selection | {"private_only": True}
+    state = PipelineState.model_validate(data)
+
+    def forbidden(*args, **kwargs):
+        raise AssertionError("External SDK must not be created")
+
+    monkeypatch.setattr("cli.phase_tools.DeepSeekLLM", forbidden)
+    with pytest.raises(AppError, match="privacy_policy_conflict"):
+        DebugTools(state, fake=False)

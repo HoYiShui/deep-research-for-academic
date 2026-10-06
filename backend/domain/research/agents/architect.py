@@ -14,7 +14,7 @@ from typing import Any
 
 from pydantic import ValidationError, field_validator
 
-from domain.ports import AdapterError, LLMPort
+from domain.ports import AdapterError, ExecutionControlError, LLMPort
 from domain.research.agents.base import call_llm, parse_json
 from domain.research.facts import SectionPlan
 from domain.research.models import (
@@ -107,6 +107,8 @@ async def _structured(llm, prompt, schema, *, operation, timeout_s=60, max_chars
     for attempt in range(3):
         try:
             raw = await asyncio.wait_for(llm.complete(prompt), timeout=timeout_s)
+        except ExecutionControlError:
+            raise
         except AdapterError as failure:
             if failure.code == "model_output_invalid" and not repair_used and attempt < 2:
                 repair_used = True

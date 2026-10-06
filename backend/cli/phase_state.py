@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 import json
-from dataclasses import fields
 from pathlib import Path
 from typing import Any
 
+from pydantic import ValidationError
+
 from cli import output
-from domain.research.legacy_state import PipelineState
+from domain.research.phase_contracts import PhaseInput
+from domain.research.state import PipelineState
 
 _BRIEF_FIELDS = (
     "task_type",
@@ -28,14 +30,6 @@ _TASK_TYPES = {
     "evaluation_design",
     "reviewer_response",
 }
-_PHASE_REQUIREMENTS = {
-    "plan": ("research_brief",),
-    "research": ("research_brief", "section_plans"),
-    "analyze": ("section_plans", "quantitative_observations"),
-    "write": ("research_brief", "section_plans", "claims", "evidence"),
-    "review": ("draft_claim_bindings", "claims", "evidence", "sources"),
-}
-_STATE_FIELDS = {field.name for field in fields(PipelineState)}
 
 
 def read_json(path: str, option: str) -> Any:
@@ -43,8 +37,8 @@ def read_json(path: str, option: str) -> Any:
     try:
         with Path(path).open() as file:
             return json.load(file)
-    except FileNotFoundError as exc:
-        raise output.UsageError(f"{option} file not found: {path}") from exc
+    except (OSError, UnicodeError) as exc:
+        raise output.UsageError(f"{option} file cannot be read: {path}") from exc
     except json.JSONDecodeError as exc:
         raise output.UsageError(f"{option} must contain valid JSON: {exc.msg}") from exc
 
@@ -71,22 +65,19 @@ def load_phase_state(data: Any, phase: str) -> PipelineState:
     """
     if not isinstance(data, dict):
         raise output.UsageError("--state must contain a JSON object")
-    unknown = sorted(set(data) - _STATE_FIELDS)
-    if unknown:
-        raise output.UsageError(f"--state has unknown fields: {', '.join(unknown)}")
     try:
-        state = PipelineState(**data)
-    except TypeError as exc:
-        raise output.UsageError(f"invalid --state: {exc}") from exc
+        state = PipelineState.model_validate(data)
+    except ValidationError as exc:
+        fields = sorted({".".join(str(p) for p in item["loc"]) for item in exc.errors()})
+        raise output.UsageError("Invalid mono --state fields: " + ", ".join(fields)) from None
     if state.phase != phase:
+        raise output.UsageError(f"--state phase is {state.phase!r}; command requests {phase!r}")
+    try:
+        PhaseInput.from_state(state)
+    except ValueError:
         raise output.UsageError(
-            f"--state phase is {state.phase!r}; command requests {phase!r}"
-        )
-    missing = [name for name in _PHASE_REQUIREMENTS[phase] if not getattr(state, name)]
-    if missing:
-        raise output.UsageError(
-            f"--state lacks {phase} prerequisites: {', '.join(missing)}"
-        )
+            f"--state lacks valid {phase} prerequisites or fact links"
+        ) from None
     return state
 
 

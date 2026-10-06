@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+from domain.ports import ExecutionControlError
 
-class AppError(Exception):
+
+class AppError(ExecutionControlError):
     def __init__(
         self, code: str, message: str, *, retryable: bool = False, details: dict | None = None
     ):

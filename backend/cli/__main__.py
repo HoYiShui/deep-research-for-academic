@@ -47,7 +47,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--real",
         action="store_false",
         dest="fake",
-        help="use real adapters and persist the debug run",
+        help="use real adapters for this isolated phase (no Session/Report writes)",
     )
     p.add_argument("--seed", type=int, help="fake-mode seed")
     _add_common(p)

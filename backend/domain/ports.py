@@ -34,6 +34,10 @@ class AdapterError(Exception):
         self.operation = operation
 
 
+class ExecutionControlError(Exception):
+    """Trusted tool/coordinator stop: workers must propagate without I/O retry."""
+
+
 @dataclass
 class Embedding:
     """A BGE-M3 dual vector: dense for semantics, sparse for exact terms."""
