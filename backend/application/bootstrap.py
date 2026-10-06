@@ -19,6 +19,7 @@ from application.knowledge_base_service import KnowledgeBaseService
 from application.orchestrator import Orchestrator
 from application.research_queries import ResearchQueries
 from application.research_service import LegacyResearchService, ResearchService
+from application.run_sse import RunEventBus, RunEventStream
 from application.session_service import LegacySessionService, SessionService
 from application.settings import Settings
 from application.sse import EventBus
@@ -200,6 +201,13 @@ class HttpRuntime:
             settings=self.settings,
         )
         self.research_queries = ResearchQueries(store, store.research)
+        self.run_event_bus = RunEventBus(queue_size=self.settings.sse_queue_size)
+        self.run_events = RunEventStream(
+            self.research_queries,
+            self.run_event_bus,
+            poll_s=self.settings.scan_s,
+            heartbeat_s=self.settings.sse_heartbeat_s,
+        )
 
     @property
     def knowledge_base(self):

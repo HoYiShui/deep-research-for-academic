@@ -29,6 +29,24 @@ _clarify = TypeAdapter(ClarifyResponse)
 _confirmation = TypeAdapter(AskResponse | ReadyResponse)
 
 
+class _RunStreamingResponse(StreamingResponse):
+    """Also unsubscribe when disconnect cancels the ASGI send after a yield."""
+
+    def __init__(self, stream):
+        self.stream = stream
+        super().__init__(
+            stream,
+            media_type="text/event-stream",
+            headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+        )
+
+    async def __call__(self, scope, receive, send):
+        try:
+            await super().__call__(scope, receive, send)
+        finally:
+            await self.stream.aclose()
+
+
 async def request_key(
     value: Annotated[str, Header(alias="Idempotency-Key", min_length=1, max_length=128)],
 ) -> str:
@@ -85,10 +103,8 @@ async def stream_events(
     session_id: UUID, request: Request, user: str = Depends(require_user)
 ) -> StreamingResponse:
     """Stream SSE events for a session."""
-    view = await get_container(request).research_queries.session_view(UUID(user), session_id)
-    if view["run_id"] is None:
-        raise AppError("invalid_session_state", "Events require a frozen brief")
-    raise AppError("service_not_ready", "Durable run events are not ready")
+    stream = await get_container(request).run_events.open(UUID(user), session_id)
+    return _RunStreamingResponse(stream)
 
 
 @router.get("/research/{session_id}/report")

@@ -204,6 +204,27 @@ async def test_http_report_is_committed_markdown_and_completion_blocks_cancel(co
         assert model.calls == 0
 
 
+async def test_http_terminal_sse_has_named_done_and_does_not_replay_history(configured):
+    from tests.integration.test_mono_report_publication import publish, reviewed
+
+    app, _pool, _model, runtime = configured
+    commit, claimed, point, _report = await reviewed(runtime.repository_store, DEVELOPMENT_USER_ID)
+    await publish(runtime.repository_store, claimed, point)
+    async with httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=app), base_url="http://test"
+    ) as http:
+        result = await http.get(
+            f"/research/{commit.session.session_id}/events", headers={"Last-Event-ID": str(uuid4())}
+        )
+        assert result.status_code == 200
+        assert result.headers["content-type"].startswith("text/event-stream")
+        assert result.headers["cache-control"] == "no-cache"
+        assert result.headers["x-accel-buffering"] == "no"
+        assert "event: done\n" in result.text and result.text.count("data: ") == 1
+        assert '"status": "completed"' in result.text
+        assert runtime.run_event_bus.subscriber_count == 0
+
+
 async def test_http_cancel_cache_failure_rolls_back_resource(configured, monkeypatch):
     app, pool, _model, runtime = configured
     async with httpx.AsyncClient(

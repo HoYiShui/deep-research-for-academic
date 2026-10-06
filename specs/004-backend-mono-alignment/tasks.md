@@ -80,6 +80,7 @@
   - 调度核心与显式受控executor经过6项真实PG验证，全量349通过；默认HttpRuntime尚不启动，待T017正式执行器后组合，不勾选。证据：[Runner核心](evidence/t016-runner-core.md)。
 - [ ] T017 [US2] 更新 `backend/application/orchestrator.py`：execute_phase输入切片/白名单PhaseResult、单元验证合并、unit_manifest、完整seq快照、Machine转换；禁止空计划成功、禁止全局State交给Agent修改，终态先提交再发事件。
 - [ ] T018 [US2] 更新 `backend/application/sse.py`、`backend/domain/research/events.py`：每订阅独立有界队列、bootstrap竞态、心跳、slow consumer、JWT过期、phase/progress/rework/error/done统一帧；为CLI持租Run轮询PG当前投影，不假装共享跨进程内存队列。
+  - 默认HTTP已使用`run_sse.py`/`run_events.py`严格事件、每订阅队列与PG bootstrap/poll；全量361通过。旧CLI事件隔离，实时Orchestrator发布/JWT截止传递/独立TCP尚待接入，不勾选。证据：[SSE核心](evidence/t018-sse-core.md)。
 - [ ] T019 [US2] 更新 `backend/application/research_service.py` 与 `backend/interface/router/research.py` 的status/report/events/cancel/resume：所有权、前置、最新seq、失败恢复资格、报告未就绪409；PG不可用只诊断error，不能发已完成持久失败的假done。
   - cancel/resume/report已经接同一幂等事务和owner查询，27项HTTP+PG回归通过；events、Runner及真实配置可用性尚待接入，不勾选。证据：[HTTP生命周期](evidence/t019-http-lifecycle.md)。
 - [ ] T020 [US2] 新增 `backend/application/tool_calls.py`（新）、更新 Repository/ContentStore 契约与实现：调用身份、预算事务预留、结果hash缓存、uncertain记录、恢复不重置预算；用 `backend/tests/integration/test_mono_tool_cache.py` 覆盖成功缓存不重发、不确定窗口只读重放有记录、并发不超预算。内容 Adapter 必须真实持久化调用缓存，不能用空存根。
@@ -196,4 +197,4 @@ Web执行顺序：T063 → T064 → T065 → T066 → T061–T062；T064依赖T0
 
 验收覆盖索引：A1=T008–T013；A2=T006/T008/T011/T053；A3=T006/T015/T036；A4=T027/T033–T038；A5=T029–T032；A6=T034–T039；A7=T043–T048/T050/T052；A8=T040–T041/T047/T049/T052；A9=T020/T022/T055；A10=T014/T018–T019/T022；A11=T007/T050/T053–T054；A12=T021/T051/T059；A13=T056–T058/T061。
 
-**当前下一步：T014真实PG生命周期反例 → T015持久执行Repository → T016–T022调度、SSE与恢复闭环。** T007默认HTTP装配、T008/T012契约与T013真实模型公开会话已通过，完整回归299项；T011仅KB授权/版本/隐私部分等待T041/T050，当前对KB请求明确404且零模型调用。公开来源可继续US2，不以未就绪KB冒充支持，不把US1公开闭环当整个goal完成。历史阶段说明记录当时边界，以最新证据为准。Web仍按T063–T066纳入最终交付。
+**当前下一步：T017正式阶段执行/快照 → 组合T016 Runner → T020调用预算缓存 → T021 CLI → T022独立进程恢复验收。** T015租约/取消/恢复/报告事务和T019 HTTP生命周期已接入；T018默认HTTP可订阅当前持久状态，全量361通过。正式phase executor尚未组合，默认ready Run不会自动研究；尚不能宣称M2或业务报告完成。T011仅KB授权/版本/隐私部分等待T041/T050，当前对KB请求明确404且零模型调用。历史阶段说明记录当时边界，以最新证据为准。Web仍按T063–T066纳入最终交付。
