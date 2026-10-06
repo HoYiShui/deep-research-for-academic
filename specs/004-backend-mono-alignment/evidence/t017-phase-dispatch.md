@@ -25,3 +25,20 @@
 包含最后共享并发反例的最终全量回归 **487 passed in 63.35s**；新实现与测试ruff检查通过。原PG与无关文件未修改，未push。
 
 尚未组合正式Orchestrator的unit_manifest/Checkpoint/Machine、默认Runner或CLI；其他工具随对应worker继续接入。T017/T020仍不勾选。
+
+## 补充：逐单元完整快照与可验证跳过（2026-10-06）
+
+- `application/orchestrator.py` 新增正式 `RunUnitCoordinator`；旧Orchestrator仍由旧CLI使用，未伪装成新设计。协调器从PG当前seq读取完整State，公开lease检查使用PG时钟/owner/token，Executor/context必须显式提供且匹配当前执行权限。
+- `phase_units.py` 的 UnitScope 由协调器提供章节/分析要求/参数，WorkerContext仅得到独立克隆；worker修改范围仍被拒绝。模型call identity现在可包含可信scope，防止同PhaseInput下不同单元范围碰撞；旧无scope调试callback保持明确边界。
+- Worker返回的PhaseResult必须通过目标范围纯合并；空plan、不合法回链或上下文owner/run/token错配不能提交。阶段保持不变，完整Checkpoint seq+1，与Run.seq及Session投影同一租约事务。
+- 为落实“有效result_hash”，细化mono MODEL的UnitResult，增加 `result_ref: ContentRef`。结果envelope仅包含可信scope、输入hash与PhaseResult，不复制全部输入事实；MinIO先真实保存/验证，PG事务后才保存manifest/合并事实。提交失败可能留下不可变orphan，但不能当已完成单元。
+- 恢复跳过要求：读取/校验结果对象、scope/input/result身份、该单元提交前后的不可变Checkpoint，重做纯合并并确认完整post-state一致。缺失/损坏、同ID不同scope明确失败，不重复收费执行已提交单元。
+- 结算ledger与State预算在同提交事务读取/校验；cancel在I/O完成后允许最后安全单元落Checkpoint，但无Report/phase推进。旧租约不能提交；双提交只有一个expected_seq成功。投影只在提交后发出，投影异常只记安全诊断，不把已提交Run改failed。
+
+真实PG/MinIO、明确受控模型目标集 **14 passed in 4.80s**：正式plan→预算/cache→单元对象/manifest/seq；新lease无worker也能验证跳过；缺失对象不重跑；篡改scope；SQL故障后重试复用已付费结果；空计划；owner/run/token越权；开始前取消；I/O后取消安全提交；失租；并发seq；投影异常不影响PG事实。
+
+初始13项加入后全量 **500 passed in 71.40s**；最后补充投影异常反例的目标集14项通过。模型不是真实SDK，不能据此宣称研究报告已闭环。
+
+最终完整回归 **501 passed in 69.77s**；本轮修改ruff和`git diff --check`通过，`mdbook build docs`成功（工具提示mermaid preprocessor编译版本0.5.0与当前mdbook0.5.4差异，非构建失败）。原PG/原型仓库/无关文件未修改；未push。
+
+T017仍不勾选：phase单元清单规划、Machine转换/返工、报告质量门及默认Runner/CLI组合尚未完成；T022完整独立HTTP/返工恢复仍待补。

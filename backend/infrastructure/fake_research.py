@@ -365,6 +365,22 @@ class _Research:
         data.runs[current.run_id] = updated
         return ClaimedRun(owner_id=claimed.owner_id, run=copy.deepcopy(updated))
 
+    async def check_run_lease(self, claimed, tx):
+        claimed = ClaimedRun.model_validate(claimed)
+        self.db.write_data(tx)
+        current = await self.get_run(claimed.owner_id, claimed.run.run_id, tx)
+        if current is None:
+            raise AppError("session_not_found", "Session not found")
+        if (
+            current.status not in {"running", "cancelling"}
+            or current.lease_owner != claimed.run.lease_owner
+            or current.lease_token != claimed.run.lease_token
+            or current.lease_expires_at is None
+            or current.lease_expires_at <= self.db.clock.now_utc()
+        ):
+            raise AppError("stale_resource", "Run lease is no longer owned")
+        return current
+
     async def commit_checkpoint(self, claimed, expected_seq, checkpoint, tx):
         claimed = ClaimedRun.model_validate(claimed)
         checkpoint = Checkpoint.model_validate(checkpoint)

@@ -9,6 +9,7 @@ import asyncio
 from dataclasses import dataclass
 
 from application.errors import AppError
+from application.phase_units import UnitScope
 from application.tool_budget import ToolBudgetRequest
 from application.tool_calls import ToolCallService, ToolOutput
 from domain.model_completion import MeteredModelPort, ModelCompletion
@@ -61,7 +62,14 @@ class PhaseTools:
             raise TypeError("Composition root must supply its shared process model semaphore")
         self._slots = model_slots
 
-    def for_phase(self, value: PhaseInput, *, terminal=False, allow_uncertain_replay=False):
+    def for_phase(
+        self,
+        value: PhaseInput,
+        *,
+        terminal=False,
+        allow_uncertain_replay=False,
+        unit_scope: UnitScope | None = None,
+    ):
         """Terminal reserve/replay authority is chosen by coordinator, not payload."""
         if type(terminal) is not bool or type(allow_uncertain_replay) is not bool:
             raise ValueError("Tool authority flags must be explicit booleans")
@@ -75,6 +83,13 @@ class PhaseTools:
         ):
             raise AppError("invalid_state", "Tool slice differs from frozen Run scope")
         input_hash, phase = value.semantic_hash, value.phase
+        if unit_scope is not None:
+            unit_scope = UnitScope.model_validate_json(unit_scope.model_dump_json())
+            if unit_scope.phase != phase:
+                raise AppError("invalid_state", "Tool unit differs from requested phase")
+            input_hash = canonical_hash(
+                {"phase_input": input_hash, "unit_scope": unit_scope.model_dump(mode="json")}
+            )
         model = self._model
         version = canonical_hash(
             {

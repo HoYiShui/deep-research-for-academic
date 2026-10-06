@@ -7,6 +7,7 @@ from uuid import UUID
 
 from pydantic import Field, StrictFloat, StrictInt, field_validator, model_validator
 
+from domain.content import ContentRef
 from domain.research.facts import (
     AnalysisArtifact,
     Claim,
@@ -76,9 +77,19 @@ class UnitResult(Record):
     phase: ResearchPhase
     input_hash: Hash
     result_hash: Hash
+    result_ref: ContentRef
     checkpoint_seq: Positive
     completed_at: UTC
     affected_ids: list[Text]
+
+    @model_validator(mode="after")
+    def result_reference(self):
+        if (
+            self.result_hash != self.result_ref.sha256
+            or self.result_ref.media_type != "application/json"
+        ):
+            raise ValueError("Unit result requires its immutable JSON content reference")
+        return self
 
 
 class RunMetadata(Record):
@@ -332,4 +343,11 @@ class Checkpoint(Record):
             raise ValueError("Checkpoint identity/phase differs from state")
         if self.state_hash != canonical_hash(self.state):
             raise ValueError("Checkpoint state hash mismatch")
+        if any(
+            unit.checkpoint_seq > self.seq
+            or unit.checkpoint_seq < 2
+            or unit.result_ref.key != f"phase-results/{self.run_id}/{unit.result_hash}"
+            for unit in self.state.run_metadata.unit_manifest.values()
+        ):
+            raise ValueError("Unit manifest must reference an earlier or current Run checkpoint")
         return self

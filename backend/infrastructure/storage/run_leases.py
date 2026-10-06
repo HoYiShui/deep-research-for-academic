@@ -147,6 +147,10 @@ class RunLeases:
             raise AppError("invalid_state", "Run and Session status are inconsistent")
         return conn, session, run
 
+    async def check_run_lease(self, claimed, tx):
+        _conn, _session, run = await self._locked_lease(claimed, tx)
+        return run
+
     @staticmethod
     def _checkpoint_input(run, session, previous, point, expected_seq, *, publication=False):
         if type(expected_seq) is not int or expected_seq <= 0:
