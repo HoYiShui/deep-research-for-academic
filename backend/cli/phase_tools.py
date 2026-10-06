@@ -10,6 +10,7 @@ import json
 from application.errors import AppError
 from application.settings import Settings
 from cli import output
+from cli.research_tools import ResearchDebugTools
 from domain.ports import AdapterError
 from infrastructure.llm.deepseek import DeepSeekLLM
 
@@ -21,10 +22,24 @@ class DebugTools:
         if self.config.versions.prompt_versions[state.phase] != "mono-v1":
             raise output.UsageError("State prompt version differs from configured worker")
         self.output_limit = min(16384, self.config.limits.tokens)
-        self.usage = {"llm_calls": 0, "input_tokens": 0, "output_tokens": 0}
+        self.usage = {
+            "llm_calls": 0,
+            "input_tokens": 0,
+            "output_tokens": 0,
+            "search_calls": 0,
+            "fetch_calls": 0,
+        }
         self.model = None
+        self.research = None
+        settings = Settings.load() if not fake else None
+        if state.phase == "research":
+            if self.config.source_policy.private_only or state.source_selection.knowledge_base_ids:
+                raise output.EnvError("Knowledge-base research debug is not configured")
+            if not fake and self.config.versions.parser_version != "dr4a-html-v1":
+                raise output.EnvError(
+                    "Research debug requires parser_version=dr4a-html-v1; PDF is not configured"
+                )
         if not fake:
-            settings = Settings.load()
             versions = self.config.versions
             if self.config.source_policy.private_only or settings.llm_local:
                 raise AppError(
@@ -32,6 +47,11 @@ class DebugTools:
                 )
             if state.source_selection.knowledge_base_ids:
                 raise output.EnvError("Knowledge-base version authorization is not configured")
+            if any(source.data_classification != "public" for source in state.sources.values()):
+                raise AppError(
+                    "privacy_policy_conflict",
+                    "Private snapshot facts cannot use external debug adapters",
+                )
             if (versions.llm_provider, versions.llm_model, versions.llm_revision) != (
                 "anthropic_compatible",
                 settings.llm_model,
@@ -48,15 +68,27 @@ class DebugTools:
                 timeout_s=self.config.timeouts_s.llm,
                 max_tokens=self.output_limit,
             )
+        if state.phase == "research":
+            self.research = ResearchDebugTools(settings, self.config, self.usage, fake=fake)
+
+    def for_unit(self, unit):
+        if self.research is not None:
+            self.research.for_unit(unit)
 
     async def invoke(self, operation, payload):
+        if operation in {"search", "fetch"} and self.research is not None:
+            return await self.research.invoke(operation, payload)
         if operation != "llm" or payload.get("phase") != self.state.phase:
             raise AppError("invalid_state", "Debug tool operation differs from requested phase")
         prompt = payload.get("prompt")
         if not isinstance(prompt, str):
             raise AppError("invalid_state", "Invalid debug model input")
         if self.fake:
-            return self.fake_plan()
+            return (
+                self.fake_plan()
+                if self.state.phase == "plan"
+                else json.dumps({"evidence": [], "claims": [], "observations": []})
+            )
         # Conservative allowance, not measured use. Refuse another call before
         # its input-byte/output allowance could exceed this isolated debug cap.
         reserved = len(prompt.encode()) + 64 + self.output_limit
@@ -78,7 +110,7 @@ class DebugTools:
                 "model_output_invalid",
                 "Model response was truncated or changed model",
                 False,
-                "plan",
+                self.state.phase,
             )
         return response.text
 
@@ -110,5 +142,7 @@ class DebugTools:
         )
 
     async def close(self):
+        if self.research is not None:
+            await self.research.close()
         if self.model is not None:
             await self.model.aclose()

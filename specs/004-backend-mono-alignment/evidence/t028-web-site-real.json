@@ -1,0 +1,19 @@
+{
+  "scope": "isolated_cli_research",
+  "dependency_mode": "real",
+  "persisted_run": false,
+  "result": {
+    "status": "env_error",
+    "error": {
+      "code": "content_missing",
+      "message": "Stored content is unavailable",
+      "details": null,
+      "retryable": false,
+      "request_id": "0ac00724-7837-4ea2-a87e-b1e0b10d48aa"
+    }
+  },
+  "verified_evidence": [],
+  "unmet_acceptance": [
+    "CLI research failed"
+  ]
+}

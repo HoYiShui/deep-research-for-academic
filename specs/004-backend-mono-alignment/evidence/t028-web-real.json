@@ -1,0 +1,726 @@
+{
+  "scope": "isolated_cli_research",
+  "dependency_mode": "real",
+  "persisted_run": false,
+  "result": {
+    "status": "ok",
+    "error": null,
+    "phase": "research",
+    "state": {
+      "schema_version": 1,
+      "session_id": "21d279a5-c2e7-4d87-820f-1253f7ba366b",
+      "run_id": "868ec10c-3b64-4330-b8fd-ca7a3c47cc96",
+      "brief_version": 1,
+      "brief_hash": "76196b00a338c1ecfef8ac8991261cad76146127d6f7a5a36fc5b336bbb1a221",
+      "phase": "research",
+      "research_brief": {
+        "task_type": "method_differentiation",
+        "decision_goal": "核验公开网页中Transformer的注意力机制描述，不做性能排序",
+        "research_object": "Attention Is All You Need / Transformer",
+        "scope": "本轮验证公开网页原文链路",
+        "comparison_scope": "不跨协议比较数值",
+        "claims_to_verify": "Transformer是否使用注意力而非循环结构",
+        "evidence_requirements": "真实原文摘录和定位；核心结论还须论文正文，缺证明确Gap",
+        "conclusion_boundary": "不以摘要证明实验优势或假造数字",
+        "deliverable": "原文回链事实快照，不是最终报告",
+        "assumptions": "本轮仅验证web；未满足真实PDF验收"
+      },
+      "source_selection": {
+        "categories": [
+          "web"
+        ],
+        "knowledge_base_ids": []
+      },
+      "section_plans": [
+        {
+          "section_id": "section_1",
+          "title": "公开原文验证",
+          "objective": "验证事实回链，不预先断言研究结论",
+          "claim_specs": [
+            {
+              "spec_id": "spec-attention",
+              "text": "从原文核验Transformer的注意力机制",
+              "required_conditions": [
+                "original_section"
+              ],
+              "required_source_tiers": [
+                "primary",
+                "official"
+              ]
+            }
+          ],
+          "sub_questions": [
+            "Attention Is All You Need Transformer attention arxiv original"
+          ],
+          "retrieval_anchors": [
+            "Transformer",
+            "attention"
+          ],
+          "evidence_requirements": [
+            "真实原文和明确定位"
+          ],
+          "analysis_requirements": []
+        },
+        {
+          "section_id": "section_2",
+          "title": "公开原文验证",
+          "objective": "验证事实回链，不预先断言研究结论",
+          "claim_specs": [
+            {
+              "spec_id": "spec-attention",
+              "text": "从原文核验Transformer的注意力机制",
+              "required_conditions": [
+                "original_section"
+              ],
+              "required_source_tiers": [
+                "primary",
+                "official"
+              ]
+            }
+          ],
+          "sub_questions": [],
+          "retrieval_anchors": [
+            "Transformer",
+            "attention"
+          ],
+          "evidence_requirements": [
+            "真实原文和明确定位"
+          ],
+          "analysis_requirements": []
+        },
+        {
+          "section_id": "section_3",
+          "title": "公开原文验证",
+          "objective": "验证事实回链，不预先断言研究结论",
+          "claim_specs": [
+            {
+              "spec_id": "spec-attention",
+              "text": "从原文核验Transformer的注意力机制",
+              "required_conditions": [
+                "original_section"
+              ],
+              "required_source_tiers": [
+                "primary",
+                "official"
+              ]
+            }
+          ],
+          "sub_questions": [],
+          "retrieval_anchors": [
+            "Transformer",
+            "attention"
+          ],
+          "evidence_requirements": [
+            "真实原文和明确定位"
+          ],
+          "analysis_requirements": []
+        },
+        {
+          "section_id": "section_4",
+          "title": "公开原文验证",
+          "objective": "验证事实回链，不预先断言研究结论",
+          "claim_specs": [
+            {
+              "spec_id": "spec-attention",
+              "text": "从原文核验Transformer的注意力机制",
+              "required_conditions": [
+                "original_section"
+              ],
+              "required_source_tiers": [
+                "primary",
+                "official"
+              ]
+            }
+          ],
+          "sub_questions": [],
+          "retrieval_anchors": [
+            "Transformer",
+            "attention"
+          ],
+          "evidence_requirements": [
+            "真实原文和明确定位"
+          ],
+          "analysis_requirements": []
+        },
+        {
+          "section_id": "section_5",
+          "title": "公开原文验证",
+          "objective": "验证事实回链，不预先断言研究结论",
+          "claim_specs": [
+            {
+              "spec_id": "spec-attention",
+              "text": "从原文核验Transformer的注意力机制",
+              "required_conditions": [
+                "original_section"
+              ],
+              "required_source_tiers": [
+                "primary",
+                "official"
+              ]
+            }
+          ],
+          "sub_questions": [],
+          "retrieval_anchors": [
+            "Transformer",
+            "attention"
+          ],
+          "evidence_requirements": [
+            "真实原文和明确定位"
+          ],
+          "analysis_requirements": []
+        }
+      ],
+      "sources": {},
+      "evidence": {},
+      "claims": {},
+      "claim_evidence_links": [],
+      "quantitative_observations": {},
+      "comparable_metrics": {},
+      "comparison_sets": {},
+      "analysis_artifacts": {},
+      "section_coverage": {
+        "section_1": {
+          "section_id": "section_1",
+          "claim_spec_ids": [
+            "spec-attention"
+          ],
+          "claim_ids": [],
+          "evidence_ids": [],
+          "covered_claim_ids": [],
+          "gaps": [
+            {
+              "gap_id": "gap-54e9512c28208d1c9828f5214654939cbe72502fc986b92154de8631a9123f96",
+              "section_id": "section_1",
+              "claim_spec_id": "spec-attention",
+              "claim_id": null,
+              "reason": "No extracted claim for this ClaimSpec",
+              "fillable": true,
+              "verification_action": "Retrieve original evidence addressing this spec and its required conditions"
+            }
+          ],
+          "unresolved_items": [
+            "No extracted claim for this ClaimSpec"
+          ]
+        },
+        "section_2": {
+          "section_id": "section_2",
+          "claim_spec_ids": [
+            "spec-attention"
+          ],
+          "claim_ids": [],
+          "evidence_ids": [],
+          "covered_claim_ids": [],
+          "gaps": [
+            {
+              "gap_id": "gap-5ac581eaea85fca14a415046029f69f891d981d5d4644725dc1cfefcb5ebec9a",
+              "section_id": "section_2",
+              "claim_spec_id": "spec-attention",
+              "claim_id": null,
+              "reason": "No extracted claim for this ClaimSpec",
+              "fillable": true,
+              "verification_action": "Retrieve original evidence addressing this spec and its required conditions"
+            }
+          ],
+          "unresolved_items": [
+            "No extracted claim for this ClaimSpec"
+          ]
+        },
+        "section_3": {
+          "section_id": "section_3",
+          "claim_spec_ids": [
+            "spec-attention"
+          ],
+          "claim_ids": [],
+          "evidence_ids": [],
+          "covered_claim_ids": [],
+          "gaps": [
+            {
+              "gap_id": "gap-cc8010480c3e1439164a37b4a5f4e15ceec694a627de9c37690ce42f7bbbba73",
+              "section_id": "section_3",
+              "claim_spec_id": "spec-attention",
+              "claim_id": null,
+              "reason": "No extracted claim for this ClaimSpec",
+              "fillable": true,
+              "verification_action": "Retrieve original evidence addressing this spec and its required conditions"
+            }
+          ],
+          "unresolved_items": [
+            "No extracted claim for this ClaimSpec"
+          ]
+        },
+        "section_4": {
+          "section_id": "section_4",
+          "claim_spec_ids": [
+            "spec-attention"
+          ],
+          "claim_ids": [],
+          "evidence_ids": [],
+          "covered_claim_ids": [],
+          "gaps": [
+            {
+              "gap_id": "gap-d6f1d2648193a9cae711f94f8d6e5702836950af30f36a784b0cca59e078b030",
+              "section_id": "section_4",
+              "claim_spec_id": "spec-attention",
+              "claim_id": null,
+              "reason": "No extracted claim for this ClaimSpec",
+              "fillable": true,
+              "verification_action": "Retrieve original evidence addressing this spec and its required conditions"
+            }
+          ],
+          "unresolved_items": [
+            "No extracted claim for this ClaimSpec"
+          ]
+        },
+        "section_5": {
+          "section_id": "section_5",
+          "claim_spec_ids": [
+            "spec-attention"
+          ],
+          "claim_ids": [],
+          "evidence_ids": [],
+          "covered_claim_ids": [],
+          "gaps": [
+            {
+              "gap_id": "gap-c160ced5738792b0658630349dc09c46877d903b984a32ee641f0c0e753a225d",
+              "section_id": "section_5",
+              "claim_spec_id": "spec-attention",
+              "claim_id": null,
+              "reason": "No extracted claim for this ClaimSpec",
+              "fillable": true,
+              "verification_action": "Retrieve original evidence addressing this spec and its required conditions"
+            }
+          ],
+          "unresolved_items": [
+            "No extracted claim for this ClaimSpec"
+          ]
+        }
+      },
+      "draft_sections": {},
+      "draft_claim_bindings": [],
+      "critic_feedback": [],
+      "draft_version": 0,
+      "reviewed_draft_version": null,
+      "review_verdict": null,
+      "final_report": null,
+      "run_metadata": {
+        "config": {
+          "versions": {
+            "llm_provider": "anthropic_compatible",
+            "llm_model": "deepseek-flash",
+            "llm_revision": "unconfigured",
+            "prompt_versions": {
+              "clarify": "mono-v1",
+              "plan": "mono-v1",
+              "research": "mono-v1",
+              "analyze": "mono-v1",
+              "write": "mono-v1",
+              "review": "mono-v1"
+            },
+            "template_versions": {
+              "comparison_matrix": "mono-v1",
+              "pairwise_delta": "mono-v1",
+              "plot": "mono-v1",
+              "statistic": "mono-v1",
+              "aggregation": "mono-v1"
+            },
+            "parser_version": "dr4a-html-v1",
+            "chunker_version": "mono-v1",
+            "embedding_version": "unconfigured",
+            "reranker_version": "unconfigured",
+            "index_version": "dr4a_chunks_v1"
+          },
+          "source_policy": {
+            "categories": [
+              "web"
+            ],
+            "knowledge_base_ids": [],
+            "private_only": false
+          },
+          "limits": {
+            "deadline_s": 1800,
+            "search_calls": 60,
+            "fetch_calls": 30,
+            "llm_calls": 60,
+            "tokens": 120000,
+            "terminal_reserved_calls": 8,
+            "terminal_reserved_tokens": 12000,
+            "rework_rounds": 3,
+            "citation_depth": 2,
+            "gap_queries_per_spec": 2
+          },
+          "timeouts_s": {
+            "llm": 60,
+            "search": 20,
+            "fetch": 45,
+            "embedding": 120,
+            "rerank": 60,
+            "vector": 15,
+            "content": 30,
+            "parser": 600,
+            "sandbox": 30
+          },
+          "concurrency": {
+            "search": 4,
+            "fetch": 2,
+            "llm": 2,
+            "local_inference": 1
+          }
+        },
+        "budget_used": {
+          "llm_calls": 0,
+          "search_calls": 0,
+          "fetch_calls": 0,
+          "tokens": 0,
+          "elapsed_s": 0
+        },
+        "rework_count": 0,
+        "rework_targets": [],
+        "degraded_sources": [
+          {
+            "source": "research",
+            "reason": "Additional candidates remain unexamined beyond the bounded selection",
+            "operation": "candidate_selection",
+            "section_id": "section_1",
+            "occurred_at": "2026-10-06T15:39:09.779324Z"
+          },
+          {
+            "source": "https://www.cnblogs.com/qccz123456/p/12395247.html",
+            "reason": "fetch_url_forbidden",
+            "operation": "fetch",
+            "section_id": "section_1",
+            "occurred_at": "2026-10-06T15:39:09.782053Z"
+          },
+          {
+            "source": "https://m.blog.csdn.net/gitblog_06644/article/details/142560487",
+            "reason": "fetch_url_forbidden",
+            "operation": "fetch",
+            "section_id": "section_1",
+            "occurred_at": "2026-10-06T15:39:09.783427Z"
+          },
+          {
+            "source": "https://m.blog.csdn.net/ajian005/article/details/144476258",
+            "reason": "fetch_url_forbidden",
+            "operation": "fetch",
+            "section_id": "section_1",
+            "occurred_at": "2026-10-06T15:39:09.784399Z"
+          },
+          {
+            "source": "https://github.com/cmxnono/attention_is_all_you_need",
+            "reason": "fetch_url_forbidden",
+            "operation": "fetch",
+            "section_id": "section_1",
+            "occurred_at": "2026-10-06T15:39:09.786326Z"
+          }
+        ],
+        "unit_manifest": {},
+        "knowledge_snapshot": [],
+        "stop_reason": null
+      },
+      "errors": []
+    },
+    "state_delta": {
+      "section_coverage": {
+        "section_1": {
+          "section_id": "section_1",
+          "claim_spec_ids": [
+            "spec-attention"
+          ],
+          "claim_ids": [],
+          "evidence_ids": [],
+          "covered_claim_ids": [],
+          "gaps": [
+            {
+              "gap_id": "gap-54e9512c28208d1c9828f5214654939cbe72502fc986b92154de8631a9123f96",
+              "section_id": "section_1",
+              "claim_spec_id": "spec-attention",
+              "claim_id": null,
+              "reason": "No extracted claim for this ClaimSpec",
+              "fillable": true,
+              "verification_action": "Retrieve original evidence addressing this spec and its required conditions"
+            }
+          ],
+          "unresolved_items": [
+            "No extracted claim for this ClaimSpec"
+          ]
+        },
+        "section_2": {
+          "section_id": "section_2",
+          "claim_spec_ids": [
+            "spec-attention"
+          ],
+          "claim_ids": [],
+          "evidence_ids": [],
+          "covered_claim_ids": [],
+          "gaps": [
+            {
+              "gap_id": "gap-5ac581eaea85fca14a415046029f69f891d981d5d4644725dc1cfefcb5ebec9a",
+              "section_id": "section_2",
+              "claim_spec_id": "spec-attention",
+              "claim_id": null,
+              "reason": "No extracted claim for this ClaimSpec",
+              "fillable": true,
+              "verification_action": "Retrieve original evidence addressing this spec and its required conditions"
+            }
+          ],
+          "unresolved_items": [
+            "No extracted claim for this ClaimSpec"
+          ]
+        },
+        "section_3": {
+          "section_id": "section_3",
+          "claim_spec_ids": [
+            "spec-attention"
+          ],
+          "claim_ids": [],
+          "evidence_ids": [],
+          "covered_claim_ids": [],
+          "gaps": [
+            {
+              "gap_id": "gap-cc8010480c3e1439164a37b4a5f4e15ceec694a627de9c37690ce42f7bbbba73",
+              "section_id": "section_3",
+              "claim_spec_id": "spec-attention",
+              "claim_id": null,
+              "reason": "No extracted claim for this ClaimSpec",
+              "fillable": true,
+              "verification_action": "Retrieve original evidence addressing this spec and its required conditions"
+            }
+          ],
+          "unresolved_items": [
+            "No extracted claim for this ClaimSpec"
+          ]
+        },
+        "section_4": {
+          "section_id": "section_4",
+          "claim_spec_ids": [
+            "spec-attention"
+          ],
+          "claim_ids": [],
+          "evidence_ids": [],
+          "covered_claim_ids": [],
+          "gaps": [
+            {
+              "gap_id": "gap-d6f1d2648193a9cae711f94f8d6e5702836950af30f36a784b0cca59e078b030",
+              "section_id": "section_4",
+              "claim_spec_id": "spec-attention",
+              "claim_id": null,
+              "reason": "No extracted claim for this ClaimSpec",
+              "fillable": true,
+              "verification_action": "Retrieve original evidence addressing this spec and its required conditions"
+            }
+          ],
+          "unresolved_items": [
+            "No extracted claim for this ClaimSpec"
+          ]
+        },
+        "section_5": {
+          "section_id": "section_5",
+          "claim_spec_ids": [
+            "spec-attention"
+          ],
+          "claim_ids": [],
+          "evidence_ids": [],
+          "covered_claim_ids": [],
+          "gaps": [
+            {
+              "gap_id": "gap-c160ced5738792b0658630349dc09c46877d903b984a32ee641f0c0e753a225d",
+              "section_id": "section_5",
+              "claim_spec_id": "spec-attention",
+              "claim_id": null,
+              "reason": "No extracted claim for this ClaimSpec",
+              "fillable": true,
+              "verification_action": "Retrieve original evidence addressing this spec and its required conditions"
+            }
+          ],
+          "unresolved_items": [
+            "No extracted claim for this ClaimSpec"
+          ]
+        }
+      },
+      "run_metadata": {
+        "config": {
+          "versions": {
+            "llm_provider": "anthropic_compatible",
+            "llm_model": "deepseek-flash",
+            "llm_revision": "unconfigured",
+            "prompt_versions": {
+              "clarify": "mono-v1",
+              "plan": "mono-v1",
+              "research": "mono-v1",
+              "analyze": "mono-v1",
+              "write": "mono-v1",
+              "review": "mono-v1"
+            },
+            "template_versions": {
+              "comparison_matrix": "mono-v1",
+              "pairwise_delta": "mono-v1",
+              "plot": "mono-v1",
+              "statistic": "mono-v1",
+              "aggregation": "mono-v1"
+            },
+            "parser_version": "dr4a-html-v1",
+            "chunker_version": "mono-v1",
+            "embedding_version": "unconfigured",
+            "reranker_version": "unconfigured",
+            "index_version": "dr4a_chunks_v1"
+          },
+          "source_policy": {
+            "categories": [
+              "web"
+            ],
+            "knowledge_base_ids": [],
+            "private_only": false
+          },
+          "limits": {
+            "deadline_s": 1800,
+            "search_calls": 60,
+            "fetch_calls": 30,
+            "llm_calls": 60,
+            "tokens": 120000,
+            "terminal_reserved_calls": 8,
+            "terminal_reserved_tokens": 12000,
+            "rework_rounds": 3,
+            "citation_depth": 2,
+            "gap_queries_per_spec": 2
+          },
+          "timeouts_s": {
+            "llm": 60,
+            "search": 20,
+            "fetch": 45,
+            "embedding": 120,
+            "rerank": 60,
+            "vector": 15,
+            "content": 30,
+            "parser": 600,
+            "sandbox": 30
+          },
+          "concurrency": {
+            "search": 4,
+            "fetch": 2,
+            "llm": 2,
+            "local_inference": 1
+          }
+        },
+        "budget_used": {
+          "llm_calls": 0,
+          "search_calls": 0,
+          "fetch_calls": 0,
+          "tokens": 0,
+          "elapsed_s": 0
+        },
+        "rework_count": 0,
+        "rework_targets": [],
+        "degraded_sources": [
+          {
+            "source": "research",
+            "reason": "Additional candidates remain unexamined beyond the bounded selection",
+            "operation": "candidate_selection",
+            "section_id": "section_1",
+            "occurred_at": "2026-10-06T15:39:09.779324Z"
+          },
+          {
+            "source": "https://www.cnblogs.com/qccz123456/p/12395247.html",
+            "reason": "fetch_url_forbidden",
+            "operation": "fetch",
+            "section_id": "section_1",
+            "occurred_at": "2026-10-06T15:39:09.782053Z"
+          },
+          {
+            "source": "https://m.blog.csdn.net/gitblog_06644/article/details/142560487",
+            "reason": "fetch_url_forbidden",
+            "operation": "fetch",
+            "section_id": "section_1",
+            "occurred_at": "2026-10-06T15:39:09.783427Z"
+          },
+          {
+            "source": "https://m.blog.csdn.net/ajian005/article/details/144476258",
+            "reason": "fetch_url_forbidden",
+            "operation": "fetch",
+            "section_id": "section_1",
+            "occurred_at": "2026-10-06T15:39:09.784399Z"
+          },
+          {
+            "source": "https://github.com/cmxnono/attention_is_all_you_need",
+            "reason": "fetch_url_forbidden",
+            "operation": "fetch",
+            "section_id": "section_1",
+            "occurred_at": "2026-10-06T15:39:09.786326Z"
+          }
+        ],
+        "unit_manifest": {},
+        "knowledge_snapshot": [],
+        "stop_reason": null
+      }
+    },
+    "events": [
+      {
+        "event": "unit",
+        "phase": "research",
+        "unit_id": "unit-b4444ace5be32e794d14362068416999e6f766480054ff1d2e49cb6f89f219b3",
+        "section_ids": [
+          "section_1"
+        ],
+        "kind": "query",
+        "query": "Attention Is All You Need Transformer attention arxiv original"
+      },
+      {
+        "event": "unit",
+        "phase": "research",
+        "unit_id": "unit-0e76c11d6e2d43a25ff1df02015431410cb2758808a0acd7da744d60b61bed4d",
+        "section_ids": [
+          "section_1"
+        ],
+        "kind": "coverage"
+      },
+      {
+        "event": "unit",
+        "phase": "research",
+        "unit_id": "unit-c2a24e6f145dd22b7c4a95e3fac2120a57b5937bacfdb1017e9f25b522c352e1",
+        "section_ids": [
+          "section_2"
+        ],
+        "kind": "coverage"
+      },
+      {
+        "event": "unit",
+        "phase": "research",
+        "unit_id": "unit-2135de6aa40e7f5cc66933c737752e03e8756f163e698428a5faceb4842992a2",
+        "section_ids": [
+          "section_3"
+        ],
+        "kind": "coverage"
+      },
+      {
+        "event": "unit",
+        "phase": "research",
+        "unit_id": "unit-501b4770eaf37cf7e7052aea24b887ec4844b71af434f3f9dde192b85d5efab1",
+        "section_ids": [
+          "section_4"
+        ],
+        "kind": "coverage"
+      },
+      {
+        "event": "unit",
+        "phase": "research",
+        "unit_id": "unit-e11651625eca167a1a669ede9957eed64592faffcb86638afbb97617b57df2e9",
+        "section_ids": [
+          "section_5"
+        ],
+        "kind": "coverage"
+      }
+    ],
+    "dependency_mode": "real",
+    "debug_usage": {
+      "llm_calls": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "search_calls": 1,
+      "fetch_calls": 4,
+      "artifact_scope": "72784d1c-23c8-4cc3-8e1f-7513bcb7ba7e"
+    }
+  },
+  "verified_evidence": [],
+  "unmet_acceptance": [
+    "No original Evidence was produced",
+    "No real paper/PDF source; T028 remains incomplete"
+  ]
+}

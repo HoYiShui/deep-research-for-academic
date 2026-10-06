@@ -1,0 +1,1989 @@
+{
+  "scope": "isolated_cli_research",
+  "dependency_mode": "real",
+  "persisted_run": false,
+  "result": {
+    "status": "ok",
+    "error": null,
+    "phase": "research",
+    "state": {
+      "schema_version": 1,
+      "session_id": "21d279a5-c2e7-4d87-820f-1253f7ba366b",
+      "run_id": "868ec10c-3b64-4330-b8fd-ca7a3c47cc96",
+      "brief_version": 1,
+      "brief_hash": "76196b00a338c1ecfef8ac8991261cad76146127d6f7a5a36fc5b336bbb1a221",
+      "phase": "research",
+      "research_brief": {
+        "task_type": "method_differentiation",
+        "decision_goal": "核验公开网页中Transformer的注意力机制描述，不做性能排序",
+        "research_object": "Attention Is All You Need / Transformer",
+        "scope": "本轮验证公开网页原文链路",
+        "comparison_scope": "不跨协议比较数值",
+        "claims_to_verify": "Transformer是否使用注意力而非循环结构",
+        "evidence_requirements": "真实原文摘录和定位；核心结论还须论文正文，缺证明确Gap",
+        "conclusion_boundary": "不以摘要证明实验优势或假造数字",
+        "deliverable": "原文回链事实快照，不是最终报告",
+        "assumptions": "本轮仅验证web；未满足真实PDF验收"
+      },
+      "source_selection": {
+        "categories": [
+          "web"
+        ],
+        "knowledge_base_ids": []
+      },
+      "section_plans": [
+        {
+          "section_id": "section_1",
+          "title": "公开原文验证",
+          "objective": "验证事实回链，不预先断言研究结论",
+          "claim_specs": [
+            {
+              "spec_id": "spec-attention",
+              "text": "从原文核验Transformer的注意力机制",
+              "required_conditions": [
+                "original_section"
+              ],
+              "required_source_tiers": [
+                "primary",
+                "official"
+              ]
+            }
+          ],
+          "sub_questions": [
+            "site:arxiv.org 1706.03762 Attention Is All You Need"
+          ],
+          "retrieval_anchors": [
+            "Transformer",
+            "attention"
+          ],
+          "evidence_requirements": [
+            "真实原文和明确定位"
+          ],
+          "analysis_requirements": []
+        },
+        {
+          "section_id": "section_2",
+          "title": "公开原文验证",
+          "objective": "验证事实回链，不预先断言研究结论",
+          "claim_specs": [
+            {
+              "spec_id": "spec-attention",
+              "text": "从原文核验Transformer的注意力机制",
+              "required_conditions": [
+                "original_section"
+              ],
+              "required_source_tiers": [
+                "primary",
+                "official"
+              ]
+            }
+          ],
+          "sub_questions": [],
+          "retrieval_anchors": [
+            "Transformer",
+            "attention"
+          ],
+          "evidence_requirements": [
+            "真实原文和明确定位"
+          ],
+          "analysis_requirements": []
+        },
+        {
+          "section_id": "section_3",
+          "title": "公开原文验证",
+          "objective": "验证事实回链，不预先断言研究结论",
+          "claim_specs": [
+            {
+              "spec_id": "spec-attention",
+              "text": "从原文核验Transformer的注意力机制",
+              "required_conditions": [
+                "original_section"
+              ],
+              "required_source_tiers": [
+                "primary",
+                "official"
+              ]
+            }
+          ],
+          "sub_questions": [],
+          "retrieval_anchors": [
+            "Transformer",
+            "attention"
+          ],
+          "evidence_requirements": [
+            "真实原文和明确定位"
+          ],
+          "analysis_requirements": []
+        },
+        {
+          "section_id": "section_4",
+          "title": "公开原文验证",
+          "objective": "验证事实回链，不预先断言研究结论",
+          "claim_specs": [
+            {
+              "spec_id": "spec-attention",
+              "text": "从原文核验Transformer的注意力机制",
+              "required_conditions": [
+                "original_section"
+              ],
+              "required_source_tiers": [
+                "primary",
+                "official"
+              ]
+            }
+          ],
+          "sub_questions": [],
+          "retrieval_anchors": [
+            "Transformer",
+            "attention"
+          ],
+          "evidence_requirements": [
+            "真实原文和明确定位"
+          ],
+          "analysis_requirements": []
+        },
+        {
+          "section_id": "section_5",
+          "title": "公开原文验证",
+          "objective": "验证事实回链，不预先断言研究结论",
+          "claim_specs": [
+            {
+              "spec_id": "spec-attention",
+              "text": "从原文核验Transformer的注意力机制",
+              "required_conditions": [
+                "original_section"
+              ],
+              "required_source_tiers": [
+                "primary",
+                "official"
+              ]
+            }
+          ],
+          "sub_questions": [],
+          "retrieval_anchors": [
+            "Transformer",
+            "attention"
+          ],
+          "evidence_requirements": [
+            "真实原文和明确定位"
+          ],
+          "analysis_requirements": []
+        }
+      ],
+      "sources": {
+        "src-5ae10dc6245f0936c532f41d9b905c0961fa066fba759b67e79adfaf61d5b1e8": {
+          "source_id": "src-5ae10dc6245f0936c532f41d9b905c0961fa066fba759b67e79adfaf61d5b1e8",
+          "source_type": "web",
+          "title": "[1706.03762] Attention Is All You Need",
+          "authors_or_publisher": [
+            "arXiv"
+          ],
+          "published_at": "2017-06-12T17:57:34+08:00",
+          "version": null,
+          "canonical_url": "https://arxiv.org/abs/1706.03762",
+          "provenance": [
+            {
+              "retrieved_at": "2026-10-06T15:44:47.184025Z",
+              "retrieved_via": "web",
+              "original_ref": "https://arxiv.org/abs/1706.03762",
+              "document_version_id": null,
+              "upstream_source_id": null
+            }
+          ],
+          "source_tier": "primary",
+          "content_object_key": "research-content/329afba9-7658-44fa-baa1-c19ea15a90bb/29e42a996471db9c019f1122825cdac0e6d64c96767d9ee5c0b8891de6204bee",
+          "content_hash": "29e42a996471db9c019f1122825cdac0e6d64c96767d9ee5c0b8891de6204bee",
+          "data_classification": "public"
+        },
+        "src-ccc257b9a66abd8e99abc993d5ba372cc5b6ddb9f02a6aece8123c576e111cf0": {
+          "source_id": "src-ccc257b9a66abd8e99abc993d5ba372cc5b6ddb9f02a6aece8123c576e111cf0",
+          "source_type": "web",
+          "title": "Attention Is All You Need",
+          "authors_or_publisher": [
+            "arXiv"
+          ],
+          "published_at": "2025-01-13T04:16:06+08:00",
+          "version": null,
+          "canonical_url": "https://arxiv.org/html/1706.03762v7",
+          "provenance": [
+            {
+              "retrieved_at": "2026-10-06T15:45:04.112480Z",
+              "retrieved_via": "web",
+              "original_ref": "https://arxiv.org/html/1706.03762v7",
+              "document_version_id": null,
+              "upstream_source_id": null
+            }
+          ],
+          "source_tier": "primary",
+          "content_object_key": "research-content/329afba9-7658-44fa-baa1-c19ea15a90bb/fe1288e9c6f8322156429ab44bf5ced203155f8ecc7ea9fe6cfd125872c72a3b",
+          "content_hash": "fe1288e9c6f8322156429ab44bf5ced203155f8ecc7ea9fe6cfd125872c72a3b",
+          "data_classification": "public"
+        }
+      },
+      "evidence": {
+        "ev-da9ea1bc3b16904f5aa2e3db50e547bccf55530394ed7781f77603cf2872c736": {
+          "evidence_id": "ev-da9ea1bc3b16904f5aa2e3db50e547bccf55530394ed7781f77603cf2872c736",
+          "source_id": "src-5ae10dc6245f0936c532f41d9b905c0961fa066fba759b67e79adfaf61d5b1e8",
+          "evidence_type": "method",
+          "location": {
+            "page_start": null,
+            "page_end": null,
+            "section": "Title:Attention Is All You Need",
+            "table": null,
+            "file": null,
+            "commit": null,
+            "selector": null,
+            "line_start": 128,
+            "line_end": 130,
+            "chunk_id": null
+          },
+          "quote_or_raw_content": "We propose a new simple network architecture, the Transformer, based solely on attention mechanisms, dispensing with recurrence and convolutions entirely.",
+          "extraction_method": "parser:dr4a-html-v1:verified_range",
+          "content_hash": "29e42a996471db9c019f1122825cdac0e6d64c96767d9ee5c0b8891de6204bee"
+        },
+        "ev-51b88131e9de6e2d241e627728cd23551d1e6276d1537bdc4e203949d6b030d9": {
+          "evidence_id": "ev-51b88131e9de6e2d241e627728cd23551d1e6276d1537bdc4e203949d6b030d9",
+          "source_id": "src-ccc257b9a66abd8e99abc993d5ba372cc5b6ddb9f02a6aece8123c576e111cf0",
+          "evidence_type": "method",
+          "location": {
+            "page_start": null,
+            "page_end": null,
+            "section": "1 Introduction",
+            "table": null,
+            "file": null,
+            "commit": null,
+            "selector": null,
+            "line_start": 367,
+            "line_end": 367,
+            "chunk_id": null
+          },
+          "quote_or_raw_content": "In this work we propose the Transformer, a model architecture eschewing recurrence and instead relying entirely on an attention mechanism to draw global dependencies between input and output.",
+          "extraction_method": "parser:dr4a-html-v1:verified_range",
+          "content_hash": "fe1288e9c6f8322156429ab44bf5ced203155f8ecc7ea9fe6cfd125872c72a3b"
+        },
+        "ev-dfbbf48e0ab8f2af51aa03ce58f89f48e53dba606e853cbf84f549a206f0b5f7": {
+          "evidence_id": "ev-dfbbf48e0ab8f2af51aa03ce58f89f48e53dba606e853cbf84f549a206f0b5f7",
+          "source_id": "src-ccc257b9a66abd8e99abc993d5ba372cc5b6ddb9f02a6aece8123c576e111cf0",
+          "evidence_type": "method",
+          "location": {
+            "page_start": null,
+            "page_end": null,
+            "section": "3 Model Architecture",
+            "table": null,
+            "file": null,
+            "commit": null,
+            "selector": null,
+            "line_start": 397,
+            "line_end": 397,
+            "chunk_id": null
+          },
+          "quote_or_raw_content": "The Transformer follows this overall architecture using stacked self-attention and point-wise, fully connected layers for both the encoder and decoder, shown in the left and right halves of Figure 1, respectively.",
+          "extraction_method": "parser:dr4a-html-v1:verified_range",
+          "content_hash": "fe1288e9c6f8322156429ab44bf5ced203155f8ecc7ea9fe6cfd125872c72a3b"
+        },
+        "ev-b1f1ef1d4c176c78e46ca7c901abdad4aed6697d1e2e94779ac74117b434beaa": {
+          "evidence_id": "ev-b1f1ef1d4c176c78e46ca7c901abdad4aed6697d1e2e94779ac74117b434beaa",
+          "source_id": "src-ccc257b9a66abd8e99abc993d5ba372cc5b6ddb9f02a6aece8123c576e111cf0",
+          "evidence_type": "method",
+          "location": {
+            "page_start": null,
+            "page_end": null,
+            "section": "2 Background",
+            "table": null,
+            "file": null,
+            "commit": null,
+            "selector": null,
+            "line_start": 374,
+            "line_end": 374,
+            "chunk_id": null
+          },
+          "quote_or_raw_content": "In the Transformer this is reduced to a constant number of operations, albeit at the cost of reduced effective resolution due to averaging attention-weighted positions, an effect we counteract with Multi-Head Attention as described in section 3.2.",
+          "extraction_method": "parser:dr4a-html-v1:verified_range",
+          "content_hash": "fe1288e9c6f8322156429ab44bf5ced203155f8ecc7ea9fe6cfd125872c72a3b"
+        },
+        "ev-50fa4739c66437f5e048c5190bfc6061ad913b7a92a01d84760bf044b71616c7": {
+          "evidence_id": "ev-50fa4739c66437f5e048c5190bfc6061ad913b7a92a01d84760bf044b71616c7",
+          "source_id": "src-ccc257b9a66abd8e99abc993d5ba372cc5b6ddb9f02a6aece8123c576e111cf0",
+          "evidence_type": "method",
+          "location": {
+            "page_start": null,
+            "page_end": null,
+            "section": "2 Background",
+            "table": null,
+            "file": null,
+            "commit": null,
+            "selector": null,
+            "line_start": 377,
+            "line_end": 377,
+            "chunk_id": null
+          },
+          "quote_or_raw_content": "Self-attention, sometimes called intra-attention is an attention mechanism relating different positions of a single sequence in order to compute a representation of the sequence.",
+          "extraction_method": "parser:dr4a-html-v1:verified_range",
+          "content_hash": "fe1288e9c6f8322156429ab44bf5ced203155f8ecc7ea9fe6cfd125872c72a3b"
+        },
+        "ev-61e10bfe833cfbacf9c6f5acc1944223ab6c8f8d7466e3bfccc77bbb1914505d": {
+          "evidence_id": "ev-61e10bfe833cfbacf9c6f5acc1944223ab6c8f8d7466e3bfccc77bbb1914505d",
+          "source_id": "src-ccc257b9a66abd8e99abc993d5ba372cc5b6ddb9f02a6aece8123c576e111cf0",
+          "evidence_type": "method",
+          "location": {
+            "page_start": null,
+            "page_end": null,
+            "section": "3.2.3 Applications of Attention in our Model",
+            "table": null,
+            "file": null,
+            "commit": null,
+            "selector": null,
+            "line_start": 514,
+            "line_end": 514,
+            "chunk_id": null
+          },
+          "quote_or_raw_content": "Similarly, self-attention layers in the decoder allow each position in the decoder to attend to all positions in the decoder up to and including that position.",
+          "extraction_method": "parser:dr4a-html-v1:verified_range",
+          "content_hash": "fe1288e9c6f8322156429ab44bf5ced203155f8ecc7ea9fe6cfd125872c72a3b"
+        },
+        "ev-721d0e957390f776e919f7c9fd0fba25bebd9a2f13c245ff4fb2ed68a64735b4": {
+          "evidence_id": "ev-721d0e957390f776e919f7c9fd0fba25bebd9a2f13c245ff4fb2ed68a64735b4",
+          "source_id": "src-ccc257b9a66abd8e99abc993d5ba372cc5b6ddb9f02a6aece8123c576e111cf0",
+          "evidence_type": "other",
+          "location": {
+            "page_start": null,
+            "page_end": null,
+            "section": "1 Introduction",
+            "table": null,
+            "file": null,
+            "commit": null,
+            "selector": null,
+            "line_start": 364,
+            "line_end": 364,
+            "chunk_id": null
+          },
+          "quote_or_raw_content": "Attention mechanisms have become an integral part of compelling sequence modeling and transduction models in various tasks, allowing modeling of dependencies without regard to their distance in the input or output sequences [2, 19]. In all but a few cases [27], however, such attention mechanisms are used in conjunction with a recurrent network.",
+          "extraction_method": "parser:dr4a-html-v1:verified_range",
+          "content_hash": "fe1288e9c6f8322156429ab44bf5ced203155f8ecc7ea9fe6cfd125872c72a3b"
+        }
+      },
+      "claims": {
+        "cl-437172999f837e0c5d42154f472228afa263a11bf3111eeb4aa3c6eeac9ec42d": {
+          "claim_id": "cl-437172999f837e0c5d42154f472228afa263a11bf3111eeb4aa3c6eeac9ec42d",
+          "spec_ids": [
+            "spec-attention"
+          ],
+          "text": "The Transformer is based solely on attention mechanisms",
+          "claim_type": "factual",
+          "conditions": {
+            "source_block": 11,
+            "source_section": "Title:Attention Is All You Need",
+            "source_type": "arXiv abstract",
+            "required_conditions": [
+              "original_section"
+            ],
+            "limitation": "abstract-level statement; original paper body not provided in supplied blocks"
+          },
+          "status": "insufficient",
+          "status_reason": "Missing support, required source tier, or explicit conditions"
+        },
+        "cl-b4de65029f0267ec65016288a8d1609a0e378b5708f76c2fbf793419f1f9be46": {
+          "claim_id": "cl-b4de65029f0267ec65016288a8d1609a0e378b5708f76c2fbf793419f1f9be46",
+          "spec_ids": [
+            "spec-attention"
+          ],
+          "text": "The Transformer dispenses with recurrence and convolutions entirely",
+          "claim_type": "factual",
+          "conditions": {
+            "source_block": 11,
+            "source_section": "Title:Attention Is All You Need",
+            "source_type": "arXiv abstract",
+            "required_conditions": [
+              "original_section"
+            ],
+            "limitation": "abstract-level statement; original paper body not provided in supplied blocks"
+          },
+          "status": "insufficient",
+          "status_reason": "Missing support, required source tier, or explicit conditions"
+        },
+        "cl-b3b5fd992889a90003a67c06b000b0304ece52ee41fe464eed079b44ef9cfd4a": {
+          "claim_id": "cl-b3b5fd992889a90003a67c06b000b0304ece52ee41fe464eed079b44ef9cfd4a",
+          "spec_ids": [
+            "spec-attention"
+          ],
+          "text": "Transformer eschews recurrence",
+          "claim_type": "factual",
+          "conditions": {
+            "section": "1 Introduction",
+            "original_section": true
+          },
+          "status": "supported",
+          "status_reason": "Support meets all relevant source-tier and condition requirements"
+        },
+        "cl-77d405ac8d5d5208c2fc71cce1e5b2c5ec2c7e755bde45346a49850ab2cb5bf0": {
+          "claim_id": "cl-77d405ac8d5d5208c2fc71cce1e5b2c5ec2c7e755bde45346a49850ab2cb5bf0",
+          "spec_ids": [
+            "spec-attention"
+          ],
+          "text": "Transformer relies entirely on an attention mechanism to draw global dependencies between input and output",
+          "claim_type": "factual",
+          "conditions": {
+            "section": "1 Introduction",
+            "original_section": true
+          },
+          "status": "supported",
+          "status_reason": "Support meets all relevant source-tier and condition requirements"
+        },
+        "cl-c2614d70955f354ae87188a53f14ca02eb7b77fe82c6fc8b17059d8a769e12c9": {
+          "claim_id": "cl-c2614d70955f354ae87188a53f14ca02eb7b77fe82c6fc8b17059d8a769e12c9",
+          "spec_ids": [
+            "spec-attention"
+          ],
+          "text": "Transformer uses stacked self-attention and point-wise, fully connected layers for both the encoder and decoder",
+          "claim_type": "factual",
+          "conditions": {
+            "section": "3 Model Architecture",
+            "original_section": true
+          },
+          "status": "supported",
+          "status_reason": "Support meets all relevant source-tier and condition requirements"
+        },
+        "cl-2dc07f60c3c3fa5b0b14c997c17f3cf6536a78a768b618adabbbccf50899780d": {
+          "claim_id": "cl-2dc07f60c3c3fa5b0b14c997c17f3cf6536a78a768b618adabbbccf50899780d",
+          "spec_ids": [
+            "spec-attention"
+          ],
+          "text": "In the Transformer, the number of operations required to relate signals from two arbitrary input or output positions is reduced to a constant number of operations, albeit at the cost of reduced effective resolution due to averaging attention-weighted positions, an effect we counteract with Multi-Head Attention as described in section 3.2",
+          "claim_type": "factual",
+          "conditions": {
+            "section": "2 Background",
+            "original_section": true
+          },
+          "status": "supported",
+          "status_reason": "Support meets all relevant source-tier and condition requirements"
+        },
+        "cl-6e6f4dbfc588f3bd302a618db459e645605a5c4b443beea26f48fbf899ceff17": {
+          "claim_id": "cl-6e6f4dbfc588f3bd302a618db459e645605a5c4b443beea26f48fbf899ceff17",
+          "spec_ids": [
+            "spec-attention"
+          ],
+          "text": "Self-attention is an attention mechanism relating different positions of a single sequence in order to compute a representation of the sequence",
+          "claim_type": "factual",
+          "conditions": {
+            "section": "2 Background",
+            "original_section": true
+          },
+          "status": "supported",
+          "status_reason": "Support meets all relevant source-tier and condition requirements"
+        },
+        "cl-a15d5395cfcd2b20f7e3517138245a0678a4b1d46c5096ae56ecb3541705c22e": {
+          "claim_id": "cl-a15d5395cfcd2b20f7e3517138245a0678a4b1d46c5096ae56ecb3541705c22e",
+          "spec_ids": [
+            "spec-attention"
+          ],
+          "text": "self-attention layers in the decoder allow each position in the decoder to attend to all positions in the decoder up to and including that position",
+          "claim_type": "factual",
+          "conditions": {
+            "section": "3.2.3 Applications of Attention in our Model",
+            "original_section": true
+          },
+          "status": "supported",
+          "status_reason": "Support meets all relevant source-tier and condition requirements"
+        },
+        "cl-6223dd35c59eb9aa63fb133fa5a62eef4e3bd9bf902259de65de848ddbd021c4": {
+          "claim_id": "cl-6223dd35c59eb9aa63fb133fa5a62eef4e3bd9bf902259de65de848ddbd021c4",
+          "spec_ids": [
+            "spec-attention"
+          ],
+          "text": "attention mechanisms are used in conjunction with a recurrent network",
+          "claim_type": "factual",
+          "conditions": {
+            "section": "1 Introduction",
+            "original_section": true,
+            "qualifier": "in all but a few cases"
+          },
+          "status": "supported",
+          "status_reason": "Support meets all relevant source-tier and condition requirements"
+        }
+      },
+      "claim_evidence_links": [
+        {
+          "claim_id": "cl-437172999f837e0c5d42154f472228afa263a11bf3111eeb4aa3c6eeac9ec42d",
+          "evidence_id": "ev-da9ea1bc3b16904f5aa2e3db50e547bccf55530394ed7781f77603cf2872c736",
+          "relation": "supports",
+          "rationale": "The abstract states the Transformer is based solely on attention mechanisms."
+        },
+        {
+          "claim_id": "cl-b4de65029f0267ec65016288a8d1609a0e378b5708f76c2fbf793419f1f9be46",
+          "evidence_id": "ev-da9ea1bc3b16904f5aa2e3db50e547bccf55530394ed7781f77603cf2872c736",
+          "relation": "supports",
+          "rationale": "The abstract states the Transformer dispenses with recurrence and convolutions entirely."
+        },
+        {
+          "claim_id": "cl-b3b5fd992889a90003a67c06b000b0304ece52ee41fe464eed079b44ef9cfd4a",
+          "evidence_id": "ev-51b88131e9de6e2d241e627728cd23551d1e6276d1537bdc4e203949d6b030d9",
+          "relation": "supports",
+          "rationale": "The quoted sentence describes the Transformer as a model architecture eschewing recurrence."
+        },
+        {
+          "claim_id": "cl-77d405ac8d5d5208c2fc71cce1e5b2c5ec2c7e755bde45346a49850ab2cb5bf0",
+          "evidence_id": "ev-51b88131e9de6e2d241e627728cd23551d1e6276d1537bdc4e203949d6b030d9",
+          "relation": "supports",
+          "rationale": "The quoted sentence states that the Transformer relies entirely on an attention mechanism to draw global dependencies between input and output."
+        },
+        {
+          "claim_id": "cl-c2614d70955f354ae87188a53f14ca02eb7b77fe82c6fc8b17059d8a769e12c9",
+          "evidence_id": "ev-dfbbf48e0ab8f2af51aa03ce58f89f48e53dba606e853cbf84f549a206f0b5f7",
+          "relation": "supports",
+          "rationale": "The quoted sentence says the Transformer follows this overall architecture using stacked self-attention and point-wise, fully connected layers for both the encoder and decoder."
+        },
+        {
+          "claim_id": "cl-2dc07f60c3c3fa5b0b14c997c17f3cf6536a78a768b618adabbbccf50899780d",
+          "evidence_id": "ev-b1f1ef1d4c176c78e46ca7c901abdad4aed6697d1e2e94779ac74117b434beaa",
+          "relation": "supports",
+          "rationale": "The quoted sentence states this reduction to a constant number of operations and the use of Multi-Head Attention to counteract reduced effective resolution."
+        },
+        {
+          "claim_id": "cl-6e6f4dbfc588f3bd302a618db459e645605a5c4b443beea26f48fbf899ceff17",
+          "evidence_id": "ev-50fa4739c66437f5e048c5190bfc6061ad913b7a92a01d84760bf044b71616c7",
+          "relation": "supports",
+          "rationale": "The quoted sentence defines self-attention as an attention mechanism relating different positions of a single sequence."
+        },
+        {
+          "claim_id": "cl-a15d5395cfcd2b20f7e3517138245a0678a4b1d46c5096ae56ecb3541705c22e",
+          "evidence_id": "ev-61e10bfe833cfbacf9c6f5acc1944223ab6c8f8d7466e3bfccc77bbb1914505d",
+          "relation": "supports",
+          "rationale": "The quoted sentence states that self-attention layers in the decoder allow each position in the decoder to attend to all positions in the decoder up to and including that position."
+        },
+        {
+          "claim_id": "cl-6223dd35c59eb9aa63fb133fa5a62eef4e3bd9bf902259de65de848ddbd021c4",
+          "evidence_id": "ev-721d0e957390f776e919f7c9fd0fba25bebd9a2f13c245ff4fb2ed68a64735b4",
+          "relation": "supports",
+          "rationale": "The quoted sentence says that in all but a few cases such attention mechanisms are used in conjunction with a recurrent network."
+        }
+      ],
+      "quantitative_observations": {},
+      "comparable_metrics": {},
+      "comparison_sets": {},
+      "analysis_artifacts": {},
+      "section_coverage": {
+        "section_1": {
+          "section_id": "section_1",
+          "claim_spec_ids": [
+            "spec-attention"
+          ],
+          "claim_ids": [
+            "cl-2dc07f60c3c3fa5b0b14c997c17f3cf6536a78a768b618adabbbccf50899780d",
+            "cl-437172999f837e0c5d42154f472228afa263a11bf3111eeb4aa3c6eeac9ec42d",
+            "cl-6223dd35c59eb9aa63fb133fa5a62eef4e3bd9bf902259de65de848ddbd021c4",
+            "cl-6e6f4dbfc588f3bd302a618db459e645605a5c4b443beea26f48fbf899ceff17",
+            "cl-77d405ac8d5d5208c2fc71cce1e5b2c5ec2c7e755bde45346a49850ab2cb5bf0",
+            "cl-a15d5395cfcd2b20f7e3517138245a0678a4b1d46c5096ae56ecb3541705c22e",
+            "cl-b3b5fd992889a90003a67c06b000b0304ece52ee41fe464eed079b44ef9cfd4a",
+            "cl-b4de65029f0267ec65016288a8d1609a0e378b5708f76c2fbf793419f1f9be46",
+            "cl-c2614d70955f354ae87188a53f14ca02eb7b77fe82c6fc8b17059d8a769e12c9"
+          ],
+          "evidence_ids": [
+            "ev-50fa4739c66437f5e048c5190bfc6061ad913b7a92a01d84760bf044b71616c7",
+            "ev-51b88131e9de6e2d241e627728cd23551d1e6276d1537bdc4e203949d6b030d9",
+            "ev-61e10bfe833cfbacf9c6f5acc1944223ab6c8f8d7466e3bfccc77bbb1914505d",
+            "ev-721d0e957390f776e919f7c9fd0fba25bebd9a2f13c245ff4fb2ed68a64735b4",
+            "ev-b1f1ef1d4c176c78e46ca7c901abdad4aed6697d1e2e94779ac74117b434beaa",
+            "ev-da9ea1bc3b16904f5aa2e3db50e547bccf55530394ed7781f77603cf2872c736",
+            "ev-dfbbf48e0ab8f2af51aa03ce58f89f48e53dba606e853cbf84f549a206f0b5f7"
+          ],
+          "covered_claim_ids": [
+            "cl-2dc07f60c3c3fa5b0b14c997c17f3cf6536a78a768b618adabbbccf50899780d",
+            "cl-6223dd35c59eb9aa63fb133fa5a62eef4e3bd9bf902259de65de848ddbd021c4",
+            "cl-6e6f4dbfc588f3bd302a618db459e645605a5c4b443beea26f48fbf899ceff17",
+            "cl-77d405ac8d5d5208c2fc71cce1e5b2c5ec2c7e755bde45346a49850ab2cb5bf0",
+            "cl-a15d5395cfcd2b20f7e3517138245a0678a4b1d46c5096ae56ecb3541705c22e",
+            "cl-b3b5fd992889a90003a67c06b000b0304ece52ee41fe464eed079b44ef9cfd4a",
+            "cl-c2614d70955f354ae87188a53f14ca02eb7b77fe82c6fc8b17059d8a769e12c9"
+          ],
+          "gaps": [
+            {
+              "gap_id": "gap-d36e54156e3631da4896dcb6866c5c743ff738bcca11e331c96384c5e47f6e63",
+              "section_id": "section_1",
+              "claim_spec_id": "spec-attention",
+              "claim_id": "cl-437172999f837e0c5d42154f472228afa263a11bf3111eeb4aa3c6eeac9ec42d",
+              "reason": "Missing support, required source tier, or explicit conditions",
+              "fillable": true,
+              "verification_action": "Check original support, conflicting relations, and required conditions"
+            },
+            {
+              "gap_id": "gap-9ba7cd56fc5bb578663b6684ea71e99a39e9c5bc8a6e96f77bb0cc0169c58867",
+              "section_id": "section_1",
+              "claim_spec_id": "spec-attention",
+              "claim_id": "cl-b4de65029f0267ec65016288a8d1609a0e378b5708f76c2fbf793419f1f9be46",
+              "reason": "Missing support, required source tier, or explicit conditions",
+              "fillable": true,
+              "verification_action": "Check original support, conflicting relations, and required conditions"
+            }
+          ],
+          "unresolved_items": [
+            "Missing support, required source tier, or explicit conditions",
+            "Missing support, required source tier, or explicit conditions"
+          ]
+        },
+        "section_2": {
+          "section_id": "section_2",
+          "claim_spec_ids": [
+            "spec-attention"
+          ],
+          "claim_ids": [
+            "cl-2dc07f60c3c3fa5b0b14c997c17f3cf6536a78a768b618adabbbccf50899780d",
+            "cl-437172999f837e0c5d42154f472228afa263a11bf3111eeb4aa3c6eeac9ec42d",
+            "cl-6223dd35c59eb9aa63fb133fa5a62eef4e3bd9bf902259de65de848ddbd021c4",
+            "cl-6e6f4dbfc588f3bd302a618db459e645605a5c4b443beea26f48fbf899ceff17",
+            "cl-77d405ac8d5d5208c2fc71cce1e5b2c5ec2c7e755bde45346a49850ab2cb5bf0",
+            "cl-a15d5395cfcd2b20f7e3517138245a0678a4b1d46c5096ae56ecb3541705c22e",
+            "cl-b3b5fd992889a90003a67c06b000b0304ece52ee41fe464eed079b44ef9cfd4a",
+            "cl-b4de65029f0267ec65016288a8d1609a0e378b5708f76c2fbf793419f1f9be46",
+            "cl-c2614d70955f354ae87188a53f14ca02eb7b77fe82c6fc8b17059d8a769e12c9"
+          ],
+          "evidence_ids": [
+            "ev-50fa4739c66437f5e048c5190bfc6061ad913b7a92a01d84760bf044b71616c7",
+            "ev-51b88131e9de6e2d241e627728cd23551d1e6276d1537bdc4e203949d6b030d9",
+            "ev-61e10bfe833cfbacf9c6f5acc1944223ab6c8f8d7466e3bfccc77bbb1914505d",
+            "ev-721d0e957390f776e919f7c9fd0fba25bebd9a2f13c245ff4fb2ed68a64735b4",
+            "ev-b1f1ef1d4c176c78e46ca7c901abdad4aed6697d1e2e94779ac74117b434beaa",
+            "ev-da9ea1bc3b16904f5aa2e3db50e547bccf55530394ed7781f77603cf2872c736",
+            "ev-dfbbf48e0ab8f2af51aa03ce58f89f48e53dba606e853cbf84f549a206f0b5f7"
+          ],
+          "covered_claim_ids": [
+            "cl-2dc07f60c3c3fa5b0b14c997c17f3cf6536a78a768b618adabbbccf50899780d",
+            "cl-6223dd35c59eb9aa63fb133fa5a62eef4e3bd9bf902259de65de848ddbd021c4",
+            "cl-6e6f4dbfc588f3bd302a618db459e645605a5c4b443beea26f48fbf899ceff17",
+            "cl-77d405ac8d5d5208c2fc71cce1e5b2c5ec2c7e755bde45346a49850ab2cb5bf0",
+            "cl-a15d5395cfcd2b20f7e3517138245a0678a4b1d46c5096ae56ecb3541705c22e",
+            "cl-b3b5fd992889a90003a67c06b000b0304ece52ee41fe464eed079b44ef9cfd4a",
+            "cl-c2614d70955f354ae87188a53f14ca02eb7b77fe82c6fc8b17059d8a769e12c9"
+          ],
+          "gaps": [
+            {
+              "gap_id": "gap-7b1fa551ba1ec73b4e06b8b3e792bc00d38f07a5b9b61f44e5e92a1fa77ad903",
+              "section_id": "section_2",
+              "claim_spec_id": "spec-attention",
+              "claim_id": "cl-437172999f837e0c5d42154f472228afa263a11bf3111eeb4aa3c6eeac9ec42d",
+              "reason": "Missing support, required source tier, or explicit conditions",
+              "fillable": true,
+              "verification_action": "Check original support, conflicting relations, and required conditions"
+            },
+            {
+              "gap_id": "gap-e1a7771fa0f20afd2374406c68364ff5aa8a0d8f0a87410b0385ef1522c11042",
+              "section_id": "section_2",
+              "claim_spec_id": "spec-attention",
+              "claim_id": "cl-b4de65029f0267ec65016288a8d1609a0e378b5708f76c2fbf793419f1f9be46",
+              "reason": "Missing support, required source tier, or explicit conditions",
+              "fillable": true,
+              "verification_action": "Check original support, conflicting relations, and required conditions"
+            }
+          ],
+          "unresolved_items": [
+            "Missing support, required source tier, or explicit conditions",
+            "Missing support, required source tier, or explicit conditions"
+          ]
+        },
+        "section_3": {
+          "section_id": "section_3",
+          "claim_spec_ids": [
+            "spec-attention"
+          ],
+          "claim_ids": [
+            "cl-2dc07f60c3c3fa5b0b14c997c17f3cf6536a78a768b618adabbbccf50899780d",
+            "cl-437172999f837e0c5d42154f472228afa263a11bf3111eeb4aa3c6eeac9ec42d",
+            "cl-6223dd35c59eb9aa63fb133fa5a62eef4e3bd9bf902259de65de848ddbd021c4",
+            "cl-6e6f4dbfc588f3bd302a618db459e645605a5c4b443beea26f48fbf899ceff17",
+            "cl-77d405ac8d5d5208c2fc71cce1e5b2c5ec2c7e755bde45346a49850ab2cb5bf0",
+            "cl-a15d5395cfcd2b20f7e3517138245a0678a4b1d46c5096ae56ecb3541705c22e",
+            "cl-b3b5fd992889a90003a67c06b000b0304ece52ee41fe464eed079b44ef9cfd4a",
+            "cl-b4de65029f0267ec65016288a8d1609a0e378b5708f76c2fbf793419f1f9be46",
+            "cl-c2614d70955f354ae87188a53f14ca02eb7b77fe82c6fc8b17059d8a769e12c9"
+          ],
+          "evidence_ids": [
+            "ev-50fa4739c66437f5e048c5190bfc6061ad913b7a92a01d84760bf044b71616c7",
+            "ev-51b88131e9de6e2d241e627728cd23551d1e6276d1537bdc4e203949d6b030d9",
+            "ev-61e10bfe833cfbacf9c6f5acc1944223ab6c8f8d7466e3bfccc77bbb1914505d",
+            "ev-721d0e957390f776e919f7c9fd0fba25bebd9a2f13c245ff4fb2ed68a64735b4",
+            "ev-b1f1ef1d4c176c78e46ca7c901abdad4aed6697d1e2e94779ac74117b434beaa",
+            "ev-da9ea1bc3b16904f5aa2e3db50e547bccf55530394ed7781f77603cf2872c736",
+            "ev-dfbbf48e0ab8f2af51aa03ce58f89f48e53dba606e853cbf84f549a206f0b5f7"
+          ],
+          "covered_claim_ids": [
+            "cl-2dc07f60c3c3fa5b0b14c997c17f3cf6536a78a768b618adabbbccf50899780d",
+            "cl-6223dd35c59eb9aa63fb133fa5a62eef4e3bd9bf902259de65de848ddbd021c4",
+            "cl-6e6f4dbfc588f3bd302a618db459e645605a5c4b443beea26f48fbf899ceff17",
+            "cl-77d405ac8d5d5208c2fc71cce1e5b2c5ec2c7e755bde45346a49850ab2cb5bf0",
+            "cl-a15d5395cfcd2b20f7e3517138245a0678a4b1d46c5096ae56ecb3541705c22e",
+            "cl-b3b5fd992889a90003a67c06b000b0304ece52ee41fe464eed079b44ef9cfd4a",
+            "cl-c2614d70955f354ae87188a53f14ca02eb7b77fe82c6fc8b17059d8a769e12c9"
+          ],
+          "gaps": [
+            {
+              "gap_id": "gap-d01e506af63679b4d54e92294385aa997cf162217eccbf312105bf5539aec590",
+              "section_id": "section_3",
+              "claim_spec_id": "spec-attention",
+              "claim_id": "cl-437172999f837e0c5d42154f472228afa263a11bf3111eeb4aa3c6eeac9ec42d",
+              "reason": "Missing support, required source tier, or explicit conditions",
+              "fillable": true,
+              "verification_action": "Check original support, conflicting relations, and required conditions"
+            },
+            {
+              "gap_id": "gap-828614bd715d54f7fdc2def0b3c68839db54fae55b515ef941d8665dba86f775",
+              "section_id": "section_3",
+              "claim_spec_id": "spec-attention",
+              "claim_id": "cl-b4de65029f0267ec65016288a8d1609a0e378b5708f76c2fbf793419f1f9be46",
+              "reason": "Missing support, required source tier, or explicit conditions",
+              "fillable": true,
+              "verification_action": "Check original support, conflicting relations, and required conditions"
+            }
+          ],
+          "unresolved_items": [
+            "Missing support, required source tier, or explicit conditions",
+            "Missing support, required source tier, or explicit conditions"
+          ]
+        },
+        "section_4": {
+          "section_id": "section_4",
+          "claim_spec_ids": [
+            "spec-attention"
+          ],
+          "claim_ids": [
+            "cl-2dc07f60c3c3fa5b0b14c997c17f3cf6536a78a768b618adabbbccf50899780d",
+            "cl-437172999f837e0c5d42154f472228afa263a11bf3111eeb4aa3c6eeac9ec42d",
+            "cl-6223dd35c59eb9aa63fb133fa5a62eef4e3bd9bf902259de65de848ddbd021c4",
+            "cl-6e6f4dbfc588f3bd302a618db459e645605a5c4b443beea26f48fbf899ceff17",
+            "cl-77d405ac8d5d5208c2fc71cce1e5b2c5ec2c7e755bde45346a49850ab2cb5bf0",
+            "cl-a15d5395cfcd2b20f7e3517138245a0678a4b1d46c5096ae56ecb3541705c22e",
+            "cl-b3b5fd992889a90003a67c06b000b0304ece52ee41fe464eed079b44ef9cfd4a",
+            "cl-b4de65029f0267ec65016288a8d1609a0e378b5708f76c2fbf793419f1f9be46",
+            "cl-c2614d70955f354ae87188a53f14ca02eb7b77fe82c6fc8b17059d8a769e12c9"
+          ],
+          "evidence_ids": [
+            "ev-50fa4739c66437f5e048c5190bfc6061ad913b7a92a01d84760bf044b71616c7",
+            "ev-51b88131e9de6e2d241e627728cd23551d1e6276d1537bdc4e203949d6b030d9",
+            "ev-61e10bfe833cfbacf9c6f5acc1944223ab6c8f8d7466e3bfccc77bbb1914505d",
+            "ev-721d0e957390f776e919f7c9fd0fba25bebd9a2f13c245ff4fb2ed68a64735b4",
+            "ev-b1f1ef1d4c176c78e46ca7c901abdad4aed6697d1e2e94779ac74117b434beaa",
+            "ev-da9ea1bc3b16904f5aa2e3db50e547bccf55530394ed7781f77603cf2872c736",
+            "ev-dfbbf48e0ab8f2af51aa03ce58f89f48e53dba606e853cbf84f549a206f0b5f7"
+          ],
+          "covered_claim_ids": [
+            "cl-2dc07f60c3c3fa5b0b14c997c17f3cf6536a78a768b618adabbbccf50899780d",
+            "cl-6223dd35c59eb9aa63fb133fa5a62eef4e3bd9bf902259de65de848ddbd021c4",
+            "cl-6e6f4dbfc588f3bd302a618db459e645605a5c4b443beea26f48fbf899ceff17",
+            "cl-77d405ac8d5d5208c2fc71cce1e5b2c5ec2c7e755bde45346a49850ab2cb5bf0",
+            "cl-a15d5395cfcd2b20f7e3517138245a0678a4b1d46c5096ae56ecb3541705c22e",
+            "cl-b3b5fd992889a90003a67c06b000b0304ece52ee41fe464eed079b44ef9cfd4a",
+            "cl-c2614d70955f354ae87188a53f14ca02eb7b77fe82c6fc8b17059d8a769e12c9"
+          ],
+          "gaps": [
+            {
+              "gap_id": "gap-288696382d6a4e05696cc982ff6167e943f8049605fafdaa6d3950624f70f897",
+              "section_id": "section_4",
+              "claim_spec_id": "spec-attention",
+              "claim_id": "cl-437172999f837e0c5d42154f472228afa263a11bf3111eeb4aa3c6eeac9ec42d",
+              "reason": "Missing support, required source tier, or explicit conditions",
+              "fillable": true,
+              "verification_action": "Check original support, conflicting relations, and required conditions"
+            },
+            {
+              "gap_id": "gap-31f5e96c4881b60b82e9ab5eef0230be786573f103e51889cf4ba49644c7ca33",
+              "section_id": "section_4",
+              "claim_spec_id": "spec-attention",
+              "claim_id": "cl-b4de65029f0267ec65016288a8d1609a0e378b5708f76c2fbf793419f1f9be46",
+              "reason": "Missing support, required source tier, or explicit conditions",
+              "fillable": true,
+              "verification_action": "Check original support, conflicting relations, and required conditions"
+            }
+          ],
+          "unresolved_items": [
+            "Missing support, required source tier, or explicit conditions",
+            "Missing support, required source tier, or explicit conditions"
+          ]
+        },
+        "section_5": {
+          "section_id": "section_5",
+          "claim_spec_ids": [
+            "spec-attention"
+          ],
+          "claim_ids": [
+            "cl-2dc07f60c3c3fa5b0b14c997c17f3cf6536a78a768b618adabbbccf50899780d",
+            "cl-437172999f837e0c5d42154f472228afa263a11bf3111eeb4aa3c6eeac9ec42d",
+            "cl-6223dd35c59eb9aa63fb133fa5a62eef4e3bd9bf902259de65de848ddbd021c4",
+            "cl-6e6f4dbfc588f3bd302a618db459e645605a5c4b443beea26f48fbf899ceff17",
+            "cl-77d405ac8d5d5208c2fc71cce1e5b2c5ec2c7e755bde45346a49850ab2cb5bf0",
+            "cl-a15d5395cfcd2b20f7e3517138245a0678a4b1d46c5096ae56ecb3541705c22e",
+            "cl-b3b5fd992889a90003a67c06b000b0304ece52ee41fe464eed079b44ef9cfd4a",
+            "cl-b4de65029f0267ec65016288a8d1609a0e378b5708f76c2fbf793419f1f9be46",
+            "cl-c2614d70955f354ae87188a53f14ca02eb7b77fe82c6fc8b17059d8a769e12c9"
+          ],
+          "evidence_ids": [
+            "ev-50fa4739c66437f5e048c5190bfc6061ad913b7a92a01d84760bf044b71616c7",
+            "ev-51b88131e9de6e2d241e627728cd23551d1e6276d1537bdc4e203949d6b030d9",
+            "ev-61e10bfe833cfbacf9c6f5acc1944223ab6c8f8d7466e3bfccc77bbb1914505d",
+            "ev-721d0e957390f776e919f7c9fd0fba25bebd9a2f13c245ff4fb2ed68a64735b4",
+            "ev-b1f1ef1d4c176c78e46ca7c901abdad4aed6697d1e2e94779ac74117b434beaa",
+            "ev-da9ea1bc3b16904f5aa2e3db50e547bccf55530394ed7781f77603cf2872c736",
+            "ev-dfbbf48e0ab8f2af51aa03ce58f89f48e53dba606e853cbf84f549a206f0b5f7"
+          ],
+          "covered_claim_ids": [
+            "cl-2dc07f60c3c3fa5b0b14c997c17f3cf6536a78a768b618adabbbccf50899780d",
+            "cl-6223dd35c59eb9aa63fb133fa5a62eef4e3bd9bf902259de65de848ddbd021c4",
+            "cl-6e6f4dbfc588f3bd302a618db459e645605a5c4b443beea26f48fbf899ceff17",
+            "cl-77d405ac8d5d5208c2fc71cce1e5b2c5ec2c7e755bde45346a49850ab2cb5bf0",
+            "cl-a15d5395cfcd2b20f7e3517138245a0678a4b1d46c5096ae56ecb3541705c22e",
+            "cl-b3b5fd992889a90003a67c06b000b0304ece52ee41fe464eed079b44ef9cfd4a",
+            "cl-c2614d70955f354ae87188a53f14ca02eb7b77fe82c6fc8b17059d8a769e12c9"
+          ],
+          "gaps": [
+            {
+              "gap_id": "gap-5cd64a63e58f70830794054f9812d875182ed130220113ed0263e0e0492638b6",
+              "section_id": "section_5",
+              "claim_spec_id": "spec-attention",
+              "claim_id": "cl-437172999f837e0c5d42154f472228afa263a11bf3111eeb4aa3c6eeac9ec42d",
+              "reason": "Missing support, required source tier, or explicit conditions",
+              "fillable": true,
+              "verification_action": "Check original support, conflicting relations, and required conditions"
+            },
+            {
+              "gap_id": "gap-9bf147bb55ee5ea50348cc3e0d0a62dabb53499d7a3bcdcafc6ecf6ea3028400",
+              "section_id": "section_5",
+              "claim_spec_id": "spec-attention",
+              "claim_id": "cl-b4de65029f0267ec65016288a8d1609a0e378b5708f76c2fbf793419f1f9be46",
+              "reason": "Missing support, required source tier, or explicit conditions",
+              "fillable": true,
+              "verification_action": "Check original support, conflicting relations, and required conditions"
+            }
+          ],
+          "unresolved_items": [
+            "Missing support, required source tier, or explicit conditions",
+            "Missing support, required source tier, or explicit conditions"
+          ]
+        }
+      },
+      "draft_sections": {},
+      "draft_claim_bindings": [],
+      "critic_feedback": [],
+      "draft_version": 0,
+      "reviewed_draft_version": null,
+      "review_verdict": null,
+      "final_report": null,
+      "run_metadata": {
+        "config": {
+          "versions": {
+            "llm_provider": "anthropic_compatible",
+            "llm_model": "deepseek-flash",
+            "llm_revision": "unconfigured",
+            "prompt_versions": {
+              "clarify": "mono-v1",
+              "plan": "mono-v1",
+              "research": "mono-v1",
+              "analyze": "mono-v1",
+              "write": "mono-v1",
+              "review": "mono-v1"
+            },
+            "template_versions": {
+              "comparison_matrix": "mono-v1",
+              "pairwise_delta": "mono-v1",
+              "plot": "mono-v1",
+              "statistic": "mono-v1",
+              "aggregation": "mono-v1"
+            },
+            "parser_version": "dr4a-html-v1",
+            "chunker_version": "mono-v1",
+            "embedding_version": "unconfigured",
+            "reranker_version": "unconfigured",
+            "index_version": "dr4a_chunks_v1"
+          },
+          "source_policy": {
+            "categories": [
+              "web"
+            ],
+            "knowledge_base_ids": [],
+            "private_only": false
+          },
+          "limits": {
+            "deadline_s": 1800,
+            "search_calls": 60,
+            "fetch_calls": 30,
+            "llm_calls": 60,
+            "tokens": 120000,
+            "terminal_reserved_calls": 8,
+            "terminal_reserved_tokens": 12000,
+            "rework_rounds": 3,
+            "citation_depth": 2,
+            "gap_queries_per_spec": 2
+          },
+          "timeouts_s": {
+            "llm": 60,
+            "search": 20,
+            "fetch": 45,
+            "embedding": 120,
+            "rerank": 60,
+            "vector": 15,
+            "content": 30,
+            "parser": 600,
+            "sandbox": 30
+          },
+          "concurrency": {
+            "search": 4,
+            "fetch": 2,
+            "llm": 2,
+            "local_inference": 1
+          }
+        },
+        "budget_used": {
+          "llm_calls": 0,
+          "search_calls": 0,
+          "fetch_calls": 0,
+          "tokens": 0,
+          "elapsed_s": 0
+        },
+        "rework_count": 0,
+        "rework_targets": [],
+        "degraded_sources": [
+          {
+            "source": "research",
+            "reason": "Additional candidates remain unexamined beyond the bounded selection",
+            "operation": "candidate_selection",
+            "section_id": "section_1",
+            "occurred_at": "2026-10-06T15:44:46.602096Z"
+          },
+          {
+            "source": "src-5ae10dc6245f0936c532f41d9b905c0961fa066fba759b67e79adfaf61d5b1e8",
+            "reason": "Some whole original blocks were not examined within extraction limits",
+            "operation": "block_selection",
+            "section_id": "section_1",
+            "occurred_at": "2026-10-06T15:44:47.187901Z"
+          },
+          {
+            "source": "src-ccc257b9a66abd8e99abc993d5ba372cc5b6ddb9f02a6aece8123c576e111cf0",
+            "reason": "Some whole original blocks were not examined within extraction limits",
+            "operation": "block_selection",
+            "section_id": "section_1",
+            "occurred_at": "2026-10-06T15:45:04.122215Z"
+          },
+          {
+            "source": "https://arxiv.org/pdf/1706.03762.pdf",
+            "reason": "parser_not_configured",
+            "operation": "fetch",
+            "section_id": "section_1",
+            "occurred_at": "2026-10-06T15:45:34.096877Z"
+          },
+          {
+            "source": "https://arxiv.org/pdf/1706.03762",
+            "reason": "fetch_unavailable",
+            "operation": "fetch",
+            "section_id": "section_1",
+            "occurred_at": "2026-10-06T15:45:34.370370Z"
+          }
+        ],
+        "unit_manifest": {},
+        "knowledge_snapshot": [],
+        "stop_reason": null
+      },
+      "errors": []
+    },
+    "state_delta": {
+      "sources": {
+        "src-5ae10dc6245f0936c532f41d9b905c0961fa066fba759b67e79adfaf61d5b1e8": {
+          "source_id": "src-5ae10dc6245f0936c532f41d9b905c0961fa066fba759b67e79adfaf61d5b1e8",
+          "source_type": "web",
+          "title": "[1706.03762] Attention Is All You Need",
+          "authors_or_publisher": [
+            "arXiv"
+          ],
+          "published_at": "2017-06-12T17:57:34+08:00",
+          "version": null,
+          "canonical_url": "https://arxiv.org/abs/1706.03762",
+          "provenance": [
+            {
+              "retrieved_at": "2026-10-06T15:44:47.184025Z",
+              "retrieved_via": "web",
+              "original_ref": "https://arxiv.org/abs/1706.03762",
+              "document_version_id": null,
+              "upstream_source_id": null
+            }
+          ],
+          "source_tier": "primary",
+          "content_object_key": "research-content/329afba9-7658-44fa-baa1-c19ea15a90bb/29e42a996471db9c019f1122825cdac0e6d64c96767d9ee5c0b8891de6204bee",
+          "content_hash": "29e42a996471db9c019f1122825cdac0e6d64c96767d9ee5c0b8891de6204bee",
+          "data_classification": "public"
+        },
+        "src-ccc257b9a66abd8e99abc993d5ba372cc5b6ddb9f02a6aece8123c576e111cf0": {
+          "source_id": "src-ccc257b9a66abd8e99abc993d5ba372cc5b6ddb9f02a6aece8123c576e111cf0",
+          "source_type": "web",
+          "title": "Attention Is All You Need",
+          "authors_or_publisher": [
+            "arXiv"
+          ],
+          "published_at": "2025-01-13T04:16:06+08:00",
+          "version": null,
+          "canonical_url": "https://arxiv.org/html/1706.03762v7",
+          "provenance": [
+            {
+              "retrieved_at": "2026-10-06T15:45:04.112480Z",
+              "retrieved_via": "web",
+              "original_ref": "https://arxiv.org/html/1706.03762v7",
+              "document_version_id": null,
+              "upstream_source_id": null
+            }
+          ],
+          "source_tier": "primary",
+          "content_object_key": "research-content/329afba9-7658-44fa-baa1-c19ea15a90bb/fe1288e9c6f8322156429ab44bf5ced203155f8ecc7ea9fe6cfd125872c72a3b",
+          "content_hash": "fe1288e9c6f8322156429ab44bf5ced203155f8ecc7ea9fe6cfd125872c72a3b",
+          "data_classification": "public"
+        }
+      },
+      "evidence": {
+        "ev-da9ea1bc3b16904f5aa2e3db50e547bccf55530394ed7781f77603cf2872c736": {
+          "evidence_id": "ev-da9ea1bc3b16904f5aa2e3db50e547bccf55530394ed7781f77603cf2872c736",
+          "source_id": "src-5ae10dc6245f0936c532f41d9b905c0961fa066fba759b67e79adfaf61d5b1e8",
+          "evidence_type": "method",
+          "location": {
+            "page_start": null,
+            "page_end": null,
+            "section": "Title:Attention Is All You Need",
+            "table": null,
+            "file": null,
+            "commit": null,
+            "selector": null,
+            "line_start": 128,
+            "line_end": 130,
+            "chunk_id": null
+          },
+          "quote_or_raw_content": "We propose a new simple network architecture, the Transformer, based solely on attention mechanisms, dispensing with recurrence and convolutions entirely.",
+          "extraction_method": "parser:dr4a-html-v1:verified_range",
+          "content_hash": "29e42a996471db9c019f1122825cdac0e6d64c96767d9ee5c0b8891de6204bee"
+        },
+        "ev-51b88131e9de6e2d241e627728cd23551d1e6276d1537bdc4e203949d6b030d9": {
+          "evidence_id": "ev-51b88131e9de6e2d241e627728cd23551d1e6276d1537bdc4e203949d6b030d9",
+          "source_id": "src-ccc257b9a66abd8e99abc993d5ba372cc5b6ddb9f02a6aece8123c576e111cf0",
+          "evidence_type": "method",
+          "location": {
+            "page_start": null,
+            "page_end": null,
+            "section": "1 Introduction",
+            "table": null,
+            "file": null,
+            "commit": null,
+            "selector": null,
+            "line_start": 367,
+            "line_end": 367,
+            "chunk_id": null
+          },
+          "quote_or_raw_content": "In this work we propose the Transformer, a model architecture eschewing recurrence and instead relying entirely on an attention mechanism to draw global dependencies between input and output.",
+          "extraction_method": "parser:dr4a-html-v1:verified_range",
+          "content_hash": "fe1288e9c6f8322156429ab44bf5ced203155f8ecc7ea9fe6cfd125872c72a3b"
+        },
+        "ev-dfbbf48e0ab8f2af51aa03ce58f89f48e53dba606e853cbf84f549a206f0b5f7": {
+          "evidence_id": "ev-dfbbf48e0ab8f2af51aa03ce58f89f48e53dba606e853cbf84f549a206f0b5f7",
+          "source_id": "src-ccc257b9a66abd8e99abc993d5ba372cc5b6ddb9f02a6aece8123c576e111cf0",
+          "evidence_type": "method",
+          "location": {
+            "page_start": null,
+            "page_end": null,
+            "section": "3 Model Architecture",
+            "table": null,
+            "file": null,
+            "commit": null,
+            "selector": null,
+            "line_start": 397,
+            "line_end": 397,
+            "chunk_id": null
+          },
+          "quote_or_raw_content": "The Transformer follows this overall architecture using stacked self-attention and point-wise, fully connected layers for both the encoder and decoder, shown in the left and right halves of Figure 1, respectively.",
+          "extraction_method": "parser:dr4a-html-v1:verified_range",
+          "content_hash": "fe1288e9c6f8322156429ab44bf5ced203155f8ecc7ea9fe6cfd125872c72a3b"
+        },
+        "ev-b1f1ef1d4c176c78e46ca7c901abdad4aed6697d1e2e94779ac74117b434beaa": {
+          "evidence_id": "ev-b1f1ef1d4c176c78e46ca7c901abdad4aed6697d1e2e94779ac74117b434beaa",
+          "source_id": "src-ccc257b9a66abd8e99abc993d5ba372cc5b6ddb9f02a6aece8123c576e111cf0",
+          "evidence_type": "method",
+          "location": {
+            "page_start": null,
+            "page_end": null,
+            "section": "2 Background",
+            "table": null,
+            "file": null,
+            "commit": null,
+            "selector": null,
+            "line_start": 374,
+            "line_end": 374,
+            "chunk_id": null
+          },
+          "quote_or_raw_content": "In the Transformer this is reduced to a constant number of operations, albeit at the cost of reduced effective resolution due to averaging attention-weighted positions, an effect we counteract with Multi-Head Attention as described in section 3.2.",
+          "extraction_method": "parser:dr4a-html-v1:verified_range",
+          "content_hash": "fe1288e9c6f8322156429ab44bf5ced203155f8ecc7ea9fe6cfd125872c72a3b"
+        },
+        "ev-50fa4739c66437f5e048c5190bfc6061ad913b7a92a01d84760bf044b71616c7": {
+          "evidence_id": "ev-50fa4739c66437f5e048c5190bfc6061ad913b7a92a01d84760bf044b71616c7",
+          "source_id": "src-ccc257b9a66abd8e99abc993d5ba372cc5b6ddb9f02a6aece8123c576e111cf0",
+          "evidence_type": "method",
+          "location": {
+            "page_start": null,
+            "page_end": null,
+            "section": "2 Background",
+            "table": null,
+            "file": null,
+            "commit": null,
+            "selector": null,
+            "line_start": 377,
+            "line_end": 377,
+            "chunk_id": null
+          },
+          "quote_or_raw_content": "Self-attention, sometimes called intra-attention is an attention mechanism relating different positions of a single sequence in order to compute a representation of the sequence.",
+          "extraction_method": "parser:dr4a-html-v1:verified_range",
+          "content_hash": "fe1288e9c6f8322156429ab44bf5ced203155f8ecc7ea9fe6cfd125872c72a3b"
+        },
+        "ev-61e10bfe833cfbacf9c6f5acc1944223ab6c8f8d7466e3bfccc77bbb1914505d": {
+          "evidence_id": "ev-61e10bfe833cfbacf9c6f5acc1944223ab6c8f8d7466e3bfccc77bbb1914505d",
+          "source_id": "src-ccc257b9a66abd8e99abc993d5ba372cc5b6ddb9f02a6aece8123c576e111cf0",
+          "evidence_type": "method",
+          "location": {
+            "page_start": null,
+            "page_end": null,
+            "section": "3.2.3 Applications of Attention in our Model",
+            "table": null,
+            "file": null,
+            "commit": null,
+            "selector": null,
+            "line_start": 514,
+            "line_end": 514,
+            "chunk_id": null
+          },
+          "quote_or_raw_content": "Similarly, self-attention layers in the decoder allow each position in the decoder to attend to all positions in the decoder up to and including that position.",
+          "extraction_method": "parser:dr4a-html-v1:verified_range",
+          "content_hash": "fe1288e9c6f8322156429ab44bf5ced203155f8ecc7ea9fe6cfd125872c72a3b"
+        },
+        "ev-721d0e957390f776e919f7c9fd0fba25bebd9a2f13c245ff4fb2ed68a64735b4": {
+          "evidence_id": "ev-721d0e957390f776e919f7c9fd0fba25bebd9a2f13c245ff4fb2ed68a64735b4",
+          "source_id": "src-ccc257b9a66abd8e99abc993d5ba372cc5b6ddb9f02a6aece8123c576e111cf0",
+          "evidence_type": "other",
+          "location": {
+            "page_start": null,
+            "page_end": null,
+            "section": "1 Introduction",
+            "table": null,
+            "file": null,
+            "commit": null,
+            "selector": null,
+            "line_start": 364,
+            "line_end": 364,
+            "chunk_id": null
+          },
+          "quote_or_raw_content": "Attention mechanisms have become an integral part of compelling sequence modeling and transduction models in various tasks, allowing modeling of dependencies without regard to their distance in the input or output sequences [2, 19]. In all but a few cases [27], however, such attention mechanisms are used in conjunction with a recurrent network.",
+          "extraction_method": "parser:dr4a-html-v1:verified_range",
+          "content_hash": "fe1288e9c6f8322156429ab44bf5ced203155f8ecc7ea9fe6cfd125872c72a3b"
+        }
+      },
+      "claims": {
+        "cl-437172999f837e0c5d42154f472228afa263a11bf3111eeb4aa3c6eeac9ec42d": {
+          "claim_id": "cl-437172999f837e0c5d42154f472228afa263a11bf3111eeb4aa3c6eeac9ec42d",
+          "spec_ids": [
+            "spec-attention"
+          ],
+          "text": "The Transformer is based solely on attention mechanisms",
+          "claim_type": "factual",
+          "conditions": {
+            "source_block": 11,
+            "source_section": "Title:Attention Is All You Need",
+            "source_type": "arXiv abstract",
+            "required_conditions": [
+              "original_section"
+            ],
+            "limitation": "abstract-level statement; original paper body not provided in supplied blocks"
+          },
+          "status": "insufficient",
+          "status_reason": "Missing support, required source tier, or explicit conditions"
+        },
+        "cl-b4de65029f0267ec65016288a8d1609a0e378b5708f76c2fbf793419f1f9be46": {
+          "claim_id": "cl-b4de65029f0267ec65016288a8d1609a0e378b5708f76c2fbf793419f1f9be46",
+          "spec_ids": [
+            "spec-attention"
+          ],
+          "text": "The Transformer dispenses with recurrence and convolutions entirely",
+          "claim_type": "factual",
+          "conditions": {
+            "source_block": 11,
+            "source_section": "Title:Attention Is All You Need",
+            "source_type": "arXiv abstract",
+            "required_conditions": [
+              "original_section"
+            ],
+            "limitation": "abstract-level statement; original paper body not provided in supplied blocks"
+          },
+          "status": "insufficient",
+          "status_reason": "Missing support, required source tier, or explicit conditions"
+        },
+        "cl-b3b5fd992889a90003a67c06b000b0304ece52ee41fe464eed079b44ef9cfd4a": {
+          "claim_id": "cl-b3b5fd992889a90003a67c06b000b0304ece52ee41fe464eed079b44ef9cfd4a",
+          "spec_ids": [
+            "spec-attention"
+          ],
+          "text": "Transformer eschews recurrence",
+          "claim_type": "factual",
+          "conditions": {
+            "section": "1 Introduction",
+            "original_section": true
+          },
+          "status": "supported",
+          "status_reason": "Support meets all relevant source-tier and condition requirements"
+        },
+        "cl-77d405ac8d5d5208c2fc71cce1e5b2c5ec2c7e755bde45346a49850ab2cb5bf0": {
+          "claim_id": "cl-77d405ac8d5d5208c2fc71cce1e5b2c5ec2c7e755bde45346a49850ab2cb5bf0",
+          "spec_ids": [
+            "spec-attention"
+          ],
+          "text": "Transformer relies entirely on an attention mechanism to draw global dependencies between input and output",
+          "claim_type": "factual",
+          "conditions": {
+            "section": "1 Introduction",
+            "original_section": true
+          },
+          "status": "supported",
+          "status_reason": "Support meets all relevant source-tier and condition requirements"
+        },
+        "cl-c2614d70955f354ae87188a53f14ca02eb7b77fe82c6fc8b17059d8a769e12c9": {
+          "claim_id": "cl-c2614d70955f354ae87188a53f14ca02eb7b77fe82c6fc8b17059d8a769e12c9",
+          "spec_ids": [
+            "spec-attention"
+          ],
+          "text": "Transformer uses stacked self-attention and point-wise, fully connected layers for both the encoder and decoder",
+          "claim_type": "factual",
+          "conditions": {
+            "section": "3 Model Architecture",
+            "original_section": true
+          },
+          "status": "supported",
+          "status_reason": "Support meets all relevant source-tier and condition requirements"
+        },
+        "cl-2dc07f60c3c3fa5b0b14c997c17f3cf6536a78a768b618adabbbccf50899780d": {
+          "claim_id": "cl-2dc07f60c3c3fa5b0b14c997c17f3cf6536a78a768b618adabbbccf50899780d",
+          "spec_ids": [
+            "spec-attention"
+          ],
+          "text": "In the Transformer, the number of operations required to relate signals from two arbitrary input or output positions is reduced to a constant number of operations, albeit at the cost of reduced effective resolution due to averaging attention-weighted positions, an effect we counteract with Multi-Head Attention as described in section 3.2",
+          "claim_type": "factual",
+          "conditions": {
+            "section": "2 Background",
+            "original_section": true
+          },
+          "status": "supported",
+          "status_reason": "Support meets all relevant source-tier and condition requirements"
+        },
+        "cl-6e6f4dbfc588f3bd302a618db459e645605a5c4b443beea26f48fbf899ceff17": {
+          "claim_id": "cl-6e6f4dbfc588f3bd302a618db459e645605a5c4b443beea26f48fbf899ceff17",
+          "spec_ids": [
+            "spec-attention"
+          ],
+          "text": "Self-attention is an attention mechanism relating different positions of a single sequence in order to compute a representation of the sequence",
+          "claim_type": "factual",
+          "conditions": {
+            "section": "2 Background",
+            "original_section": true
+          },
+          "status": "supported",
+          "status_reason": "Support meets all relevant source-tier and condition requirements"
+        },
+        "cl-a15d5395cfcd2b20f7e3517138245a0678a4b1d46c5096ae56ecb3541705c22e": {
+          "claim_id": "cl-a15d5395cfcd2b20f7e3517138245a0678a4b1d46c5096ae56ecb3541705c22e",
+          "spec_ids": [
+            "spec-attention"
+          ],
+          "text": "self-attention layers in the decoder allow each position in the decoder to attend to all positions in the decoder up to and including that position",
+          "claim_type": "factual",
+          "conditions": {
+            "section": "3.2.3 Applications of Attention in our Model",
+            "original_section": true
+          },
+          "status": "supported",
+          "status_reason": "Support meets all relevant source-tier and condition requirements"
+        },
+        "cl-6223dd35c59eb9aa63fb133fa5a62eef4e3bd9bf902259de65de848ddbd021c4": {
+          "claim_id": "cl-6223dd35c59eb9aa63fb133fa5a62eef4e3bd9bf902259de65de848ddbd021c4",
+          "spec_ids": [
+            "spec-attention"
+          ],
+          "text": "attention mechanisms are used in conjunction with a recurrent network",
+          "claim_type": "factual",
+          "conditions": {
+            "section": "1 Introduction",
+            "original_section": true,
+            "qualifier": "in all but a few cases"
+          },
+          "status": "supported",
+          "status_reason": "Support meets all relevant source-tier and condition requirements"
+        }
+      },
+      "claim_evidence_links": [
+        {
+          "claim_id": "cl-437172999f837e0c5d42154f472228afa263a11bf3111eeb4aa3c6eeac9ec42d",
+          "evidence_id": "ev-da9ea1bc3b16904f5aa2e3db50e547bccf55530394ed7781f77603cf2872c736",
+          "relation": "supports",
+          "rationale": "The abstract states the Transformer is based solely on attention mechanisms."
+        },
+        {
+          "claim_id": "cl-b4de65029f0267ec65016288a8d1609a0e378b5708f76c2fbf793419f1f9be46",
+          "evidence_id": "ev-da9ea1bc3b16904f5aa2e3db50e547bccf55530394ed7781f77603cf2872c736",
+          "relation": "supports",
+          "rationale": "The abstract states the Transformer dispenses with recurrence and convolutions entirely."
+        },
+        {
+          "claim_id": "cl-b3b5fd992889a90003a67c06b000b0304ece52ee41fe464eed079b44ef9cfd4a",
+          "evidence_id": "ev-51b88131e9de6e2d241e627728cd23551d1e6276d1537bdc4e203949d6b030d9",
+          "relation": "supports",
+          "rationale": "The quoted sentence describes the Transformer as a model architecture eschewing recurrence."
+        },
+        {
+          "claim_id": "cl-77d405ac8d5d5208c2fc71cce1e5b2c5ec2c7e755bde45346a49850ab2cb5bf0",
+          "evidence_id": "ev-51b88131e9de6e2d241e627728cd23551d1e6276d1537bdc4e203949d6b030d9",
+          "relation": "supports",
+          "rationale": "The quoted sentence states that the Transformer relies entirely on an attention mechanism to draw global dependencies between input and output."
+        },
+        {
+          "claim_id": "cl-c2614d70955f354ae87188a53f14ca02eb7b77fe82c6fc8b17059d8a769e12c9",
+          "evidence_id": "ev-dfbbf48e0ab8f2af51aa03ce58f89f48e53dba606e853cbf84f549a206f0b5f7",
+          "relation": "supports",
+          "rationale": "The quoted sentence says the Transformer follows this overall architecture using stacked self-attention and point-wise, fully connected layers for both the encoder and decoder."
+        },
+        {
+          "claim_id": "cl-2dc07f60c3c3fa5b0b14c997c17f3cf6536a78a768b618adabbbccf50899780d",
+          "evidence_id": "ev-b1f1ef1d4c176c78e46ca7c901abdad4aed6697d1e2e94779ac74117b434beaa",
+          "relation": "supports",
+          "rationale": "The quoted sentence states this reduction to a constant number of operations and the use of Multi-Head Attention to counteract reduced effective resolution."
+        },
+        {
+          "claim_id": "cl-6e6f4dbfc588f3bd302a618db459e645605a5c4b443beea26f48fbf899ceff17",
+          "evidence_id": "ev-50fa4739c66437f5e048c5190bfc6061ad913b7a92a01d84760bf044b71616c7",
+          "relation": "supports",
+          "rationale": "The quoted sentence defines self-attention as an attention mechanism relating different positions of a single sequence."
+        },
+        {
+          "claim_id": "cl-a15d5395cfcd2b20f7e3517138245a0678a4b1d46c5096ae56ecb3541705c22e",
+          "evidence_id": "ev-61e10bfe833cfbacf9c6f5acc1944223ab6c8f8d7466e3bfccc77bbb1914505d",
+          "relation": "supports",
+          "rationale": "The quoted sentence states that self-attention layers in the decoder allow each position in the decoder to attend to all positions in the decoder up to and including that position."
+        },
+        {
+          "claim_id": "cl-6223dd35c59eb9aa63fb133fa5a62eef4e3bd9bf902259de65de848ddbd021c4",
+          "evidence_id": "ev-721d0e957390f776e919f7c9fd0fba25bebd9a2f13c245ff4fb2ed68a64735b4",
+          "relation": "supports",
+          "rationale": "The quoted sentence says that in all but a few cases such attention mechanisms are used in conjunction with a recurrent network."
+        }
+      ],
+      "section_coverage": {
+        "section_1": {
+          "section_id": "section_1",
+          "claim_spec_ids": [
+            "spec-attention"
+          ],
+          "claim_ids": [
+            "cl-2dc07f60c3c3fa5b0b14c997c17f3cf6536a78a768b618adabbbccf50899780d",
+            "cl-437172999f837e0c5d42154f472228afa263a11bf3111eeb4aa3c6eeac9ec42d",
+            "cl-6223dd35c59eb9aa63fb133fa5a62eef4e3bd9bf902259de65de848ddbd021c4",
+            "cl-6e6f4dbfc588f3bd302a618db459e645605a5c4b443beea26f48fbf899ceff17",
+            "cl-77d405ac8d5d5208c2fc71cce1e5b2c5ec2c7e755bde45346a49850ab2cb5bf0",
+            "cl-a15d5395cfcd2b20f7e3517138245a0678a4b1d46c5096ae56ecb3541705c22e",
+            "cl-b3b5fd992889a90003a67c06b000b0304ece52ee41fe464eed079b44ef9cfd4a",
+            "cl-b4de65029f0267ec65016288a8d1609a0e378b5708f76c2fbf793419f1f9be46",
+            "cl-c2614d70955f354ae87188a53f14ca02eb7b77fe82c6fc8b17059d8a769e12c9"
+          ],
+          "evidence_ids": [
+            "ev-50fa4739c66437f5e048c5190bfc6061ad913b7a92a01d84760bf044b71616c7",
+            "ev-51b88131e9de6e2d241e627728cd23551d1e6276d1537bdc4e203949d6b030d9",
+            "ev-61e10bfe833cfbacf9c6f5acc1944223ab6c8f8d7466e3bfccc77bbb1914505d",
+            "ev-721d0e957390f776e919f7c9fd0fba25bebd9a2f13c245ff4fb2ed68a64735b4",
+            "ev-b1f1ef1d4c176c78e46ca7c901abdad4aed6697d1e2e94779ac74117b434beaa",
+            "ev-da9ea1bc3b16904f5aa2e3db50e547bccf55530394ed7781f77603cf2872c736",
+            "ev-dfbbf48e0ab8f2af51aa03ce58f89f48e53dba606e853cbf84f549a206f0b5f7"
+          ],
+          "covered_claim_ids": [
+            "cl-2dc07f60c3c3fa5b0b14c997c17f3cf6536a78a768b618adabbbccf50899780d",
+            "cl-6223dd35c59eb9aa63fb133fa5a62eef4e3bd9bf902259de65de848ddbd021c4",
+            "cl-6e6f4dbfc588f3bd302a618db459e645605a5c4b443beea26f48fbf899ceff17",
+            "cl-77d405ac8d5d5208c2fc71cce1e5b2c5ec2c7e755bde45346a49850ab2cb5bf0",
+            "cl-a15d5395cfcd2b20f7e3517138245a0678a4b1d46c5096ae56ecb3541705c22e",
+            "cl-b3b5fd992889a90003a67c06b000b0304ece52ee41fe464eed079b44ef9cfd4a",
+            "cl-c2614d70955f354ae87188a53f14ca02eb7b77fe82c6fc8b17059d8a769e12c9"
+          ],
+          "gaps": [
+            {
+              "gap_id": "gap-d36e54156e3631da4896dcb6866c5c743ff738bcca11e331c96384c5e47f6e63",
+              "section_id": "section_1",
+              "claim_spec_id": "spec-attention",
+              "claim_id": "cl-437172999f837e0c5d42154f472228afa263a11bf3111eeb4aa3c6eeac9ec42d",
+              "reason": "Missing support, required source tier, or explicit conditions",
+              "fillable": true,
+              "verification_action": "Check original support, conflicting relations, and required conditions"
+            },
+            {
+              "gap_id": "gap-9ba7cd56fc5bb578663b6684ea71e99a39e9c5bc8a6e96f77bb0cc0169c58867",
+              "section_id": "section_1",
+              "claim_spec_id": "spec-attention",
+              "claim_id": "cl-b4de65029f0267ec65016288a8d1609a0e378b5708f76c2fbf793419f1f9be46",
+              "reason": "Missing support, required source tier, or explicit conditions",
+              "fillable": true,
+              "verification_action": "Check original support, conflicting relations, and required conditions"
+            }
+          ],
+          "unresolved_items": [
+            "Missing support, required source tier, or explicit conditions",
+            "Missing support, required source tier, or explicit conditions"
+          ]
+        },
+        "section_2": {
+          "section_id": "section_2",
+          "claim_spec_ids": [
+            "spec-attention"
+          ],
+          "claim_ids": [
+            "cl-2dc07f60c3c3fa5b0b14c997c17f3cf6536a78a768b618adabbbccf50899780d",
+            "cl-437172999f837e0c5d42154f472228afa263a11bf3111eeb4aa3c6eeac9ec42d",
+            "cl-6223dd35c59eb9aa63fb133fa5a62eef4e3bd9bf902259de65de848ddbd021c4",
+            "cl-6e6f4dbfc588f3bd302a618db459e645605a5c4b443beea26f48fbf899ceff17",
+            "cl-77d405ac8d5d5208c2fc71cce1e5b2c5ec2c7e755bde45346a49850ab2cb5bf0",
+            "cl-a15d5395cfcd2b20f7e3517138245a0678a4b1d46c5096ae56ecb3541705c22e",
+            "cl-b3b5fd992889a90003a67c06b000b0304ece52ee41fe464eed079b44ef9cfd4a",
+            "cl-b4de65029f0267ec65016288a8d1609a0e378b5708f76c2fbf793419f1f9be46",
+            "cl-c2614d70955f354ae87188a53f14ca02eb7b77fe82c6fc8b17059d8a769e12c9"
+          ],
+          "evidence_ids": [
+            "ev-50fa4739c66437f5e048c5190bfc6061ad913b7a92a01d84760bf044b71616c7",
+            "ev-51b88131e9de6e2d241e627728cd23551d1e6276d1537bdc4e203949d6b030d9",
+            "ev-61e10bfe833cfbacf9c6f5acc1944223ab6c8f8d7466e3bfccc77bbb1914505d",
+            "ev-721d0e957390f776e919f7c9fd0fba25bebd9a2f13c245ff4fb2ed68a64735b4",
+            "ev-b1f1ef1d4c176c78e46ca7c901abdad4aed6697d1e2e94779ac74117b434beaa",
+            "ev-da9ea1bc3b16904f5aa2e3db50e547bccf55530394ed7781f77603cf2872c736",
+            "ev-dfbbf48e0ab8f2af51aa03ce58f89f48e53dba606e853cbf84f549a206f0b5f7"
+          ],
+          "covered_claim_ids": [
+            "cl-2dc07f60c3c3fa5b0b14c997c17f3cf6536a78a768b618adabbbccf50899780d",
+            "cl-6223dd35c59eb9aa63fb133fa5a62eef4e3bd9bf902259de65de848ddbd021c4",
+            "cl-6e6f4dbfc588f3bd302a618db459e645605a5c4b443beea26f48fbf899ceff17",
+            "cl-77d405ac8d5d5208c2fc71cce1e5b2c5ec2c7e755bde45346a49850ab2cb5bf0",
+            "cl-a15d5395cfcd2b20f7e3517138245a0678a4b1d46c5096ae56ecb3541705c22e",
+            "cl-b3b5fd992889a90003a67c06b000b0304ece52ee41fe464eed079b44ef9cfd4a",
+            "cl-c2614d70955f354ae87188a53f14ca02eb7b77fe82c6fc8b17059d8a769e12c9"
+          ],
+          "gaps": [
+            {
+              "gap_id": "gap-7b1fa551ba1ec73b4e06b8b3e792bc00d38f07a5b9b61f44e5e92a1fa77ad903",
+              "section_id": "section_2",
+              "claim_spec_id": "spec-attention",
+              "claim_id": "cl-437172999f837e0c5d42154f472228afa263a11bf3111eeb4aa3c6eeac9ec42d",
+              "reason": "Missing support, required source tier, or explicit conditions",
+              "fillable": true,
+              "verification_action": "Check original support, conflicting relations, and required conditions"
+            },
+            {
+              "gap_id": "gap-e1a7771fa0f20afd2374406c68364ff5aa8a0d8f0a87410b0385ef1522c11042",
+              "section_id": "section_2",
+              "claim_spec_id": "spec-attention",
+              "claim_id": "cl-b4de65029f0267ec65016288a8d1609a0e378b5708f76c2fbf793419f1f9be46",
+              "reason": "Missing support, required source tier, or explicit conditions",
+              "fillable": true,
+              "verification_action": "Check original support, conflicting relations, and required conditions"
+            }
+          ],
+          "unresolved_items": [
+            "Missing support, required source tier, or explicit conditions",
+            "Missing support, required source tier, or explicit conditions"
+          ]
+        },
+        "section_3": {
+          "section_id": "section_3",
+          "claim_spec_ids": [
+            "spec-attention"
+          ],
+          "claim_ids": [
+            "cl-2dc07f60c3c3fa5b0b14c997c17f3cf6536a78a768b618adabbbccf50899780d",
+            "cl-437172999f837e0c5d42154f472228afa263a11bf3111eeb4aa3c6eeac9ec42d",
+            "cl-6223dd35c59eb9aa63fb133fa5a62eef4e3bd9bf902259de65de848ddbd021c4",
+            "cl-6e6f4dbfc588f3bd302a618db459e645605a5c4b443beea26f48fbf899ceff17",
+            "cl-77d405ac8d5d5208c2fc71cce1e5b2c5ec2c7e755bde45346a49850ab2cb5bf0",
+            "cl-a15d5395cfcd2b20f7e3517138245a0678a4b1d46c5096ae56ecb3541705c22e",
+            "cl-b3b5fd992889a90003a67c06b000b0304ece52ee41fe464eed079b44ef9cfd4a",
+            "cl-b4de65029f0267ec65016288a8d1609a0e378b5708f76c2fbf793419f1f9be46",
+            "cl-c2614d70955f354ae87188a53f14ca02eb7b77fe82c6fc8b17059d8a769e12c9"
+          ],
+          "evidence_ids": [
+            "ev-50fa4739c66437f5e048c5190bfc6061ad913b7a92a01d84760bf044b71616c7",
+            "ev-51b88131e9de6e2d241e627728cd23551d1e6276d1537bdc4e203949d6b030d9",
+            "ev-61e10bfe833cfbacf9c6f5acc1944223ab6c8f8d7466e3bfccc77bbb1914505d",
+            "ev-721d0e957390f776e919f7c9fd0fba25bebd9a2f13c245ff4fb2ed68a64735b4",
+            "ev-b1f1ef1d4c176c78e46ca7c901abdad4aed6697d1e2e94779ac74117b434beaa",
+            "ev-da9ea1bc3b16904f5aa2e3db50e547bccf55530394ed7781f77603cf2872c736",
+            "ev-dfbbf48e0ab8f2af51aa03ce58f89f48e53dba606e853cbf84f549a206f0b5f7"
+          ],
+          "covered_claim_ids": [
+            "cl-2dc07f60c3c3fa5b0b14c997c17f3cf6536a78a768b618adabbbccf50899780d",
+            "cl-6223dd35c59eb9aa63fb133fa5a62eef4e3bd9bf902259de65de848ddbd021c4",
+            "cl-6e6f4dbfc588f3bd302a618db459e645605a5c4b443beea26f48fbf899ceff17",
+            "cl-77d405ac8d5d5208c2fc71cce1e5b2c5ec2c7e755bde45346a49850ab2cb5bf0",
+            "cl-a15d5395cfcd2b20f7e3517138245a0678a4b1d46c5096ae56ecb3541705c22e",
+            "cl-b3b5fd992889a90003a67c06b000b0304ece52ee41fe464eed079b44ef9cfd4a",
+            "cl-c2614d70955f354ae87188a53f14ca02eb7b77fe82c6fc8b17059d8a769e12c9"
+          ],
+          "gaps": [
+            {
+              "gap_id": "gap-d01e506af63679b4d54e92294385aa997cf162217eccbf312105bf5539aec590",
+              "section_id": "section_3",
+              "claim_spec_id": "spec-attention",
+              "claim_id": "cl-437172999f837e0c5d42154f472228afa263a11bf3111eeb4aa3c6eeac9ec42d",
+              "reason": "Missing support, required source tier, or explicit conditions",
+              "fillable": true,
+              "verification_action": "Check original support, conflicting relations, and required conditions"
+            },
+            {
+              "gap_id": "gap-828614bd715d54f7fdc2def0b3c68839db54fae55b515ef941d8665dba86f775",
+              "section_id": "section_3",
+              "claim_spec_id": "spec-attention",
+              "claim_id": "cl-b4de65029f0267ec65016288a8d1609a0e378b5708f76c2fbf793419f1f9be46",
+              "reason": "Missing support, required source tier, or explicit conditions",
+              "fillable": true,
+              "verification_action": "Check original support, conflicting relations, and required conditions"
+            }
+          ],
+          "unresolved_items": [
+            "Missing support, required source tier, or explicit conditions",
+            "Missing support, required source tier, or explicit conditions"
+          ]
+        },
+        "section_4": {
+          "section_id": "section_4",
+          "claim_spec_ids": [
+            "spec-attention"
+          ],
+          "claim_ids": [
+            "cl-2dc07f60c3c3fa5b0b14c997c17f3cf6536a78a768b618adabbbccf50899780d",
+            "cl-437172999f837e0c5d42154f472228afa263a11bf3111eeb4aa3c6eeac9ec42d",
+            "cl-6223dd35c59eb9aa63fb133fa5a62eef4e3bd9bf902259de65de848ddbd021c4",
+            "cl-6e6f4dbfc588f3bd302a618db459e645605a5c4b443beea26f48fbf899ceff17",
+            "cl-77d405ac8d5d5208c2fc71cce1e5b2c5ec2c7e755bde45346a49850ab2cb5bf0",
+            "cl-a15d5395cfcd2b20f7e3517138245a0678a4b1d46c5096ae56ecb3541705c22e",
+            "cl-b3b5fd992889a90003a67c06b000b0304ece52ee41fe464eed079b44ef9cfd4a",
+            "cl-b4de65029f0267ec65016288a8d1609a0e378b5708f76c2fbf793419f1f9be46",
+            "cl-c2614d70955f354ae87188a53f14ca02eb7b77fe82c6fc8b17059d8a769e12c9"
+          ],
+          "evidence_ids": [
+            "ev-50fa4739c66437f5e048c5190bfc6061ad913b7a92a01d84760bf044b71616c7",
+            "ev-51b88131e9de6e2d241e627728cd23551d1e6276d1537bdc4e203949d6b030d9",
+            "ev-61e10bfe833cfbacf9c6f5acc1944223ab6c8f8d7466e3bfccc77bbb1914505d",
+            "ev-721d0e957390f776e919f7c9fd0fba25bebd9a2f13c245ff4fb2ed68a64735b4",
+            "ev-b1f1ef1d4c176c78e46ca7c901abdad4aed6697d1e2e94779ac74117b434beaa",
+            "ev-da9ea1bc3b16904f5aa2e3db50e547bccf55530394ed7781f77603cf2872c736",
+            "ev-dfbbf48e0ab8f2af51aa03ce58f89f48e53dba606e853cbf84f549a206f0b5f7"
+          ],
+          "covered_claim_ids": [
+            "cl-2dc07f60c3c3fa5b0b14c997c17f3cf6536a78a768b618adabbbccf50899780d",
+            "cl-6223dd35c59eb9aa63fb133fa5a62eef4e3bd9bf902259de65de848ddbd021c4",
+            "cl-6e6f4dbfc588f3bd302a618db459e645605a5c4b443beea26f48fbf899ceff17",
+            "cl-77d405ac8d5d5208c2fc71cce1e5b2c5ec2c7e755bde45346a49850ab2cb5bf0",
+            "cl-a15d5395cfcd2b20f7e3517138245a0678a4b1d46c5096ae56ecb3541705c22e",
+            "cl-b3b5fd992889a90003a67c06b000b0304ece52ee41fe464eed079b44ef9cfd4a",
+            "cl-c2614d70955f354ae87188a53f14ca02eb7b77fe82c6fc8b17059d8a769e12c9"
+          ],
+          "gaps": [
+            {
+              "gap_id": "gap-288696382d6a4e05696cc982ff6167e943f8049605fafdaa6d3950624f70f897",
+              "section_id": "section_4",
+              "claim_spec_id": "spec-attention",
+              "claim_id": "cl-437172999f837e0c5d42154f472228afa263a11bf3111eeb4aa3c6eeac9ec42d",
+              "reason": "Missing support, required source tier, or explicit conditions",
+              "fillable": true,
+              "verification_action": "Check original support, conflicting relations, and required conditions"
+            },
+            {
+              "gap_id": "gap-31f5e96c4881b60b82e9ab5eef0230be786573f103e51889cf4ba49644c7ca33",
+              "section_id": "section_4",
+              "claim_spec_id": "spec-attention",
+              "claim_id": "cl-b4de65029f0267ec65016288a8d1609a0e378b5708f76c2fbf793419f1f9be46",
+              "reason": "Missing support, required source tier, or explicit conditions",
+              "fillable": true,
+              "verification_action": "Check original support, conflicting relations, and required conditions"
+            }
+          ],
+          "unresolved_items": [
+            "Missing support, required source tier, or explicit conditions",
+            "Missing support, required source tier, or explicit conditions"
+          ]
+        },
+        "section_5": {
+          "section_id": "section_5",
+          "claim_spec_ids": [
+            "spec-attention"
+          ],
+          "claim_ids": [
+            "cl-2dc07f60c3c3fa5b0b14c997c17f3cf6536a78a768b618adabbbccf50899780d",
+            "cl-437172999f837e0c5d42154f472228afa263a11bf3111eeb4aa3c6eeac9ec42d",
+            "cl-6223dd35c59eb9aa63fb133fa5a62eef4e3bd9bf902259de65de848ddbd021c4",
+            "cl-6e6f4dbfc588f3bd302a618db459e645605a5c4b443beea26f48fbf899ceff17",
+            "cl-77d405ac8d5d5208c2fc71cce1e5b2c5ec2c7e755bde45346a49850ab2cb5bf0",
+            "cl-a15d5395cfcd2b20f7e3517138245a0678a4b1d46c5096ae56ecb3541705c22e",
+            "cl-b3b5fd992889a90003a67c06b000b0304ece52ee41fe464eed079b44ef9cfd4a",
+            "cl-b4de65029f0267ec65016288a8d1609a0e378b5708f76c2fbf793419f1f9be46",
+            "cl-c2614d70955f354ae87188a53f14ca02eb7b77fe82c6fc8b17059d8a769e12c9"
+          ],
+          "evidence_ids": [
+            "ev-50fa4739c66437f5e048c5190bfc6061ad913b7a92a01d84760bf044b71616c7",
+            "ev-51b88131e9de6e2d241e627728cd23551d1e6276d1537bdc4e203949d6b030d9",
+            "ev-61e10bfe833cfbacf9c6f5acc1944223ab6c8f8d7466e3bfccc77bbb1914505d",
+            "ev-721d0e957390f776e919f7c9fd0fba25bebd9a2f13c245ff4fb2ed68a64735b4",
+            "ev-b1f1ef1d4c176c78e46ca7c901abdad4aed6697d1e2e94779ac74117b434beaa",
+            "ev-da9ea1bc3b16904f5aa2e3db50e547bccf55530394ed7781f77603cf2872c736",
+            "ev-dfbbf48e0ab8f2af51aa03ce58f89f48e53dba606e853cbf84f549a206f0b5f7"
+          ],
+          "covered_claim_ids": [
+            "cl-2dc07f60c3c3fa5b0b14c997c17f3cf6536a78a768b618adabbbccf50899780d",
+            "cl-6223dd35c59eb9aa63fb133fa5a62eef4e3bd9bf902259de65de848ddbd021c4",
+            "cl-6e6f4dbfc588f3bd302a618db459e645605a5c4b443beea26f48fbf899ceff17",
+            "cl-77d405ac8d5d5208c2fc71cce1e5b2c5ec2c7e755bde45346a49850ab2cb5bf0",
+            "cl-a15d5395cfcd2b20f7e3517138245a0678a4b1d46c5096ae56ecb3541705c22e",
+            "cl-b3b5fd992889a90003a67c06b000b0304ece52ee41fe464eed079b44ef9cfd4a",
+            "cl-c2614d70955f354ae87188a53f14ca02eb7b77fe82c6fc8b17059d8a769e12c9"
+          ],
+          "gaps": [
+            {
+              "gap_id": "gap-5cd64a63e58f70830794054f9812d875182ed130220113ed0263e0e0492638b6",
+              "section_id": "section_5",
+              "claim_spec_id": "spec-attention",
+              "claim_id": "cl-437172999f837e0c5d42154f472228afa263a11bf3111eeb4aa3c6eeac9ec42d",
+              "reason": "Missing support, required source tier, or explicit conditions",
+              "fillable": true,
+              "verification_action": "Check original support, conflicting relations, and required conditions"
+            },
+            {
+              "gap_id": "gap-9bf147bb55ee5ea50348cc3e0d0a62dabb53499d7a3bcdcafc6ecf6ea3028400",
+              "section_id": "section_5",
+              "claim_spec_id": "spec-attention",
+              "claim_id": "cl-b4de65029f0267ec65016288a8d1609a0e378b5708f76c2fbf793419f1f9be46",
+              "reason": "Missing support, required source tier, or explicit conditions",
+              "fillable": true,
+              "verification_action": "Check original support, conflicting relations, and required conditions"
+            }
+          ],
+          "unresolved_items": [
+            "Missing support, required source tier, or explicit conditions",
+            "Missing support, required source tier, or explicit conditions"
+          ]
+        }
+      },
+      "run_metadata": {
+        "config": {
+          "versions": {
+            "llm_provider": "anthropic_compatible",
+            "llm_model": "deepseek-flash",
+            "llm_revision": "unconfigured",
+            "prompt_versions": {
+              "clarify": "mono-v1",
+              "plan": "mono-v1",
+              "research": "mono-v1",
+              "analyze": "mono-v1",
+              "write": "mono-v1",
+              "review": "mono-v1"
+            },
+            "template_versions": {
+              "comparison_matrix": "mono-v1",
+              "pairwise_delta": "mono-v1",
+              "plot": "mono-v1",
+              "statistic": "mono-v1",
+              "aggregation": "mono-v1"
+            },
+            "parser_version": "dr4a-html-v1",
+            "chunker_version": "mono-v1",
+            "embedding_version": "unconfigured",
+            "reranker_version": "unconfigured",
+            "index_version": "dr4a_chunks_v1"
+          },
+          "source_policy": {
+            "categories": [
+              "web"
+            ],
+            "knowledge_base_ids": [],
+            "private_only": false
+          },
+          "limits": {
+            "deadline_s": 1800,
+            "search_calls": 60,
+            "fetch_calls": 30,
+            "llm_calls": 60,
+            "tokens": 120000,
+            "terminal_reserved_calls": 8,
+            "terminal_reserved_tokens": 12000,
+            "rework_rounds": 3,
+            "citation_depth": 2,
+            "gap_queries_per_spec": 2
+          },
+          "timeouts_s": {
+            "llm": 60,
+            "search": 20,
+            "fetch": 45,
+            "embedding": 120,
+            "rerank": 60,
+            "vector": 15,
+            "content": 30,
+            "parser": 600,
+            "sandbox": 30
+          },
+          "concurrency": {
+            "search": 4,
+            "fetch": 2,
+            "llm": 2,
+            "local_inference": 1
+          }
+        },
+        "budget_used": {
+          "llm_calls": 0,
+          "search_calls": 0,
+          "fetch_calls": 0,
+          "tokens": 0,
+          "elapsed_s": 0
+        },
+        "rework_count": 0,
+        "rework_targets": [],
+        "degraded_sources": [
+          {
+            "source": "research",
+            "reason": "Additional candidates remain unexamined beyond the bounded selection",
+            "operation": "candidate_selection",
+            "section_id": "section_1",
+            "occurred_at": "2026-10-06T15:44:46.602096Z"
+          },
+          {
+            "source": "src-5ae10dc6245f0936c532f41d9b905c0961fa066fba759b67e79adfaf61d5b1e8",
+            "reason": "Some whole original blocks were not examined within extraction limits",
+            "operation": "block_selection",
+            "section_id": "section_1",
+            "occurred_at": "2026-10-06T15:44:47.187901Z"
+          },
+          {
+            "source": "src-ccc257b9a66abd8e99abc993d5ba372cc5b6ddb9f02a6aece8123c576e111cf0",
+            "reason": "Some whole original blocks were not examined within extraction limits",
+            "operation": "block_selection",
+            "section_id": "section_1",
+            "occurred_at": "2026-10-06T15:45:04.122215Z"
+          },
+          {
+            "source": "https://arxiv.org/pdf/1706.03762.pdf",
+            "reason": "parser_not_configured",
+            "operation": "fetch",
+            "section_id": "section_1",
+            "occurred_at": "2026-10-06T15:45:34.096877Z"
+          },
+          {
+            "source": "https://arxiv.org/pdf/1706.03762",
+            "reason": "fetch_unavailable",
+            "operation": "fetch",
+            "section_id": "section_1",
+            "occurred_at": "2026-10-06T15:45:34.370370Z"
+          }
+        ],
+        "unit_manifest": {},
+        "knowledge_snapshot": [],
+        "stop_reason": null
+      }
+    },
+    "events": [
+      {
+        "event": "unit",
+        "phase": "research",
+        "unit_id": "unit-93b6a022ee28c36b7fd84fe0fb727210a80a22d8b8c6eb25eb8768a9dfe4c292",
+        "section_ids": [
+          "section_1"
+        ],
+        "kind": "query",
+        "query": "site:arxiv.org 1706.03762 Attention Is All You Need"
+      },
+      {
+        "event": "unit",
+        "phase": "research",
+        "unit_id": "unit-0e76c11d6e2d43a25ff1df02015431410cb2758808a0acd7da744d60b61bed4d",
+        "section_ids": [
+          "section_1"
+        ],
+        "kind": "coverage"
+      },
+      {
+        "event": "unit",
+        "phase": "research",
+        "unit_id": "unit-c2a24e6f145dd22b7c4a95e3fac2120a57b5937bacfdb1017e9f25b522c352e1",
+        "section_ids": [
+          "section_2"
+        ],
+        "kind": "coverage"
+      },
+      {
+        "event": "unit",
+        "phase": "research",
+        "unit_id": "unit-2135de6aa40e7f5cc66933c737752e03e8756f163e698428a5faceb4842992a2",
+        "section_ids": [
+          "section_3"
+        ],
+        "kind": "coverage"
+      },
+      {
+        "event": "unit",
+        "phase": "research",
+        "unit_id": "unit-501b4770eaf37cf7e7052aea24b887ec4844b71af434f3f9dde192b85d5efab1",
+        "section_ids": [
+          "section_4"
+        ],
+        "kind": "coverage"
+      },
+      {
+        "event": "unit",
+        "phase": "research",
+        "unit_id": "unit-e11651625eca167a1a669ede9957eed64592faffcb86638afbb97617b57df2e9",
+        "section_ids": [
+          "section_5"
+        ],
+        "kind": "coverage"
+      }
+    ],
+    "dependency_mode": "real",
+    "debug_usage": {
+      "llm_calls": 2,
+      "input_tokens": 6703,
+      "output_tokens": 11016,
+      "search_calls": 1,
+      "fetch_calls": 4,
+      "artifact_scope": "329afba9-7658-44fa-baa1-c19ea15a90bb"
+    }
+  },
+  "verified_evidence": [
+    {
+      "evidence_id": "ev-da9ea1bc3b16904f5aa2e3db50e547bccf55530394ed7781f77603cf2872c736",
+      "source_id": "src-5ae10dc6245f0936c532f41d9b905c0961fa066fba759b67e79adfaf61d5b1e8",
+      "url": "https://arxiv.org/abs/1706.03762",
+      "hash": "29e42a996471db9c019f1122825cdac0e6d64c96767d9ee5c0b8891de6204bee",
+      "location": {
+        "page_start": null,
+        "page_end": null,
+        "section": "Title:Attention Is All You Need",
+        "table": null,
+        "file": null,
+        "commit": null,
+        "selector": null,
+        "line_start": 128,
+        "line_end": 130,
+        "chunk_id": null
+      },
+      "original_quote_verified": true
+    },
+    {
+      "evidence_id": "ev-51b88131e9de6e2d241e627728cd23551d1e6276d1537bdc4e203949d6b030d9",
+      "source_id": "src-ccc257b9a66abd8e99abc993d5ba372cc5b6ddb9f02a6aece8123c576e111cf0",
+      "url": "https://arxiv.org/html/1706.03762v7",
+      "hash": "fe1288e9c6f8322156429ab44bf5ced203155f8ecc7ea9fe6cfd125872c72a3b",
+      "location": {
+        "page_start": null,
+        "page_end": null,
+        "section": "1 Introduction",
+        "table": null,
+        "file": null,
+        "commit": null,
+        "selector": null,
+        "line_start": 367,
+        "line_end": 367,
+        "chunk_id": null
+      },
+      "original_quote_verified": true
+    },
+    {
+      "evidence_id": "ev-dfbbf48e0ab8f2af51aa03ce58f89f48e53dba606e853cbf84f549a206f0b5f7",
+      "source_id": "src-ccc257b9a66abd8e99abc993d5ba372cc5b6ddb9f02a6aece8123c576e111cf0",
+      "url": "https://arxiv.org/html/1706.03762v7",
+      "hash": "fe1288e9c6f8322156429ab44bf5ced203155f8ecc7ea9fe6cfd125872c72a3b",
+      "location": {
+        "page_start": null,
+        "page_end": null,
+        "section": "3 Model Architecture",
+        "table": null,
+        "file": null,
+        "commit": null,
+        "selector": null,
+        "line_start": 397,
+        "line_end": 397,
+        "chunk_id": null
+      },
+      "original_quote_verified": true
+    },
+    {
+      "evidence_id": "ev-b1f1ef1d4c176c78e46ca7c901abdad4aed6697d1e2e94779ac74117b434beaa",
+      "source_id": "src-ccc257b9a66abd8e99abc993d5ba372cc5b6ddb9f02a6aece8123c576e111cf0",
+      "url": "https://arxiv.org/html/1706.03762v7",
+      "hash": "fe1288e9c6f8322156429ab44bf5ced203155f8ecc7ea9fe6cfd125872c72a3b",
+      "location": {
+        "page_start": null,
+        "page_end": null,
+        "section": "2 Background",
+        "table": null,
+        "file": null,
+        "commit": null,
+        "selector": null,
+        "line_start": 374,
+        "line_end": 374,
+        "chunk_id": null
+      },
+      "original_quote_verified": true
+    },
+    {
+      "evidence_id": "ev-50fa4739c66437f5e048c5190bfc6061ad913b7a92a01d84760bf044b71616c7",
+      "source_id": "src-ccc257b9a66abd8e99abc993d5ba372cc5b6ddb9f02a6aece8123c576e111cf0",
+      "url": "https://arxiv.org/html/1706.03762v7",
+      "hash": "fe1288e9c6f8322156429ab44bf5ced203155f8ecc7ea9fe6cfd125872c72a3b",
+      "location": {
+        "page_start": null,
+        "page_end": null,
+        "section": "2 Background",
+        "table": null,
+        "file": null,
+        "commit": null,
+        "selector": null,
+        "line_start": 377,
+        "line_end": 377,
+        "chunk_id": null
+      },
+      "original_quote_verified": true
+    },
+    {
+      "evidence_id": "ev-61e10bfe833cfbacf9c6f5acc1944223ab6c8f8d7466e3bfccc77bbb1914505d",
+      "source_id": "src-ccc257b9a66abd8e99abc993d5ba372cc5b6ddb9f02a6aece8123c576e111cf0",
+      "url": "https://arxiv.org/html/1706.03762v7",
+      "hash": "fe1288e9c6f8322156429ab44bf5ced203155f8ecc7ea9fe6cfd125872c72a3b",
+      "location": {
+        "page_start": null,
+        "page_end": null,
+        "section": "3.2.3 Applications of Attention in our Model",
+        "table": null,
+        "file": null,
+        "commit": null,
+        "selector": null,
+        "line_start": 514,
+        "line_end": 514,
+        "chunk_id": null
+      },
+      "original_quote_verified": true
+    },
+    {
+      "evidence_id": "ev-721d0e957390f776e919f7c9fd0fba25bebd9a2f13c245ff4fb2ed68a64735b4",
+      "source_id": "src-ccc257b9a66abd8e99abc993d5ba372cc5b6ddb9f02a6aece8123c576e111cf0",
+      "url": "https://arxiv.org/html/1706.03762v7",
+      "hash": "fe1288e9c6f8322156429ab44bf5ced203155f8ecc7ea9fe6cfd125872c72a3b",
+      "location": {
+        "page_start": null,
+        "page_end": null,
+        "section": "1 Introduction",
+        "table": null,
+        "file": null,
+        "commit": null,
+        "selector": null,
+        "line_start": 364,
+        "line_end": 364,
+        "chunk_id": null
+      },
+      "original_quote_verified": true
+    }
+  ],
+  "unmet_acceptance": [
+    "No real paper/PDF source; T028 remains incomplete"
+  ]
+}

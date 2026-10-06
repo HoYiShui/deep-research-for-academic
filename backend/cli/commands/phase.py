@@ -7,22 +7,21 @@ import json
 from datetime import UTC, datetime, timedelta
 
 from application.phase_executor import ExecutionContext, PhaseExecutor
-from application.phase_workers import plan_worker
+from application.phase_units import plan_units
+from application.phase_workers import plan_worker, research_worker
 from application.records import DEVELOPMENT_USER_ID
 from cli import output
 from cli.phase_state import load_phase_state, read_json, state_delta
 from cli.phase_tools import DebugTools
-from domain.research.ids import canonical_hash
 from domain.research.phase_contracts import PhaseInput, merge_phase_result
 
 
 async def run(args) -> int:
     state = load_phase_state(read_json(args.state, "--state"), args.phase)
-    workers = {"plan": plan_worker}
+    workers = {"plan": plan_worker, "research": research_worker}
     if args.phase not in workers:
         raise output.EnvError(f"Formal {args.phase} worker is not configured")
     before = state.model_dump(mode="json")
-    value = PhaseInput.from_state(state)
     config = state.run_metadata.config
     tools = DebugTools(state, fake=args.fake, seed=args.seed)
     events = []
@@ -30,22 +29,43 @@ async def run(args) -> int:
     async def stopping():
         return False
 
-    context = ExecutionContext(
-        owner_id=DEVELOPMENT_USER_ID,
-        run_id=state.run_id,
-        config=config,
-        brief_hash=state.brief_hash,
-        lease_token=1,
-        unit_id="debug-" + canonical_hash(value),
-        deadline=datetime.now(UTC) + timedelta(seconds=config.limits.deadline_s),
-        cancel_check=stopping,
-        invoke=tools.invoke,
-        emit=events.append,
-    )
+    deadline = datetime.now(UTC) + timedelta(seconds=config.limits.deadline_s)
     try:
         async with asyncio.timeout(config.limits.deadline_s):
-            changes = await PhaseExecutor(workers).execute_phase(value, context)
-        post_state = merge_phase_result(state, changes).model_dump(mode="json")
+            for unit in plan_units(state):
+                value = PhaseInput.from_state(state)
+                tools.for_unit(unit)
+                context = ExecutionContext(
+                    owner_id=DEVELOPMENT_USER_ID,
+                    run_id=state.run_id,
+                    config=config,
+                    brief_hash=state.brief_hash,
+                    lease_token=1,
+                    unit_id=unit.unit_id,
+                    deadline=deadline,
+                    cancel_check=stopping,
+                    invoke=tools.invoke,
+                    emit=events.append,
+                    unit=unit,
+                )
+                changes = await PhaseExecutor(workers).execute_phase(value, context)
+                state = merge_phase_result(
+                    state,
+                    changes,
+                    target_sections=unit.section_ids,
+                    target_requirements=unit.requirement_ids or None,
+                )
+                if state.phase == "research":
+                    events.append(
+                        {
+                            "event": "unit",
+                            "phase": state.phase,
+                            "unit_id": unit.unit_id,
+                            "section_ids": unit.section_ids,
+                            **unit.parameters,
+                        }
+                    )
+        post_state = state.model_dump(mode="json")
     finally:
         await tools.close()
     result = {

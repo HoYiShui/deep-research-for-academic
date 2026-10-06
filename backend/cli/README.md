@@ -2,7 +2,7 @@
 
 `python -m cli` 是给 Agent 和开发者的后端调试入口。它不是用户研究入口：Clarify 的多轮对话由 HTTP/API 或前端处理；CLI 只消费已经冻结的 ResearchBrief。
 
-当前正在迁移到 [mono CLI 契约](../../docs/mono/api-contract.md#5-cli-契约)。`dump` 已读取新的 owner-scoped Run Checkpoint；`phase` 已使用正式执行器/合并，仅注册已有的 plan worker。`run --real`已使用正式冻结/账本/Driver/限定Runner；缺少research等worker时明确failed并保留plan检查点，不能验收完整研究。默认fake run仍是旧链路，JSON标记legacy_fake；ingest/search也仍待迁移。
+当前正在迁移到 [mono CLI 契约](../../docs/mono/api-contract.md#5-cli-契约)。`dump` 已读取新的 owner-scoped Run Checkpoint；`phase` 已使用正式执行器/合并，注册 plan 和 research worker。`run --real`已使用正式冻结/账本/Driver/限定Runner，但入口仍仅装配 plan；缺少其他worker时明确failed并保留检查点，不能验收完整研究。默认fake run仍是旧链路，JSON标记legacy_fake；ingest/search也仍待迁移。
 
 在 `backend/` 目录中运行：
 
@@ -31,12 +31,12 @@ python -m cli dump <session-id> --json
 
 ## phase 输入前置
 
-`phase` 要求严格完整 mono PipelineState（schema_version=1），包括全部空输出字段；不接受旧版局部dict。`state.phase` 必须与命令相同，来源/config/Brief hash与事实回链必须有效。阶段前置复用正式 PhaseInput；当前仅 plan worker 可执行。
+`phase` 要求严格完整 mono PipelineState（schema_version=1），包括全部空输出字段；不接受旧版局部dict。`state.phase` 必须与命令相同，来源/config/Brief hash与事实回链必须有效。阶段前置复用正式 PhaseInput；当前 plan 和 research 可执行。
 
 | phase | 最低输入 |
 |---|---|
 | `plan` | 完整 Brief、冻结来源与运行配置 |
-| `research` | 完整五章计划/来源与事实 map（worker待接入） |
+| `research` | 完整五章计划/来源与事实 map |
 | `analyze` | 五章计划/分析输入；Observation允许空但不能缺key（worker待接入） |
 | `write` | plans/事实/五章coverage，空证据必须有明确缺口（worker待接入） |
 | `review` | 完整同版 draft_sections/bindings及事实回链（worker待接入） |
@@ -53,6 +53,19 @@ uv run python -m scripts.verify_cli_plan --brief frozen-brief.json --real
 ```
 
 `--real`会消耗模型tokens，`--record NEW_FILE`可保存输入与完整结果，文件存在时拒绝覆盖。该入口只验证plan，不是持久Run或完整研究验收。
+
+## research 原文探针
+
+```bash
+uv run python -m cli phase research --state research-state.json --real --json
+uv run python -m scripts.verify_research_phase --state research-state.json --real --record NEW_FILE
+```
+
+真实模式当前仅支持 `config.versions.parser_version=dr4a-html-v1`，使用真实公开搜索、受限下载器、HTML Parser 和 MinIO。需要提前创建配置的 bucket；CLI 不自动建 bucket。PDF Parser/KB 尚未接入，不代表论文研究验收完成。fake research 返回空搜索并保留 Gap，不制造原文或观察。
+
+此入口不写 PG、不领取租约、不修改原 Run 的预算或阶段。`debug_usage` 单列本次模型用量、搜索尝试和 Fetch 调用次数；Fetch 次数包含被安全检查拒绝的调用，不等同于成功下载。原文对象保存在独立随机 `artifact_scope` 下，不借用输入 Run 的命名空间，执行后保留以便审计。含既有事实的快照可能因原文对象范围不兼容而拒绝合并，不能据此宣称持久 Run 恢复通过。
+
+探针从 MinIO 读取并重解析原文，核对 Evidence hash、位置与摘录范围。没有原文 Evidence 或没有真实论文来源时，真实验收非零退出；可保存失败/Gap 记录，不把搜索摘要视为原文。完整 T028 还要求真实 plan 输出、论文 PDF 及适用的数值观察。
 
 ## 输出与退出码
 
