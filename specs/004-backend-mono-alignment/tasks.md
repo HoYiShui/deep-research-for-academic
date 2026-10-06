@@ -115,11 +115,13 @@
 设计：MODEL §4.1–4.2；FLOW §3.2–3.3；API §6–7；OPS §1–2/§6。验收 A4部分、A6引用基础。
 
 - [ ] T023 [US3] 在 `backend/tests/unit/test_plan.py`、`test_scout.py`、`test_scout_trace.py`、`test_scout_observations.py` 写五章覆盖/空计划失败、摘要不成关键证据、arXiv不自动peer_reviewed、Spec无Claim仍有Gap、观察保留表头/单位/脚注等反例。
+  - 原文/coverage反例集中在 `test_scout_originals.py`：24项通过，覆盖搜索摘要拒绝、解析hash/版本/定位、防裁切原子表格、arXiv版本身份/非peer_reviewed、无Claim的Spec、条件/来源门与支持反驳冲突。尚缺正式抽取Observation与worker/CLI路径反例，不勾选；证据见[原文边界](evidence/t026-download-safety.md#scout原文与coverage边界t023t027部分)。
 - [ ] T024 [US3] 更新 `backend/domain/research/agents/architect.py` 的plan与 `backend/domain/research/state.py` 的SectionPlan/ClaimSpec/AnalysisRequirement Schema：恰section_1..5、至少一主张/查询、分析需求计划态参数、任务维度覆盖，结构失败有界修复后明确失败。
   - 正式`architect.plan`已迁移严格Brief/五章/有界修复，公开evaluation_design真实模型调用暴露并修正“文字协议表误入数值分析”问题，保存完整回归输出/hash；旧CLI显式legacy_plan，未称正式CLI可用。任务维度质量门/三类型代表性与取证尚未全部验收，不勾选。证据：[真实plan worker](evidence/t024-plan-worker.md)。
 - [x] T025 [US3] 更新 `backend/infrastructure/search/arxiv.py`、`bocha.py`、`composite.py`：来源并发/限流/timeout、规范SearchResult、真实空结果与依赖错误区分；原有 `backend/tests/contract/test_search.py` 增单源故障和全部失败行为。扩展测试拆至 `test_search_runtime.py`。证据：[搜索契约与真实单源降级](evidence/t025-search-adapters.md)；真实 Bocha 返回9候选，arXiv超时，不能据此认定论文正文或完整research验收通过。正式Run逐请求账本接入仍由T020/T027完成。
 - [ ] T026 [US3] 新增 `backend/infrastructure/fetch/http.py` 与真实取证内容存储（建议 `backend/infrastructure/storage/minio.py`）：原文下载/版本/hash/定位/不可变对象、SSRF/DNS/重定向/大小限制；对论文PDF复用Parser、不保存假正文；补 `backend/tests/contract/test_fetch.py`、`test_content.py`，含私网/重定向/同键异hash拒绝。部分证据：[受限下载与HTML内容闭环](evidence/t026-download-safety.md)；下载防SSRF、共享MinIO原文/解析不可变存储、HTML真实行号定位及FetchedDocument已实现，仍缺PDF Parser、Run工具绑定、真实论文闭环。当前本机arxiv.org解析为非公网198.18.0.91，联网探针正确拒绝，未放宽保护。
 - [ ] T027 [US3] 更新 `backend/domain/research/state.py`、`ids.py` 和 `agents/scout.py`：Source/Evidence/Claim/Link/Observation/Coverage/Gap严格Schema与原文摘录校验、条件稳定ID、章节相关材料、受限追溯/补查、来源可选降级；每单元更新全部相关链路和coverage。接T017的单元提交/进度，不等整phase结束才保存。
+  - 已实现 `agents/originals.py` 的原文身份/精确摘录/完整原子块门与 `agents/coverage.py` 的逐Spec确定性覆盖。仍未注册正式research worker：工具授权/账本、抽取Claim/Observation、追溯/补查、逐单元保存与CLI真实取证尚待接入。旧Scout已明确标为legacy，不能当正式worker调用。
 - [ ] T028 [US3] 更新 `backend/tests/integration/test_slice_retrieval.py` 并新增 `backend/scripts/verify_research_phase.py`：从CLI真实plan/research输出，逐条抽查可下载原文、位置/hash、Spec覆盖/Gap；用 `evidence/us3.md` 保存至少一个真实论文来源、一项观察（资料确有数值时）与单源故障降级。无原文时验收应失败或明确Gap，不为完成任务伪造观察。
 
 里程碑 M3：`phase plan` 与 `phase research` 可复现真实取证，研究卡点有query/section进度；所有关键Evidence有真实原文，不以“搜到了链接”勾完成。

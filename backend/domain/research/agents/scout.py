@@ -1,8 +1,9 @@
-"""Scout agent: multi-source retrieval, source registration, claim extraction.
+"""Legacy Scout used only by the old pipeline/explicit legacy fake CLI.
 
-Gathers evidence from paper/web (SearchPort) and the local KB (RetrievalPort),
-registers each source once, and extracts research claims (via the LLM) bound to
-their evidence. Deduplicates evidence by (source_id, location, quote).
+This path treats snippets as evidence and is NOT a mono-v1 research worker.
+Formal original-range and per-spec coverage boundaries live in ``originals``
+and ``coverage``; the formal worker must use those, not call ``research`` here.
+The legacy chain is retained until its callers migrate (T060).
 """
 
 from __future__ import annotations

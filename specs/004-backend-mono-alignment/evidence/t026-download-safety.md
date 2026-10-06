@@ -64,3 +64,23 @@ uv run pytest -q --tb=short tests/contract/test_document_parser.py tests/contrac
 定向 **54 passed in 0.71s**；独立验证PG + 真实MinIO唯一测试资源的全量 **757 passed in 83.73s**，Ruff/format/diff检查通过。真实MinIO验证包含并发去重、重开Store回读、损坏检测、限定版本删除不影响邻居及11MiB对象（超过工具缓存限额）。Fetch集成使用真实httpcore协议栈的**受控socket回放**、真正HTML解析和真正MinIO，不是公网网页/PDF成功证据。关闭/重开存储后回读不触发重新下载；删除原文后不能单凭解析JSON继续使用。
 
 当前仍缺：MinerU真实PDF结构化解析、正式Run工具账本与候选授权绑定、Scout来源/Evidence回链以及真实公网论文验收。T026/T043不能勾选。准备MinerU时本机对PyPI的urllib与curl请求均出现TLS连接中断；未关闭证书验证或改变系统代理。
+
+## Scout原文与coverage边界（T023/T027部分）
+
+新增 `domain/research/agents/originals.py` 与 `coverage.py`，旧 `scout.research` 明确标为legacy，不将其搜索snippet证据直接迁入mono。
+
+- Parser交接重验输入hash、解析版本、位置集合、canonical JSON实际hash/字节数；篡改解析内容但保留原始hash仍拒绝。PDF需要Parser给出的页码，web不允许制造PDF页码。此域校验不能替代ContentStore原文字节回读、候选授权或SSRF检查。
+- Source使用版本化arXiv自然键，其他已下载原文暂用规范final URL + 原始hash；未确认的DOI和未版本化arXiv不伪造版本身份。标题/provider ID/URL fragment不改变身份；arXiv不标peer_reviewed。多入口provenance合并仍由正式事实merge处理。
+- Evidence只能引用真实块索引与原文精确子串；table/formula必须连同caption/notes完整保留。ID来自Source、完整Location与规范quote；正文内容hash保持原文hash。模型不能自己提供位置或任意Source ID。
+- Coverage基于关系、来源tier和显式条件重新计算，不相信模型的supported状态；支持与反驳并存为limited。没有抽出Claim的Spec仍产生Gap；已有supported Claim不掩盖同Spec下另一个缺证Claim。未知关系引用明确失败。
+
+验证（backend）：
+
+```bash
+uv run pytest -q tests/unit tests/contract/test_fetch.py tests/contract/test_content.py
+uv run pytest -q tests/contract/test_document_parser.py tests/contract/test_document_content.py tests/integration/test_mono_document_content.py tests/integration/test_mono_fetched_document.py
+```
+
+第一组 **370 passed in 16.79s**（含新增24项），第二组 **43 passed in 0.45s**。Ruff/format/diff检查通过。PDF块和页码使用明确标注的受控fixture，未声称真实PDF解析；MinIO集成沿用独立测试桶，仅操作测试资源。
+
+**边界：这些函数尚未接入正式research worker或CLI research。** Run搜索/Fetch工具绑定、原文读权限、Claim条件ID/Observation抽取、受限追溯和逐查询提交尚待实现；T023/T026/T027/T043不勾选，不认定M3完成。上文DNS/TLS为历史环境故障记录，不能当作修复后当前环境的诊断。
