@@ -83,6 +83,15 @@ def test_empty_patch_cannot_confirm_even_if_model_says_complete():
     assert 1 <= len(decision.questions) <= 2
 
 
+def test_repeated_multiline_assumptions_are_not_appended_again():
+    decision = assess_brief(
+        PartialResearchBrief(**core(), assumptions="Public fixture.\nNo measured results."),
+        ClarifyAssessment(**assessment(assumptions=["Public fixture.", "No measured results."])),
+    )
+    assert decision.draft.assumptions.count("Public fixture.") == 1
+    assert decision.draft.assumptions.count("No measured results.") == 1
+
+
 def test_safe_defaults_are_full_and_disclosed_but_do_not_freeze():
     decision = assess_brief(
         PartialResearchBrief(), ClarifyAssessment(**assessment(brief_patch=core()))

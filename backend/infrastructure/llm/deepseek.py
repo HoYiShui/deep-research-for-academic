@@ -12,6 +12,8 @@ import os
 
 from anthropic import AsyncAnthropic
 
+from domain.ports import AdapterError
+
 
 class DeepSeekLLM:
     """LLMPort implementation via the Anthropic SDK pointed at DeepSeek."""
@@ -25,7 +27,10 @@ class DeepSeekLLM:
         base_url: str | None = None,
         model: str | None = None,
         timeout_s: float = 60,
+        max_tokens: int = 4096,
     ) -> None:
+        if type(max_tokens) is not int or max_tokens <= 0:
+            raise ValueError("Output token limit must be a positive integer")
         self._client = AsyncAnthropic(
             api_key=api_key if api_key is not None else os.environ.get("ANTHROPIC_API_KEY", ""),
             base_url=base_url
@@ -36,6 +41,7 @@ class DeepSeekLLM:
         self._model = model or os.environ.get("LLM_MODEL", "deepseek-flash")
         self._retries = retries
         self._backoff = backoff
+        self._max_tokens = max_tokens
 
     async def aclose(self) -> None:
         await self._client.close()
@@ -56,7 +62,9 @@ class DeepSeekLLM:
         for attempt in range(self._retries + 1):
             try:
                 return await self._complete_once(prompt)
-            except Exception as exc:  # noqa: BLE001 — retry any transient failure
+            except Exception as exc:
+                if isinstance(exc, AdapterError) and not exc.retryable:
+                    raise
                 last_exc = exc
                 if attempt < self._retries:
                     await asyncio.sleep(self._backoff * (2**attempt))
@@ -67,8 +75,16 @@ class DeepSeekLLM:
         """Perform a single (non-retried) completion call."""
         response = await self._client.messages.create(
             model=self._model,
-            max_tokens=4096,
+            max_tokens=self._max_tokens,
             messages=[{"role": "user", "content": prompt}],
         )
+        if getattr(response, "stop_reason", None) == "max_tokens":
+            raise AdapterError(
+                "llm",
+                "model_output_invalid",
+                "Model output reached its token limit",
+                False,
+                "complete",
+            )
         # Some models emit thinking blocks alongside text; keep only the text.
         return "".join(getattr(block, "text", "") for block in response.content)

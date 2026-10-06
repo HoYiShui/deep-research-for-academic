@@ -162,10 +162,12 @@ class HttpRuntime:
             llm
             if llm is not None
             else DeepSeekLLM(
+                retries=0,
                 api_key=settings.anthropic_api_key.get_secret_value(),
                 base_url=settings.anthropic_base_url,
                 model=settings.llm_model,
                 timeout_s=settings.llm_timeout_s,
+                max_tokens=16384,
             )
         )
         self.clock = SystemClock()

@@ -61,7 +61,7 @@
 - [ ] T011 [US1] 更新 `backend/application/research_service.py`：start/message/confirm 协调幂等与 CAS、来源授权、隐私检查、唯一 Run 冻结事务；start_frozen 复用同冻结校验并记录 CLI 确认身份。冻结后不允许改任务书，不在 SessionService 偷启流程。
   - 公开来源、幂等续租/CAS/唯一冻结、start_frozen 已通过真实PG；KB ID明确404且零外部调用。KB授权/版本锁定/隐私桥接依赖T041/T050，未完成前不勾选。证据：[事务接入](evidence/t007-t008-t011-t012-http-clarify.md)。
 - [x] T012 [US1] 更新 `backend/interface/dto/research.py`、`backend/interface/router/research.py`：实现 POST /research、/messages、/confirm 与 GET SessionView 的 mono DTO，传 owner/key/version，显式201/200/202；status查询由Session+Run一致投影生成，不倒序找phase。证据：[HTTP接入](evidence/t007-t008-t011-t012-http-clarify.md)。
-- [ ] T013 [US1] 新增 `backend/scripts/verify_clarify_http.py` 与 `backend/tests/integration/test_verify_clarify_http.py`：只走活 HTTP，支持受控回答文件及用户明确确认，不自动同意假设；可用真实模型完成至少一条多轮会话，并用只读SQL核对1Session/冻结Brief/1Run/seq=1。保存 `evidence/us1.md`，列出实际请求/响应及模型模式。
+- [x] T013 [US1] 新增 `backend/scripts/verify_clarify_http.py` 与 `backend/tests/integration/test_verify_clarify_http.py`：只走活 HTTP，支持受控回答文件及用户明确确认，不自动同意假设；可用真实模型完成至少一条多轮会话，并用只读SQL核对1Session/冻结Brief/1Run/seq=1。保存 `evidence/us1.md`，列出实际请求/响应及模型模式。证据：[活HTTP、独立进程恢复与真实模型会话](evidence/us1.md)。
 
 里程碑 M1：T008 的确定性 HTTP/PG反例全通过，T013真实模型会话通过；重启后 GET 仍恢复 ask/confirm/ready；没有用户确认就没有 Run。这里就能用请求日志审查真实 Clarify，不必等 Web/TUI 或完整 Pipeline。
 
@@ -191,4 +191,4 @@ Web执行顺序：T063 → T064 → T065 → T066 → T061–T062；T064依赖T0
 
 验收覆盖索引：A1=T008–T013；A2=T006/T008/T011/T053；A3=T006/T015/T036；A4=T027/T033–T038；A5=T029–T032；A6=T034–T039；A7=T043–T048/T050/T052；A8=T040–T041/T047/T049/T052；A9=T020/T022/T055；A10=T014/T018–T019/T022；A11=T007/T050/T053–T054；A12=T021/T051/T059；A13=T056–T058/T061。
 
-**当前下一步：T008 的 HTTP 反例 → T011/T012 用例与路由接入，同时关闭T007默认存储装配缺口。第一批可交付范围仍为T001–T013（M1）。** T001–T006已验证；为接入T007剩余写服务边界，本批提前完成T009/T010纯候选底座，不能因此跳过T008或真实M1。不要求先把全部任务写完才验证，也不把第一批闭环当成整个系统已完成。
+**当前下一步：T014真实PG生命周期反例 → T015持久执行Repository → T016–T022调度、SSE与恢复闭环。** T007默认HTTP装配、T008/T012契约与T013真实模型公开会话已通过，完整回归299项；T011仅KB授权/版本/隐私部分等待T041/T050，当前对KB请求明确404且零模型调用。公开来源可继续US2，不以未就绪KB冒充支持，不把US1公开闭环当整个goal完成。历史阶段说明记录当时边界，以最新证据为准。Web仍按T063–T066纳入最终交付。

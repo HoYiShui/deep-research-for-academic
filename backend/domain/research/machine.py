@@ -37,7 +37,11 @@ def assess_brief(draft: PartialResearchBrief, assessment: ClarifyAssessment) -> 
         if name not in merged and name not in gaps:
             merged[name] = default
             disclosures.append(f"Conservative default ({name}): {default}")
-    merged["assumptions"] = "\n".join(dict.fromkeys(item for item in disclosures if item))
+    merged["assumptions"] = "\n".join(
+        dict.fromkeys(
+            line.strip() for item in disclosures for line in item.splitlines() if line.strip()
+        )
+    )
     gaps.update(name for name in EXPLICIT_BRIEF_FIELDS if name not in merged)
     gaps.update(name for name in ResearchBrief.model_fields if name not in merged)
     ordered = [name for name in ResearchBrief.model_fields if name in gaps]
