@@ -1,8 +1,8 @@
 """Coordinator binding from narrow worker callbacks to durable model calls.
 
-Only explicit model bindings exist here; search/fetch/analysis adapters must be
-registered separately as those phase workers are implemented. No legacy I/O or
-fake fallback is reachable through this capability.
+Model and optional per-provider search bindings are explicit; fetch/analysis
+adapters must be registered separately as those phase workers are implemented.
+No legacy I/O or fake fallback is reachable through this capability.
 """
 
 import asyncio
@@ -10,6 +10,7 @@ from dataclasses import dataclass
 
 from application.errors import AppError
 from application.phase_units import UnitScope
+from application.search_tools import SearchBinding, SearchTools
 from application.tool_budget import ToolBudgetRequest
 from application.tool_calls import ToolCallService, ToolOutput
 from domain.model_completion import MeteredModelPort, ModelCompletion
@@ -40,6 +41,7 @@ class PhaseTools:
         knowledge_snapshot: list[VersionReference],
         *,
         model_slots: asyncio.Semaphore,
+        search: SearchBinding | None = None,
     ):
         config = service.claimed.run.config_snapshot
         versions = config.versions
@@ -66,6 +68,7 @@ class PhaseTools:
         if not isinstance(model_slots, asyncio.Semaphore):
             raise TypeError("Composition root must supply its shared process model semaphore")
         self._slots = model_slots
+        self._search = SearchTools(service, search, self._knowledge) if search is not None else None
 
     def for_phase(
         self,
@@ -110,6 +113,14 @@ class PhaseTools:
         )
 
         async def invoke(tool, arguments):
+            if tool == "search" and self._search is not None:
+                return await self._search.invoke(
+                    arguments,
+                    phase=phase,
+                    input_hash=input_hash,
+                    unit=unit_scope,
+                    allow_uncertain_replay=allow_uncertain_replay,
+                )
             if tool != "llm":
                 raise AppError("service_not_ready", "Requested phase tool is not configured")
             if (

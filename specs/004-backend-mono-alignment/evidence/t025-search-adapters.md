@@ -51,3 +51,25 @@ uv run python -m scripts.verify_search_adapters --json
 - [Bocha官方MCP源码](https://github.com/BochaAI/bocha-search-mcp/blob/master/src/bocha_search_mcp/server.py)：web-search端点、query/count/freshness/summary与webPages字段；业务code和候选形状同时由本次真实响应验证。
 
 用户提供的 industry_information_assistant 仅作只读控制流参考，没有复制、执行或修改其代码/凭据。其章节并发组织有参考价值，但“原型整体跑通”不替代本项目的原文证据及故障契约验收。
+
+## 正式Run逐来源账本绑定（T020/T027部分）
+
+`application/search_tools.py` 新增SearchBinding/SearchProvider与窄ResearchSearchPort；PhaseTools和RunDriver显式注入绑定，不调用旧Container、不自动启用fake。Worker只能在当前research query单元请求该单元的原定query，不能选provider/category、改预算、或覆盖replay权限。来源类别来自冻结SourcePolicy；private_only和纯KB scope在外部请求前拒绝。
+
+每个provider物理操作经ToolCallService完成PG预算预留、attempt记录、MinIO不可变结果、结果提交；不同provider分别记账，重试保持相同语义call key且新增physical attempt。搜索候选类型必须与绑定provider类别一致，真实空结果缓存为empty，不写Evidence。
+
+provider超时会留下保守收费的uncertain记录；只有当前调用已收到retryable provider失败后，第二次只读重试获准replay。新调用首次遇到既有uncertain仍必须显式coordinator授权。缓存损坏不重新请求provider、不转换成来源降级。并发账本错误保持AppError/AdapterError类型；完整性/租约错误不能被同时发生的预算耗尽掩盖。
+
+验证：
+
+```bash
+uv run pytest -q --tb=short tests/integration/test_mono_search_tools.py
+```
+
+**6 passed in 5.31s**：真正Driver五阶段受控执行、真实PG/MinIO隔离资源中证明每来源缓存复用、超时后新attempt且账本消费一致、query/phase权限拒绝、缓存损坏不重查、耗尽预算在provider I/O前拒绝、既有uncertain不自动重发。provider返回/业务worker是明确受控fixture，不是公网论文或真实研究报告验收；预算耗尽fixture先通过真实ToolCallService/PG/MinIO耗尽搜索额度，再验证新的provider请求为零。
+
+初始化的定向组合89项通过；后续新增uncertain反例单列上述6项。Ruff/format/diff检查通过。当前还缺Fetch预算/候选授权、正式research worker、KB/analysis工具和CLI默认组合；T020/T027仍未完成。不得以这些生命周期测试宣称关键技术Evidence已有原文。
+
+最终版本全量 **831 passed in 139.19s**；隔离PG/MinIO测试资源清理完成，用户原库/volumes及 `.env` 未变更。提交不包含用户的 `docs/implementation/`。
+
+本轮只读系统DNS复查（2026-10-06）：arxiv.org返回 `151.101.3.42`、`151.101.67.42`、`151.101.131.42`、`151.101.195.42`，`ipaddress.is_global`均true；旧Fake-IP记录不再是当前阻塞。此复查不证明arXiv搜索API、PDF Parser或完整research已经联网验收。

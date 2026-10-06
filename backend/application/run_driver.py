@@ -16,6 +16,7 @@ from application.phase_executor import ExecutionContext, PhaseExecutor
 from application.phase_tools import ModelBinding, PhaseTools
 from application.phase_units import PhaseTransition, UnitCommit, plan_units
 from application.records import ClaimedRun
+from application.search_tools import SearchBinding
 from application.tool_calls import ToolCallService
 from domain.content import ResultCachePort
 from domain.ports import ClockPort
@@ -43,6 +44,7 @@ class RunDriver:
         finished: Callable[[ResearchRun], None],
         diagnostic: Callable[[object], None],
         allow_uncertain_replay=False,
+        search: SearchBinding | None = None,
     ):
         if not callable(publish):
             raise TypeError("An explicit quality-gated atomic publisher is required")
@@ -54,6 +56,7 @@ class RunDriver:
         self.unit_committed, self.phase_committed = unit_committed, phase_committed
         self.finished, self.diagnostic = finished, diagnostic
         self.allow_uncertain_replay = allow_uncertain_replay
+        self.search = search
 
     def _project_finished(self, run):
         try:
@@ -134,6 +137,7 @@ class RunDriver:
             self.model,
             point.state.run_metadata.knowledge_snapshot,
             model_slots=self.model_slots,
+            search=self.search,
         )
         coordinator = RunUnitCoordinator(
             store=self.store,

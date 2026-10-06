@@ -6,7 +6,7 @@ describe target cancellation or durable ownership semantics.
 
 from __future__ import annotations
 
-from collections.abc import AsyncIterable
+from collections.abc import AsyncIterable, Awaitable, Callable
 from contextlib import AbstractAsyncContextManager
 from typing import Protocol
 from uuid import UUID
@@ -36,6 +36,7 @@ from domain.research.models import (
     SessionState,
     SourceSelection,
 )
+from domain.research.search import SearchBatch, SearchResult
 from domain.research.state import Checkpoint
 from domain.research.tool_calls import ToolCallIdentity
 
@@ -63,6 +64,21 @@ class ContentStorePort(Protocol):
 
 class DocumentParserPort(Protocol):
     async def parse(self, reference: ContentRef, config: ParserConfig) -> ParsedDocument: ...
+
+
+SearchOperation = Callable[[], Awaitable[list[SearchResult]]]
+SearchAttemptInvoker = Callable[[str, str, int, SearchOperation], Awaitable[list[SearchResult]]]
+
+
+class ResearchSearchPort(Protocol):
+    async def search_batch(
+        self,
+        query: str,
+        *,
+        categories: frozenset[str],
+        invoke: SearchAttemptInvoker,
+        retry: bool = True,
+    ) -> SearchBatch: ...
 
 
 class TransactionPort(Protocol):
