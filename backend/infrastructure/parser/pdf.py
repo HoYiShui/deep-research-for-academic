@@ -1,14 +1,13 @@
-"""PDF parser (MinerU) and content/fetch adapters.
+"""Legacy content/parser interfaces, fail-closed until their migration tasks.
 
-ContentStorePort reads locally stored chunk text (MinIO); FetchPort pulls
-external full text (arXiv/web). MinerU parsing is lazy-loaded.
+The text-only Fetch bridge delegates to the restricted downloader; it does
+not implement the formal versioned FetchedDocument/Parser/content contract.
 """
 
 from __future__ import annotations
 
-import httpx
-
 from domain.ports import AdapterError
+from infrastructure.fetch.http import RestrictedDownloader
 
 
 class MinerUParser:
@@ -16,8 +15,15 @@ class MinerUParser:
 
     async def parse(self, path: str) -> dict:
         """Parse a PDF; returns {"text": "...", "tables": [...], "formulas": [...]}."""
-        # MinerU integration is wired in the S4 slice; placeholder now.
-        return {"text": "", "tables": [], "formulas": []}
+        # Actual versioned local parser is implemented in T043; until then a
+        # missing parser is a dependency failure, never successful empty text.
+        raise AdapterError(
+            "parser",
+            "parser_not_configured",
+            "Local document parser is not configured",
+            False,
+            "parse",
+        )
 
 
 class MinioContentStore:
@@ -42,11 +48,28 @@ class MinioContentStore:
 
 
 class HttpFetch:
-    """FetchPort implementation: pull external full text via HTTP."""
+    """Legacy text-only bridge; network safety uses the same restricted downloader.
+
+    Formal FetchedDocument/Parser/content references are implemented separately;
+    this compatibility interface must never decode PDF bytes as fake text.
+    """
+
+    def __init__(self, downloader: RestrictedDownloader | None = None):
+        self._downloader = downloader if downloader is not None else RestrictedDownloader()
 
     async def fetch(self, source_type: str, doc_ref: str) -> str:
-        """Fetch a document by URL; returns its text."""
-        async with httpx.AsyncClient() as client:
-            resp = await client.get(doc_ref)
-            resp.raise_for_status()
-        return resp.text
+        if source_type != "web":
+            raise AdapterError(
+                "fetch", "fetch_parser_required", "Document parser is required", False, "fetch"
+            )
+        result = await self._downloader.download(doc_ref)
+        if result.media_type not in {"text/html", "text/plain"}:
+            raise AdapterError(
+                "fetch", "fetch_parser_required", "Document parser is required", False, "fetch"
+            )
+        try:
+            return result.body.decode("utf-8")
+        except UnicodeError as exc:
+            raise AdapterError(
+                "fetch", "fetch_response_invalid", "Text encoding is unsupported", False, "fetch"
+            ) from exc
