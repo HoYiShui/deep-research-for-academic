@@ -9,6 +9,7 @@ import asyncio
 import json
 from collections.abc import Awaitable, Callable
 from datetime import UTC, datetime
+from hashlib import sha256
 from typing import Literal
 
 from pydantic import JsonValue, model_validator
@@ -17,7 +18,7 @@ from application.errors import AppError
 from application.ports import ToolCallRepositoryPort, UnitOfWorkPort
 from application.records import ClaimedRun
 from application.tool_budget import ToolBudgetRequest
-from domain.content import ResultCachePort
+from domain.content import ContentRef, ResultCachePort
 from domain.ports import AdapterError, ClockPort
 from domain.research.models import Failure, Hash, Nonnegative, Record
 from domain.research.tool_calls import ToolCallIdentity
@@ -86,20 +87,31 @@ class ToolCallService:
             raise AppError(
                 "tool_call_uncertain", "Previous call requires explicit read-only replay"
             )
-        if receipt.disposition == "cache":
+        if receipt.disposition in {"cache", "recover"}:
             # A missing/corrupt committed object is a storage failure, never a
             # license to silently repeat a previously successful paid call.
-            body = await self.cache.read(receipt.reference)
             try:
-                value = CachedToolOutput.model_validate_json(body)
-                if value.call_key != identity.call_key:
-                    raise ValueError("Cached call identity differs")
-                self._validate_usage(identity, value)
-            except (ValueError, TypeError):
-                raise AdapterError(
-                    "minio", "content_invalid", "Cached tool result is invalid", False, "tool_cache"
-                ) from None
-            return ToolOutput(content=value.content, tokens_used=value.tokens_used)
+                body = await self.cache.read(receipt.reference)
+            except AdapterError as exc:
+                if (
+                    receipt.disposition != "recover"
+                    or exc.code != "content_missing"
+                    or not allow_uncertain_replay
+                ):
+                    raise
+                async with self.uow.transaction() as tx:
+                    receipt = await self.repository.reserve_tool_call(
+                        self.claimed,
+                        identity,
+                        request,
+                        tx,
+                        elapsed_s=self.elapsed_s(),
+                        allow_uncertain_replay=True,
+                        skip_result_recovery=True,
+                    )
+                body = None
+            if body is not None:
+                return await self._read_result(identity, receipt, body)
         if receipt.disposition != "execute":
             raise AppError("invalid_state", "Tool repository returned an invalid disposition")
         output = None
@@ -133,12 +145,35 @@ class ToolCallService:
                 separators=(",", ":"),
                 allow_nan=False,
             ).encode()
-            reference = await self.cache.put(
-                f"tool-results/{identity.run_id}", body, "application/json"
+            digest = sha256(body).hexdigest()
+            reference = ContentRef(
+                key=f"tool-results/{identity.run_id}/{digest}",
+                sha256=digest,
+                size=len(body),
+                media_type="application/json",
             )
             async with self.uow.transaction() as tx:
+                receipt = await self.repository.stage_tool_result(
+                    self.claimed,
+                    receipt,
+                    reference,
+                    output.tokens_used or 0,
+                    tx,
+                )
+            written = await self.cache.put(
+                f"tool-results/{identity.run_id}", body, "application/json"
+            )
+            if written != reference:
+                raise AppError(
+                    "invalid_state", "Object store returned a different content reference"
+                )
+            async with self.uow.transaction() as tx:
                 await self.repository.finish_tool_call(
-                    self.claimed, receipt, tx, reference=reference, tokens_used=output.tokens_used
+                    self.claimed,
+                    receipt,
+                    tx,
+                    reference=reference,
+                    tokens_used=output.tokens_used or 0,
                 )
             return output
         except asyncio.CancelledError:
@@ -151,6 +186,32 @@ class ToolCallService:
             raise AdapterError(
                 identity.tool, "dependency_unavailable", "Tool request failed", True, "tool_call"
             ) from None
+
+    async def _read_result(self, identity, receipt, body):
+        try:
+            value = CachedToolOutput.model_validate_json(body)
+            if value.call_key != identity.call_key:
+                raise ValueError("Cached call identity differs")
+            self._validate_usage(identity, value)
+            if (
+                receipt.disposition == "recover"
+                and (value.tokens_used or 0) != receipt.staged_tokens
+            ):
+                raise ValueError("Cached usage differs from staged result")
+        except (ValueError, TypeError):
+            raise AdapterError(
+                "minio", "content_invalid", "Cached tool result is invalid", False, "tool_cache"
+            ) from None
+        if receipt.disposition == "recover":
+            async with self.uow.transaction() as tx:
+                await self.repository.finish_tool_call(
+                    self.claimed,
+                    receipt,
+                    tx,
+                    reference=receipt.reference,
+                    tokens_used=value.tokens_used or 0,
+                )
+        return ToolOutput(content=value.content, tokens_used=value.tokens_used)
 
     @staticmethod
     def _validate_usage(identity, output):

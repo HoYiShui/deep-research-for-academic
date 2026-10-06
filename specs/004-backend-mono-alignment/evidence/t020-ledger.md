@@ -34,6 +34,17 @@
 
 ## 尚未完成
 
-T020 仍不勾选：预算/cache callback 尚未绑定正式 phase/Orchestrator；“内容对象已保存而 PG succeeded 尚未提交”的恢复定位仍待补。该窗口可留下 orphan object，当前必须明确 uncertain 才能只读重发；不能声称物理 exactly-once。供应商实际 tokens 也不能靠本地预留函数强制，异常超界的处理是记录真实用量并停止，而不是隐瞒费用。
+T020 仍不勾选：预算/cache callback 尚未绑定正式 phase/Orchestrator。供应商响应返回、结果定位事务尚未提交之前仍存在不可避免的不确定窗口，不能声称物理 exactly-once。供应商实际 tokens 也不能靠本地预留函数强制，异常超界的处理是记录真实用量并停止，而不是隐瞒费用。
 
-真实独立进程 SIGKILL 的恢复证据属于 T022，仍待执行。以上事务/缓存验证不证明五阶段业务或三种报告验收。
+以上事务/缓存验证不证明五阶段业务或三种报告验收。T022 的完整 HTTP/确认/返工恢复验收仍待执行。
+
+## 补充：先记录定位，再写对象（2026-10-06）
+
+- 新增迁移 `0004_staged_tool_results`，未修改已应用的 0003。Service 收到完整结果后计算内容 hash/大小/媒体类型，在短租约事务保存候选 ContentRef 和已知 tokens，然后才写 MinIO；候选位置不等于 succeeded。
+- 候选引用和已知用量不可覆写。对象写入/成功结算中断时保留候选；新租约把未结束尝试改 uncertain，并按 staged 实际用量记账，不再把已知消耗当未知预留上界。
+- 恢复优先读候选，校验完整 envelope、call_key、内容 hash、用量后，在新租约权限下结算原尝试；不新增调用、不改历史 attempt 的旧 lease_token。旧租约仍不能提交。
+- 未落盘对象默认明确 content_missing；只有调用方显式允许只读重放才创建新 attempt、清理当前候选并再次记账。已提交成功但缺失的对象、损坏对象仍不允许这样静默重放。
+- 工具账本目标集 **20 passed in 5.41s**，包含写入前/写入后失败、候选不可变、旧租约拒绝及非模型 None 用量。
+- `test_mono_process_recovery.py` 使用独立 Python 进程，在候选事务提交后、对象写入前/后分别发送真正 SIGKILL；无 Python finally/取消清理。两项 **2 passed in 1.01s**。PG/MinIO 为真实服务，模型输出为明确的受控 fixture，不冒充真实 SDK。
+- SIGKILL 后同 Run 显式 resume，lease_token 1→2、attempt_count 1→2、checkpoint_seq 保持 1；对象已写分支 provider callback 0 次、工具 attempt 1 次、73 tokens；未写分支默认 0 次重发，显式重放后工具 attempt 2 次、146 tokens。原 attempt 的 lease_token 保持 1，没有报告产物。
+- 全量隔离真实PG/MinIO回归 **474 passed in 60.57s**。仅提交本轮实现/测试/任务证据；原损坏数据库、用户 `docs/implementation/` 未修改。

@@ -171,6 +171,16 @@ class ToolCallRepositoryPort(Protocol):
         *,
         elapsed_s: float = 0,
         allow_uncertain_replay: bool = False,
+        skip_result_recovery: bool = False,
+    ) -> ToolReservation: ...
+
+    async def stage_tool_result(
+        self,
+        claimed: ClaimedRun,
+        reservation: ToolReservation,
+        reference: ContentRef,
+        tokens_used: int,
+        tx: TransactionPort,
     ) -> ToolReservation: ...
 
     async def finish_tool_call(

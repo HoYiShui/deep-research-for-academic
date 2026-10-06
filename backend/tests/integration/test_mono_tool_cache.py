@@ -446,3 +446,116 @@ async def test_new_lease_reclassifies_all_unfinished_calls_before_any_replay(pg_
     assert budget.used.search_calls == 2 and budget.used.llm_calls == 1
     assert budget.used.tokens == 100
     assert budget.pending.search_calls == 0 and budget.pending.llm_calls == 0
+
+
+@pytest.mark.parametrize("written", [False, True])
+async def test_staged_locator_survives_failed_upload_or_finish_and_new_lease(
+    pg_database, object_cache, written
+):
+    pool, store, user, commit, claimed = await started(pg_database)
+    calls = 0
+
+    async def operation():
+        nonlocal calls
+        calls += 1
+        return ToolOutput(content={"result": "public fixture"}, tokens_used=73)
+
+    class InterruptedUpload:
+        async def put(self, namespace, body, media_type):
+            # Locator transaction must already be committed before any object I/O.
+            assert await pool.fetchval("SELECT result_hash IS NOT NULL FROM tool_calls")
+            assert await pool.fetchval("SELECT staged_tokens FROM tool_call_attempts") == 73
+            assert await pool.fetchval("SELECT status FROM tool_calls") == "reserved"
+            if written:
+                await object_cache.put(namespace, body, media_type)
+            raise RuntimeError("controlled interruption after staging")
+
+        async def read(self, reference):
+            return await object_cache.read(reference)
+
+    value = identity(claimed, tool="llm")
+    request = ToolBudgetRequest(tool="llm", token_reservation=100, terminal=False)
+    with pytest.raises(AdapterError, match="dependency_unavailable"):
+        await service(store, claimed, InterruptedUpload()).invoke(value, request, operation)
+    assert await pool.fetchval("SELECT status FROM tool_calls") == "uncertain"
+    assert await pool.fetchval("SELECT tokens_used FROM tool_call_attempts") == 73
+    locator = await pool.fetchval("SELECT result_hash FROM tool_calls")
+    assert locator is not None
+    await pool.execute(
+        "UPDATE research_runs SET lease_expires_at=clock_timestamp()-interval '1 second'"
+    )
+    async with store.transaction() as tx:
+        await store.research.scan_interrupted(tx)
+    await resume(store, user.user_id, commit, 1)
+    newer = await claim(store, str(uuid4()))
+    runner = service(store, newer, object_cache)
+    if not written:
+        with pytest.raises(AdapterError, match="content_missing"):
+            await runner.invoke(value, request, operation)
+        assert calls == 1
+        result = await runner.invoke(value, request, operation, allow_uncertain_replay=True)
+        assert calls == 2
+    else:
+        result = await runner.invoke(value, request, operation)
+        assert calls == 1
+    assert result.tokens_used == 73
+    assert await pool.fetchval("SELECT status FROM tool_calls") == "succeeded"
+    assert await pool.fetchval("SELECT result_hash FROM tool_calls") == locator
+    assert await pool.fetchval("SELECT count(*) FROM tool_call_attempts") == (1 if written else 2)
+    budget = await store.research.load_tool_budget(user.user_id, commit.run.run_id)
+    assert budget.used.tokens == (73 if written else 146)
+    assert budget.used.llm_calls == (1 if written else 2)
+    assert budget.pending.tokens == 0
+    # Historical attempt still belongs to its original execution token.
+    assert await pool.fetchval("SELECT lease_token FROM tool_call_attempts WHERE attempt=1") == 1
+
+
+async def test_staged_result_is_immutable_and_old_lease_cannot_finish(pg_database):
+    pool, store, user, commit, claimed = await started(pg_database)
+    value = identity(claimed, tool="llm")
+    receipt = await reserve(store, claimed, value, tokens=100)
+    ref = reference(claimed)
+    async with store.transaction() as tx:
+        staged = await store.research.stage_tool_result(claimed, receipt, ref, 73, tx)
+    assert staged.record.status == "reserved" and staged.staged_tokens == 73
+    assert staged.budget.pending.tokens == 100
+    with pytest.raises(AppError, match="immutable"):
+        async with store.transaction() as tx:
+            await store.research.stage_tool_result(claimed, receipt, ref, 74, tx)
+    with pytest.raises(AppError, match="tool_call_in_progress"):
+        await reserve(store, claimed, value, tokens=100)
+    await pool.execute(
+        "UPDATE research_runs SET lease_expires_at=clock_timestamp()-interval '1 second'"
+    )
+    async with store.transaction() as tx:
+        await store.research.scan_interrupted(tx)
+    await resume(store, user.user_id, commit, 1)
+    newer = await claim(store, str(uuid4()))
+    recovered = await reserve(store, newer, value, tokens=100)
+    assert recovered.disposition == "recover" and recovered.budget.used.tokens == 73
+    with pytest.raises(AppError, match="stale_resource"):
+        async with store.transaction() as tx:
+            await store.research.finish_tool_call(
+                claimed, staged, tx, reference=ref, tokens_used=73
+            )
+    with pytest.raises(AppError, match="differs"):
+        async with store.transaction() as tx:
+            await store.research.finish_tool_call(
+                newer, recovered, tx, reference=ref, tokens_used=74
+            )
+    assert await pool.fetchval("SELECT status FROM tool_calls") == "uncertain"
+    assert await pool.fetchval("SELECT tokens_used FROM tool_call_attempts") == 73
+
+
+async def test_nonmodel_unknown_zero_usage_is_recoverable(pg_database, object_cache):
+    _pool, store, _user, _commit, claimed = await started(pg_database)
+
+    async def operation():
+        return ToolOutput(content=[], tokens_used=None)
+
+    value = identity(claimed)
+    request = ToolBudgetRequest(tool="search", token_reservation=0, terminal=False)
+    result = await service(store, claimed, object_cache).invoke(value, request, operation)
+    assert result.tokens_used is None
+    receipt = await reserve(store, claimed, value)
+    assert receipt.disposition == "cache" and receipt.budget.used.tokens == 0

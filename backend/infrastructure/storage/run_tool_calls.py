@@ -19,7 +19,8 @@ class RunToolCalls:
         # Reclassify every unfinished old-lease attempt, not merely whichever
         # semantic call the resumed coordinator happens to invoke first.
         await conn.execute(
-            "UPDATE tool_call_attempts a SET status='uncertain',updated_at=clock_timestamp() "
+            "UPDATE tool_call_attempts a SET status='uncertain',tokens_used=staged_tokens,"
+            "updated_at=clock_timestamp() "
             "FROM tool_calls c WHERE c.call_id=a.call_id AND c.run_id=$1 "
             "AND a.status='reserved' AND a.lease_token<$2",
             claimed.run.run_id,
@@ -130,7 +131,7 @@ class RunToolCalls:
 
         record = decode(ToolCallRecord, row, {"failure"})
         reference = None
-        if record.status == "succeeded":
+        if record.result_object_key is not None:
             if row["result_size"] is None or row["result_media_type"] is None:
                 raise AppError("invalid_state", "Cached call lacks a verified content reference")
             reference = ContentRef(
@@ -146,16 +147,29 @@ class RunToolCalls:
             lease_token=attempt["lease_token"],
             uncertain_replay=attempt["uncertain_replay"],
             reference=reference,
+            staged_tokens=attempt["staged_tokens"],
             budget=await self._tool_budget(record.run_id, conn),
         )
 
     async def reserve_tool_call(
-        self, claimed, identity, request, tx, *, elapsed_s=0, allow_uncertain_replay=False
+        self,
+        claimed,
+        identity,
+        request,
+        tx,
+        *,
+        elapsed_s=0,
+        allow_uncertain_replay=False,
+        skip_result_recovery=False,
     ):
         identity = ToolCallIdentity.model_validate(identity)
         request = ToolBudgetRequest.model_validate(request)
         if type(allow_uncertain_replay) is not bool:
             raise ValueError("Replay permission must be an explicit boolean")
+        if type(skip_result_recovery) is not bool or (
+            skip_result_recovery and not allow_uncertain_replay
+        ):
+            raise ValueError("Skipping staged recovery requires explicit replay permission")
         conn, _session, run = await self._locked_lease(claimed, tx)
         if run.status != "running" or run.cancel_requested_at is not None:
             raise AppError("invalid_session_state", "Execution is stopping")
@@ -211,6 +225,9 @@ class RunToolCalls:
                     "WHERE call_id=$1 RETURNING *",
                     identity.call_id,
                 )
+            if row["result_object_key"] is not None and not skip_result_recovery:
+                await self._tool_fence(conn, claimed)
+                return await self._tool_receipt(row, previous, "recover", conn)
             if row["status"] == "uncertain" and not allow_uncertain_replay:
                 await self._tool_fence(conn, claimed)
                 return await self._tool_receipt(row, previous, "uncertain", conn)
@@ -237,6 +254,7 @@ class RunToolCalls:
         else:
             row = await conn.fetchrow(
                 "UPDATE tool_calls SET status='reserved',failure=NULL,budget_units=budget_units+1,"
+                "result_object_key=NULL,result_hash=NULL,result_size=NULL,result_media_type=NULL,"
                 "updated_at=clock_timestamp() WHERE call_id=$1 RETURNING *",
                 identity.call_id,
             )
@@ -253,13 +271,69 @@ class RunToolCalls:
         await self._tool_fence(conn, claimed)
         return await self._tool_receipt(row, attempt, "execute", conn)
 
+    async def stage_tool_result(self, claimed, reservation, reference, tokens_used, tx):
+        reservation = ToolReservation.model_validate(reservation)
+        reference = ContentRef.model_validate(reference)
+        if type(tokens_used) is not int or tokens_used < 0:
+            raise ValueError("Staged usage must be a nonnegative integer")
+        conn, _session, run = await self._locked_lease(claimed, tx)
+        if (
+            reservation.disposition != "execute"
+            or reservation.lease_token != run.lease_token
+            or reservation.record.run_id != run.run_id
+            or not reference.key.startswith(f"tool-results/{run.run_id}/")
+            or not reference.key.endswith("/" + reference.sha256)
+        ):
+            raise AppError("invalid_state", "Staged result differs from active reservation")
+        attempt = await conn.fetchrow(
+            "SELECT * FROM tool_call_attempts WHERE call_id=$1 AND attempt=$2 "
+            "AND lease_token=$3 AND status='reserved'",
+            reservation.record.call_id,
+            reservation.attempt,
+            run.lease_token,
+        )
+        if attempt is None:
+            raise AppError("stale_resource", "Tool reservation changed")
+        if (
+            attempt["tool"] == "llm"
+            and tokens_used > attempt["tokens_reserved"]
+            or attempt["tool"] != "llm"
+            and tokens_used != 0
+        ):
+            raise AppError("invalid_state", "Staged usage differs from reservation")
+        row = await conn.fetchrow(
+            "SELECT * FROM tool_calls WHERE call_id=$1", reservation.record.call_id
+        )
+        if row["result_object_key"] is not None:
+            existing = await self._tool_receipt(row, attempt, "execute", conn)
+            if existing.reference != reference or existing.staged_tokens != tokens_used:
+                raise AppError("invalid_state", "Staged result is immutable")
+        attempt = await conn.fetchrow(
+            "UPDATE tool_call_attempts SET staged_tokens=$3,updated_at=clock_timestamp() "
+            "WHERE call_id=$1 AND attempt=$2 RETURNING *",
+            reservation.record.call_id,
+            reservation.attempt,
+            tokens_used,
+        )
+        row = await conn.fetchrow(
+            "UPDATE tool_calls SET result_object_key=$2,result_hash=$3,result_size=$4,"
+            "result_media_type=$5,updated_at=clock_timestamp() WHERE call_id=$1 RETURNING *",
+            reservation.record.call_id,
+            reference.key,
+            reference.sha256,
+            reference.size,
+            reference.media_type,
+        )
+        await self._tool_fence(conn, claimed)
+        return await self._tool_receipt(row, attempt, "execute", conn)
+
     async def finish_tool_call(
         self, claimed, reservation, tx, *, reference=None, tokens_used=None, failure=None
     ):
         reservation = ToolReservation.model_validate(reservation)
-        if (
-            reservation.disposition != "execute"
-            or reservation.lease_token != claimed.run.lease_token
+        if reservation.disposition not in {"execute", "recover"} or (
+            reservation.disposition == "execute"
+            and reservation.lease_token != claimed.run.lease_token
         ):
             raise AppError("invalid_state", "Tool result requires its active reservation")
         reference = ContentRef.model_validate(reference) if reference is not None else None
@@ -275,13 +349,32 @@ class RunToolCalls:
             raise AppError("invalid_state", "Result object is outside its Run namespace")
         current = await conn.fetchrow(
             "SELECT * FROM tool_call_attempts WHERE call_id=$1 AND attempt=$2 "
-            "AND lease_token=$3 AND status='reserved'",
+            "AND lease_token=$3 AND status=ANY($4::text[]) "
+            "AND attempt=(SELECT max(attempt) FROM tool_call_attempts WHERE call_id=$1)",
             reservation.record.call_id,
             reservation.attempt,
-            run.lease_token,
+            reservation.lease_token,
+            ["uncertain", "failed"] if reservation.disposition == "recover" else ["reserved"],
         )
         if current is None:
             raise AppError("stale_resource", "Tool reservation changed")
+        persisted = await conn.fetchrow(
+            "SELECT * FROM tool_calls WHERE call_id=$1", reservation.record.call_id
+        )
+        staged = await self._tool_receipt(persisted, current, "finished", conn)
+        if reservation.disposition == "recover" and (
+            reference is None
+            or reference != staged.reference
+            or tokens_used != current["staged_tokens"]
+        ):
+            raise AppError("invalid_state", "Recovered result differs from staged locator")
+        if staged.reference is not None:
+            if reference is not None and (
+                reference != staged.reference or tokens_used != current["staged_tokens"]
+            ):
+                raise AppError("invalid_state", "Result differs from staged locator")
+            if reference is None:
+                tokens_used = current["staged_tokens"]
         if current["tool"] == "llm" and reference is not None and tokens_used is None:
             raise ValueError("Successful model calls require measured usage")
         if current["tool"] != "llm" and tokens_used not in {None, 0}:
@@ -290,7 +383,7 @@ class RunToolCalls:
             "succeeded"
             if reference is not None
             else "uncertain"
-            if tokens_used is None
+            if tokens_used is None or staged.reference is not None
             else "failed"
         )
         failure_json = failure.model_dump_json() if failure is not None else None
@@ -300,11 +393,12 @@ class RunToolCalls:
             "RETURNING *",
             reservation.record.call_id,
             reservation.attempt,
-            run.lease_token,
+            reservation.lease_token,
             status,
             tokens_used,
             failure_json,
         )
+        reference = reference or staged.reference
         row = await conn.fetchrow(
             "UPDATE tool_calls SET status=$2,result_object_key=$3,result_hash=$4,"
             "result_size=$5,result_media_type=$6,failure=$7,updated_at=clock_timestamp() "

@@ -5,7 +5,7 @@ from typing import Literal
 from pydantic import StrictBool, model_validator
 
 from domain.content import ContentRef
-from domain.research.models import Positive, Record
+from domain.research.models import Nonnegative, Positive, Record
 from domain.research.state import BudgetUsage
 from domain.research.tool_calls import ToolCallRecord
 
@@ -16,12 +16,13 @@ class ToolBudgetView(Record):
 
 
 class ToolReservation(Record):
-    disposition: Literal["execute", "cache", "uncertain", "finished"]
+    disposition: Literal["execute", "cache", "recover", "uncertain", "finished"]
     record: ToolCallRecord
     attempt: Positive
     lease_token: Positive
     uncertain_replay: StrictBool
     reference: ContentRef | None
+    staged_tokens: Nonnegative | None = None
     budget: ToolBudgetView
 
     @model_validator(mode="after")
@@ -37,4 +38,10 @@ class ToolReservation(Record):
             raise ValueError("Cache reference differs from the persisted call")
         if self.disposition == "execute" and self.record.status != "reserved":
             raise ValueError("Execution receipt requires a reservation")
+        if self.disposition == "recover" and (
+            self.reference is None
+            or self.staged_tokens is None
+            or self.record.status not in {"uncertain", "failed"}
+        ):
+            raise ValueError("Recovery requires a staged result and known usage")
         return self
