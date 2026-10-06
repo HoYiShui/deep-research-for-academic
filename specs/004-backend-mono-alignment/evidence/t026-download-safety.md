@@ -1,6 +1,6 @@
 # T026部分进展：正文下载安全边界
 
-日期：2026-10-06。**T026保持未完成**。此阶段不返回可用于引用的 Evidence 或完整 FetchedDocument；不会用搜索摘要、假正文、假页码填补Parser/存储能力。
+日期：2026-10-06。**T026保持未完成**。下载阶段和后续HTML内容闭环的证据分别记录如下；不会用搜索摘要、假正文、假页码填补PDF Parser能力，也尚不产生业务 Evidence。
 
 ## 已实现
 
@@ -39,10 +39,28 @@ uv run python -m scripts.verify_fetch_download --json
 
 ## 剩余验收
 
-- 正式 FetchPort.fetch(SourceCandidate) → FetchedDocument 及声明受控解析版本、内容引用、真实位置。
-- 共享文档ContentStore的原始文件/解析块不可变存储、同键异hash拒绝、真实MinIO回读。
+- PDF对应的受控解析版本、内容引用、真实位置；HTML实现见下节。
 - 真实PDF经过本地Parser产生非空正文/表格/页码；可信摘录范围、hash和Source身份由T027连接验证。
 - 正式PhaseTools/ToolCallService接入，不将此无Run的单次只读探针冒充预算/账本闭环。
 - 在真实公网DNS环境再次下载论文并验证真实来源。当前未宣称论文取证通过。
 
 未触碰已损坏的原PG数据或用户对象、未改backend/.env、未执行参考原型。
+
+## 后续进展：HTML与共享内容存储
+
+实现路径：`application/ports.py` 的 ContentStorePort/DocumentParserPort；`domain/documents.py` 的严格输入输出；`infrastructure/storage/content.py`、`infrastructure/parser/html.py`、`infrastructure/fetch/document.py`。原工具缓存与新内容存储复用 `content_cache.py::MinioObjectIO` 的有界线程I/O，不改变工具缓存的10MiB契约；文档内容上限50MiB。
+
+- 原文与解析JSON均按实际字节SHA-256落不可变对象，key限定在Run或KB/DocumentVersion内。同key异字节在S3调用前拒绝，已有对象损坏不自动覆盖修复；读取重验大小与hash。删除只允许精确资源key/prefix，不允许根前缀。业务归属授权与清理生命周期仍由App负责，未冒充已经实现KB管理。
+- HTML/text真正解析已保存原文，固定 `dr4a-html-v1`，按原始文件行号定位，不把实体解码新增换行当来源行号。标题上下文、完整原子HTML表格、MathML、上下标与代码缩进保留；不把表格猜成数值网格，不制造PDF页码。
+- 空内容、错误编码、未闭合原子块、超字节/块/单块限制失败，不静默截断。解析在线程执行；单槽覆盖原文读取与解析，排队任务不提前读取，读阶段取消释放槽，运行中的解析取消不提前释放执行容量。
+- `HTTPDocumentFetch.fetch(SearchResult)` 返回原文/解析内容引用及位置；论文必须访问明确的PDF fulltext目标，不退回摘要。`read_parsed` 不重新联网或解析，验证Run范围、JSON/hash/版本/位置与原文仍存在且完整。HTML Parser收到PDF明确失败，只可能留下原文对象，不能伪造解析成功。
+
+验证命令（backend目录）：
+
+```bash
+uv run pytest -q --tb=short tests/contract/test_document_parser.py tests/contract/test_document_content.py tests/unit/test_content_cache.py tests/integration/test_mono_document_content.py tests/integration/test_mono_fetched_document.py
+```
+
+定向 **54 passed in 0.71s**；独立验证PG + 真实MinIO唯一测试资源的全量 **757 passed in 83.73s**，Ruff/format/diff检查通过。真实MinIO验证包含并发去重、重开Store回读、损坏检测、限定版本删除不影响邻居及11MiB对象（超过工具缓存限额）。Fetch集成使用真实httpcore协议栈的**受控socket回放**、真正HTML解析和真正MinIO，不是公网网页/PDF成功证据。关闭/重开存储后回读不触发重新下载；删除原文后不能单凭解析JSON继续使用。
+
+当前仍缺：MinerU真实PDF结构化解析、正式Run工具账本与候选授权绑定、Scout来源/Evidence回链以及真实公网论文验收。T026/T043不能勾选。准备MinerU时本机对PyPI的urllib与curl请求均出现TLS连接中断；未关闭证书验证或改变系统代理。

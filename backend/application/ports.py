@@ -6,6 +6,7 @@ describe target cancellation or durable ownership semantics.
 
 from __future__ import annotations
 
+from collections.abc import AsyncIterable
 from contextlib import AbstractAsyncContextManager
 from typing import Protocol
 from uuid import UUID
@@ -23,6 +24,7 @@ from application.records import (
 from application.tool_budget import ToolBudgetRequest
 from application.tool_records import ToolBudgetView, ToolReservation
 from domain.content import ContentRef
+from domain.documents import ParsedDocument, ParserConfig
 from domain.research.facts import FinalReport
 from domain.research.models import (
     BriefRecord,
@@ -36,6 +38,31 @@ from domain.research.models import (
 )
 from domain.research.state import Checkpoint
 from domain.research.tool_calls import ToolCallIdentity
+
+
+class ContentStorePort(Protocol):
+    """Shared document/research blobs; ownership is checked by the calling Service."""
+
+    async def put(
+        self,
+        key: str,
+        stream: AsyncIterable[bytes] | bytes,
+        *,
+        media_type: str,
+        expected_hash: str | None = None,
+    ) -> ContentRef: ...
+
+    async def get(self, key: str) -> AsyncIterable[bytes]: ...
+
+    async def head(self, key: str) -> ContentRef: ...
+
+    async def delete(self, key: str) -> None: ...
+
+    async def delete_prefix(self, prefix: str) -> None: ...
+
+
+class DocumentParserPort(Protocol):
+    async def parse(self, reference: ContentRef, config: ParserConfig) -> ParsedDocument: ...
 
 
 class TransactionPort(Protocol):

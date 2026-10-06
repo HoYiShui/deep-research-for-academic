@@ -26,7 +26,12 @@ _NAMESPACE = re.compile(r"^[a-z][a-z0-9_-]{0,63}/[a-zA-Z0-9_-]{1,128}$")
 _KEY = re.compile(r"^[a-z][a-z0-9_-]{0,63}/[a-zA-Z0-9_-]{1,128}/[a-f0-9]{64}$")
 
 
-class MinioResultCache:
+class MinioObjectIO:
+    """Shared bounded SDK transport and byte-integrity mechanics, not a public Port."""
+
+    max_bytes = MAX_RESULT_BYTES
+    operation_name = "content_cache"
+
     def __init__(
         self,
         endpoint: str,
@@ -91,7 +96,7 @@ class MinioResultCache:
                 "content_missing" if missing else "dependency_unavailable",
                 "Stored content is unavailable",
                 not missing,
-                "content_cache",
+                self.operation_name,
             ) from None
         except Exception:  # noqa: BLE001 -- sanitize all foreign SDK failures.
             raise AdapterError(
@@ -99,25 +104,8 @@ class MinioResultCache:
                 "dependency_unavailable",
                 "Content storage request failed",
                 True,
-                "content_cache",
+                self.operation_name,
             ) from None
-
-    async def put(self, namespace: str, content: bytes, media_type: str) -> ContentRef:
-        if not _NAMESPACE.fullmatch(namespace):
-            raise ValueError("A two-part cache namespace is required")
-        if not isinstance(content, bytes) or len(content) > MAX_RESULT_BYTES:
-            raise ValueError("Result must be bytes within the 10 MiB limit")
-        if not media_type or any(c in media_type for c in "\r\n"):
-            raise ValueError("A valid media type is required")
-        digest = hashlib.sha256(content).hexdigest()
-        reference = ContentRef(
-            key=f"{namespace}/{digest}",
-            sha256=digest,
-            size=len(content),
-            media_type=media_type,
-        )
-        await self._io(self._put, reference, content)
-        return reference
 
     def _put(self, reference: ContentRef, content: bytes) -> None:
         try:
@@ -140,20 +128,10 @@ class MinioResultCache:
         )
         self._read(reference)
 
-    async def read(self, reference: ContentRef) -> bytes:
-        reference = ContentRef.model_validate(reference)
-        if (
-            not _KEY.fullmatch(reference.key)
-            or reference.key.rsplit("/", 1)[-1] != reference.sha256
-            or reference.size > MAX_RESULT_BYTES
-        ):
-            raise ValueError("Invalid content-addressed reference")
-        return await self._io(self._read, reference)
-
     def _read(self, reference: ContentRef) -> bytes:
         response = self._client.get_object(self.bucket, reference.key)
         try:
-            content = response.read(MAX_RESULT_BYTES + 1)
+            content = response.read(self.max_bytes + 1)
         finally:
             response.close()
             response.release_conn()
@@ -164,17 +142,47 @@ class MinioResultCache:
             raise self._corrupt()
         return content
 
-    @staticmethod
-    def _corrupt() -> AdapterError:
+    def _corrupt(self) -> AdapterError:
         return AdapterError(
             "minio",
             "content_hash_mismatch",
             "Stored content failed integrity validation",
             False,
-            "content_cache",
+            self.operation_name,
         )
 
     async def close(self) -> None:
         self._closed = True
         await asyncio.to_thread(self._executor.shutdown, wait=True, cancel_futures=True)
         self._http.clear()
+
+
+class MinioResultCache(MinioObjectIO):
+    """10MiB tool/unit results with exact two-part immutable namespaces."""
+
+    async def put(self, namespace: str, content: bytes, media_type: str) -> ContentRef:
+        if not _NAMESPACE.fullmatch(namespace):
+            raise ValueError("A two-part cache namespace is required")
+        if not isinstance(content, bytes) or len(content) > self.max_bytes:
+            raise ValueError("Result must be bytes within the 10 MiB limit")
+        if not media_type or any(c in media_type for c in "\r\n"):
+            raise ValueError("A valid media type is required")
+        digest = hashlib.sha256(content).hexdigest()
+        reference = ContentRef(
+            key=f"{namespace}/{digest}",
+            sha256=digest,
+            size=len(content),
+            media_type=media_type,
+        )
+        await self._io(self._put, reference, content)
+        return reference
+
+    async def read(self, reference: ContentRef) -> bytes:
+        reference = ContentRef.model_validate(reference)
+        if (
+            not _KEY.fullmatch(reference.key)
+            or reference.key.rsplit("/", 1)[-1] != reference.sha256
+            or reference.size > self.max_bytes
+        ):
+            raise ValueError("Invalid content-addressed reference")
+        return await self._io(self._read, reference)

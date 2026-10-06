@@ -12,6 +12,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any, Protocol
 
+from domain.documents import FetchedDocument
 from domain.research.search import SearchResult
 
 
@@ -91,14 +92,20 @@ class RerankPort(Protocol):
     async def rerank(self, query: str, candidates: list[Chunk], top_k: int) -> list[Chunk]: ...
 
 
-class ContentStorePort(Protocol):
-    """Read locally stored content (MinIO)."""
+class LegacyContentStorePort(Protocol):
+    """Unmigrated chunk-text interface; canonical ContentStorePort belongs to App."""
 
     async def get(self, chunk_id: str) -> str: ...
 
 
 class FetchPort(Protocol):
-    """Fetch external full text (arXiv/web) on a cache miss."""
+    """Validated original+parsed immutable content; candidates are not Evidence."""
+
+    async def fetch(self, candidate: SearchResult) -> FetchedDocument: ...
+
+
+class LegacyFetchPort(Protocol):
+    """Unmigrated text-only interface; not a formal provenance contract."""
 
     async def fetch(self, source_type: str, doc_ref: str) -> str: ...
 
