@@ -20,6 +20,9 @@ from application.records import (
     User,
     ValidatedFrozenInput,
 )
+from application.tool_budget import ToolBudgetRequest
+from application.tool_records import ToolBudgetView, ToolReservation
+from domain.content import ContentRef
 from domain.research.facts import FinalReport
 from domain.research.models import (
     BriefRecord,
@@ -32,6 +35,7 @@ from domain.research.models import (
     SourceSelection,
 )
 from domain.research.state import Checkpoint
+from domain.research.tool_calls import ToolCallIdentity
 
 
 class TransactionPort(Protocol):
@@ -153,6 +157,39 @@ class ResearchRepositoryPort(Protocol):
     async def load_report(
         self, owner: UUID, run_id: UUID, tx: TransactionPort | None = None
     ) -> FinalReport | None: ...
+
+
+class ToolCallRepositoryPort(Protocol):
+    """Separate coordinator capability; transactions share the parent Run lock."""
+
+    async def reserve_tool_call(
+        self,
+        claimed: ClaimedRun,
+        identity: ToolCallIdentity,
+        request: ToolBudgetRequest,
+        tx: TransactionPort,
+        *,
+        elapsed_s: float = 0,
+        allow_uncertain_replay: bool = False,
+    ) -> ToolReservation: ...
+
+    async def finish_tool_call(
+        self,
+        claimed: ClaimedRun,
+        reservation: ToolReservation,
+        tx: TransactionPort,
+        *,
+        reference: ContentRef | None = None,
+        tokens_used: int | None = None,
+        failure: Failure | None = None,
+    ) -> ToolReservation: ...
+
+    async def load_tool_budget(
+        self,
+        owner: UUID,
+        run_id: UUID,
+        tx: TransactionPort | None = None,
+    ) -> ToolBudgetView | None: ...
 
 
 class RequestStorePort(Protocol):

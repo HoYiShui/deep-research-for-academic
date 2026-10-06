@@ -89,6 +89,7 @@
   - 工具结果专用 MinIO 内容寻址缓存已完成真实并发/跨客户端读回、缺失/损坏测试；调用预算和 PG 账本尚未接入，不勾选。证据：[内容缓存](evidence/t020-content-cache.md)。
   - 调用身份/记录与单次模型计量接口已补；真实基础设施探针取得供应商用量。PG预算事务及恢复闭环仍未实现，不勾选。证据：[调用身份与计量](evidence/t020-call-contracts.md)。
   - 预算纯策略含终末预留/未结算调用/deadline反例已通过；磁盘断连后改用独立真实测试PG完整回归452通过，原PG数据未修改且仍不能启动。策略不代表事务预算完成。证据：[预算策略与隔离回归](evidence/t020-budget-policy.md)。
+  - PG预算 baseline/逐尝试账本已接真实 MinIO 服务；有真实供应商单次调用后缓存复用探针。并发预算、跨新租约成功缓存不重发、uncertain/取消/失租回滚均有真实PG测试；对象落盘到PG成功前的恢复定位、正式phase callback仍待补，不勾选。证据：[调用账本](evidence/t020-ledger.md)。
 - [ ] T021 [US2] 更新 `backend/cli/container.py`、`commands/run.py`、`commands/phase.py`、`commands/dump.py`、`phase_state.py`、`output.py`、`__main__.py`：复用start_frozen/execute_phase/最新seq；phase只调一阶段且不写Session/Report；stdout单JSON、退出码、signals/owner/租约符合API §5，日志脱敏；fake seed固定ID/时间/结果且real不宣称确定；更新现有CLI单测。
 - [ ] T022 [US2] 新增 `backend/scripts/verify_run_http.py`：活HTTP启动/确认/订阅/取消/恢复/取状态，支持显式受控依赖模式；配合 `backend/tests/integration/test_mono_process_recovery.py` 用独立进程SIGKILL测试确认提交后未wake、返工阶段中断、成功缓存后中断。输出SQL终态/seq/attempt证据 `evidence/us2.md`。
 
@@ -203,4 +204,4 @@ Web执行顺序：T063 → T064 → T065 → T066 → T061–T062；T064依赖T0
 
 验收覆盖索引：A1=T008–T013；A2=T006/T008/T011/T053；A3=T006/T015/T036；A4=T027/T033–T038；A5=T029–T032；A6=T034–T039；A7=T043–T048/T050/T052；A8=T040–T041/T047/T049/T052；A9=T020/T022/T055；A10=T014/T018–T019/T022；A11=T007/T050/T053–T054；A12=T021/T051/T059；A13=T056–T058/T061。
 
-**当前下一步：T020调用账本/预算事务/成功缓存恢复 → T017正式阶段执行与逐单元快照 → 组合T016 Runner → T021 CLI → T022独立进程恢复验收。** T015租约/取消/恢复/报告事务和T019 HTTP生命周期已接入；T018默认HTTP可订阅当前持久状态。最新隔离真实PG/MinIO环境全量452通过，原PG在磁盘断连后不能启动且数据未修改。正式phase executor已有typed dispatch和plan worker，但预算/cache/Orchestrator尚未组合，默认ready Run不会自动研究；尚不能宣称M2或业务报告完成。T011仅KB授权/版本/隐私部分等待T041/T050，当前对KB请求明确404且零模型调用。历史阶段说明记录当时边界，以最新证据为准。Web仍按T063–T066纳入最终交付。
+**当前下一步：T020落盘结果恢复定位与phase callback → T017正式阶段执行与逐单元快照 → 组合T016 Runner → T021 CLI → T022独立进程恢复验收。** T015租约/取消/恢复/报告事务和T019 HTTP生命周期已接入；T018默认HTTP可订阅当前持久状态。最新隔离真实PG/MinIO环境全量468通过，原PG在磁盘断连后不能启动且数据未修改。正式phase executor已有typed dispatch和plan worker；预算/cache服务及PG账本已实现，但尚未与Orchestrator组合，默认ready Run不会自动研究；尚不能宣称M2或业务报告完成。T011仅KB授权/版本/隐私部分等待T041/T050，当前对KB请求明确404且零模型调用。历史阶段说明记录当时边界，以最新证据为准。Web仍按T063–T066纳入最终交付。

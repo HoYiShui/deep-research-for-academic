@@ -25,6 +25,7 @@ from domain.research.state import Checkpoint
 from infrastructure.storage.run_leases import RunLeases
 from infrastructure.storage.run_publication import RunPublication
 from infrastructure.storage.run_termination import RunTermination
+from infrastructure.storage.run_tool_calls import RunToolCalls
 
 SESSION_JSON = {"brief_draft", "pending_questions", "missing_fields", "source_selection", "failure"}
 BRIEF_JSON = {"content", "source_selection"}
@@ -173,7 +174,7 @@ class _Users:
             )
 
 
-class _Research(RunLeases, RunTermination, RunPublication):
+class _Research(RunToolCalls, RunLeases, RunTermination, RunPublication):
     def __init__(self, store):
         self.store = store
 

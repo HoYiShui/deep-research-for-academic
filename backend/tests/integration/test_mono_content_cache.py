@@ -1,46 +1,12 @@
 """Real MinIO I/O in an exact, invocation-owned disposable bucket."""
 
 import asyncio
-from uuid import uuid4
 
 import pytest
-import pytest_asyncio
-from minio import Minio
 
 from application.settings import Settings
 from domain.ports import AdapterError
 from infrastructure.storage.content_cache import MinioResultCache
-
-
-@pytest_asyncio.fixture
-async def object_cache():
-    settings = Settings.load()
-    bucket = "dr4a-test-" + uuid4().hex
-    access = settings.minio_access_key.get_secret_value()
-    secret = settings.minio_secret_key.get_secret_value()
-    admin = Minio(
-        settings.minio_endpoint, access_key=access, secret_key=secret, secure=settings.minio_secure
-    )
-    cache = MinioResultCache(
-        settings.minio_endpoint, access, secret, bucket, secure=settings.minio_secure
-    )
-    created = False
-    try:
-        await asyncio.to_thread(admin.make_bucket, bucket)
-        created = True
-        print("isolated_minio_bucket=" + bucket)
-        yield cache
-    finally:
-        await cache.close()
-        if created:
-            # Only this invocation's unique bucket; never list/delete app data.
-            def cleanup():
-                for item in admin.list_objects(bucket, recursive=True):
-                    admin.remove_object(bucket, item.object_name)
-                admin.remove_bucket(bucket)
-
-            await asyncio.to_thread(cleanup)
-            print("removed_isolated_minio_bucket=" + bucket)
 
 
 @pytest.mark.asyncio
