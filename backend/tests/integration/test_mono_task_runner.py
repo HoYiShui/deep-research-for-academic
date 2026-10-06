@@ -3,6 +3,9 @@
 import asyncio
 from uuid import uuid4
 
+import pytest
+
+from application.errors import AppError
 from application.settings import Settings
 from application.task_runner import TaskRunner
 from tests.integration.test_mono_run_lifecycle import cancel, ready
@@ -138,6 +141,32 @@ async def test_executor_return_without_terminal_is_not_completed(pg_database):
     assert current.failure.code == "invalid_execution_result"
     assert await pool.fetchval("SELECT count(*) FROM reports") == 0
     await worker.aclose()
+
+
+@pytest.mark.parametrize(
+    "code,resumable",
+    [("tool_call_uncertain", True), ("config_unavailable", False), ("budget_exhausted", False)],
+)
+async def test_known_execution_reason_is_preserved_without_exposing_error_text(
+    pg_database, code, resumable
+):
+    pool, store, user = await setup_store(pg_database)
+    commit = await ready(store, user.user_id)
+
+    async def execute(claimed, stop):
+        raise AppError(code, "secret-provider-request-and-key")
+
+    worker = runner(store, execute)
+    try:
+        await worker.tick()
+        current = await wait_for_status(store, user.user_id, commit.run.run_id, "failed")
+        assert current.failure.code == code and current.resume_allowed == resumable
+        assert "secret" not in current.failure.model_dump_json()
+        assert await pool.fetchval("SELECT count(*) FROM reports") == 0
+        await worker.tick()
+        assert await pool.fetchval("SELECT attempt_count FROM research_runs") == 1
+    finally:
+        await worker.aclose()
 
 
 async def test_two_runners_cannot_exceed_pg_global_capacity(pg_database):

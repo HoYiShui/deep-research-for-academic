@@ -148,7 +148,24 @@ class TaskRunner:
             work.cancel()
             await asyncio.gather(work, return_exceptions=True)
             if exc.code != "stale_resource":
-                await self._record_failure(claimed, "execution_failed", resumable=False)
+                # Preserve known execution reasons, never arbitrary caller text.
+                # Uncertain paid work requires explicit user resume/replay; the
+                # scanner must not automatically pay for another attempt.
+                known = {
+                    "tool_call_uncertain",
+                    "budget_exhausted",
+                    "budget_reservation_exceeded",
+                    "config_unavailable",
+                    "schema_incompatible",
+                    "service_not_ready",
+                    "invalid_state",
+                    "privacy_policy_conflict",
+                }
+                await self._record_failure(
+                    claimed,
+                    exc.code if exc.code in known else "execution_failed",
+                    resumable=exc.code == "tool_call_uncertain",
+                )
         except AdapterError as exc:
             # Stop external I/O before declaring the task stopped.
             work.cancel()

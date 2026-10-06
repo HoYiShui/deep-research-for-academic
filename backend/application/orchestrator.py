@@ -258,7 +258,7 @@ class RunUnitCoordinator:
         self.store, self.cache, self.executor, self.clock = store, cache, executor, clock
         self.elapsed_s, self.committed = elapsed_s, committed
 
-    async def _load_owned(self, claimed):
+    async def load_owned(self, claimed):
         claimed = ClaimedRun.model_validate(claimed)
         async with self.store.transaction() as tx:
             run = await self.store.research.check_run_lease(claimed, tx)
@@ -279,7 +279,7 @@ class RunUnitCoordinator:
     async def execute_unit(self, claimed, unit, context_factory):
         """Execute or verify/skip one trusted unit; phase stays unchanged."""
         unit = UnitScope.model_validate_json(unit.model_dump_json())
-        claimed, point = await self._load_owned(claimed)
+        claimed, point = await self.load_owned(claimed)
         previous = point.state.run_metadata.unit_manifest.get(unit.unit_id)
         if previous is not None:
             await self._verify_completed(claimed, point, unit, previous)
@@ -453,7 +453,7 @@ class RunUnitCoordinator:
 
     async def advance_phase(self, claimed, projected):
         """Validate every required unit, then separately commit the Machine route."""
-        claimed, point = await self._load_owned(claimed)
+        claimed, point = await self.load_owned(claimed)
         if claimed.run.status != "running" or claimed.run.cancel_requested_at is not None:
             raise AppError("invalid_session_state", "Execution is stopping")
         for unit in plan_units(point.state):

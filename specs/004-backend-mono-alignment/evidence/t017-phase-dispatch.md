@@ -56,3 +56,19 @@ T017仍不勾选：phase单元清单规划、Machine转换/返工、报告质量
 未冒称真实业务报告：默认 Runner/CLI、完整 Run Driver、真实 research/analyze/write/review worker 与报告发布质量门仍待组合；T017 不勾选。原 PG 数据及参考原型不修改，模型为受控 fixture。
 
 包含全部新增反例的最终全量回归 **526 passed in 71.55s**；修改文件 ruff 与 `git diff --check` 通过。测试连接隔离临时 PG，使用本轮唯一测试库/MinIO bucket，不修复或清理原数据库。
+
+## 补充：完整阶段 Driver 与显式 Runner 组合（2026-10-06）
+
+`application/run_driver.py` 新增 `RunDriver.execute`，根显式提供 PhaseExecutor、真实缓存、冻结模型 binding、进程共享模型 semaphore 与报告 publisher。Driver 装载 PG 当前完整 seq，逐单元执行/验证跳过，再单独提交 Machine 路由；包含返工循环，不按最高 phase 恢复。ToolCallService 仅更新同执行权限下的 phase/seq cursor，不更换 owner/Run/session/lease/config/brief，不重置 monotonic clock；新租约创建新 Service，elapsed offset 从 Checkpoint/持久 ledger 的较大值恢复。
+
+Driver 区分用户取消与进程 shutdown：前者最后安全单元提交后 finish_cancelled，后者抛取消交由 TaskRunner 保存 interrupted。单元/阶段/发布之间均重新检查 PG 租约与取消，阶段推进或 publisher 的取消竞争不伪装 execution_failed。publisher 返回后还须读取 Report、done Checkpoint、Run/Session.completed 四份事实才发完成投影；publisher 空返回、审核候选、诊断或 projection 都不能代表完成。
+
+TaskRunner 保留脱敏的已知失败原因；tool_call_uncertain 可显式恢复但不会自动重跑，config/schema 不兼容禁止恢复。未知异常仍用安全通用失败，不暴露 provider 文本。
+
+真实隔离 PG/MinIO、明确受控输出目标集 **32 passed in 18.30s**（Driver 20 + Runner 9 + SIGKILL 3）：完整五阶段 14 单元、四阶段转换、seq=20 四事实发布；一次目标返工到 write/review、seq=24、全局 draft_version=2；取消前置/单元完成后/阶段竞争/发布竞争；publisher 空返回或故障；完成 projection 故障；计时/预算跨阶段；cursor 权限篡改与回退拒绝；已提交单元恢复不再执行 plan。
+
+新增独立子进程强杀窗口：子进程使用正式 plan worker、受控 metered 模型与正式 Driver；在 unit seq=2 已提交、phase 仍 plan、准备验证结果进入阶段转换时打印同步标记并阻塞。父进程 SIGKILL（无 Python 清理），PG lease 过期扫描后不自动领取，显式 resume 同 Run 到 lease_token/attempt_count=2，再由 Driver 完成 seq=20。恢复期间无 plan worker 调用；工具物理记录仍一次、70 tokens，Report 一份。不是 graceful cancel 的替代证明，也不声称外部 SDK 真实业务完成。
+
+仍未启用默认 HTTP 自动执行：真实 research/analyze/write/review worker、其他工具 binding、确定性报告 serializer/质量门、预算提前耗尽的最终收缩及 CLI 正式切换尚待实施。publisher 为明确事务 fixture，不冒充生产报告质量门；T017/T016/T022 均保持未勾选，完整 HTTP/SIGKILL 返工窗口仍需后续证据。
+
+最终完整回归 **550 passed in 79.34s**；本轮实现/测试 ruff 与 `git diff --check` 通过。原 PG、原型仓库与无关 `docs/implementation/` 不修改；未 push。

@@ -56,13 +56,37 @@ class ToolCallService:
             or not float("inf") > elapsed_base
         ):
             raise ValueError("Execution elapsed offset must be finite and nonnegative")
-        self.claimed = ClaimedRun.model_validate(claimed)
+        self.claimed = ClaimedRun.model_validate_json(
+            ClaimedRun.model_validate(claimed).model_dump_json()
+        )
         self.uow, self.repository, self.cache, self.clock = uow, repository, cache, clock
         self._elapsed_base, self._started = elapsed_base, clock.monotonic()
         self._cleanup: set[asyncio.Task] = set()
 
     def elapsed_s(self):
         return self._elapsed_base + max(0, self.clock.monotonic() - self._started)
+
+    def update_claimed(self, claimed: ClaimedRun):
+        """Advance this execution's cursor without changing its authority or clock.
+
+        A resumed lease needs a new service and a persisted elapsed offset. It
+        cannot be substituted into a still-running old lease's tool callbacks.
+        """
+        claimed = ClaimedRun.model_validate_json(claimed.model_dump_json())
+        old, new = self.claimed.run, claimed.run
+        if (
+            claimed.owner_id != self.claimed.owner_id
+            or new.run_id != old.run_id
+            or new.session_id != old.session_id
+            or new.lease_owner != old.lease_owner
+            or new.lease_token != old.lease_token
+            or new.config_snapshot != old.config_snapshot
+            or new.brief_hash != old.brief_hash
+            or new.brief_version != old.brief_version
+            or new.checkpoint_seq < old.checkpoint_seq
+        ):
+            raise AppError("invalid_state", "Tool cursor cannot change execution authority")
+        self.claimed = claimed
 
     async def invoke(
         self,

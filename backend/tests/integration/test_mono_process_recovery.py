@@ -57,6 +57,61 @@ async def main():
 asyncio.run(main())
 """
 
+# The child executes the real driver through its first unit commit. A verified
+# result read then pauses *before* the independent phase transaction. No Python
+# cancellation/finally is used to simulate the crash.
+DRIVER_CHILD = """
+import asyncio, os, asyncpg
+from application.records import ClaimedRun
+from application.settings import Settings
+from application.phase_executor import PhaseExecutor
+from application.phase_tools import ModelBinding
+from application.phase_workers import plan_worker
+from application.run_driver import RunDriver
+from infrastructure.clock import SystemClock
+from infrastructure.storage.content_cache import MinioResultCache
+from infrastructure.storage.research_postgres import PostgresResearchStore
+from tests.integration.test_mono_phase_tools import ControlledModel
+
+async def main():
+    settings = Settings.load()
+    pool = await asyncpg.create_pool(settings.database_url.get_secret_value(),
+        database=os.environ['DR4A_RECOVERY_DATABASE'], min_size=1, max_size=2)
+    store = PostgresResearchStore(pool)
+    claimed = ClaimedRun.model_validate_json(os.environ['DR4A_RECOVERY_CLAIM'])
+    cache = MinioResultCache(settings.minio_endpoint,
+        settings.minio_access_key.get_secret_value(),
+        settings.minio_secret_key.get_secret_value(),
+        os.environ['DR4A_RECOVERY_BUCKET'], secure=settings.minio_secure)
+    versions = claimed.run.config_snapshot.versions
+    model = ControlledModel(versions.llm_model)
+    binding = ModelBinding(model, versions.llm_provider, versions.llm_model,
+        versions.llm_revision, 1000)
+
+    class PhaseCommitWindow:
+        async def put(self, namespace, body, media_type):
+            return await cache.put(namespace, body, media_type)
+
+        async def read(self, reference):
+            if reference.key.startswith('phase-results/'):
+                print('DRIVER_UNIT_COMMITTED', flush=True)
+                await asyncio.Event().wait()
+            return await cache.read(reference)
+
+    async def forbidden_publisher(*args):
+        raise AssertionError('Crash window is before publication')
+
+    driver = RunDriver(store=store, cache=PhaseCommitWindow(),
+        executor=PhaseExecutor({'plan': plan_worker}), model=binding,
+        model_slots=asyncio.Semaphore(2), clock=SystemClock(),
+        publish=forbidden_publisher, unit_committed=lambda value: None,
+        phase_committed=lambda value: None, finished=lambda value: None,
+        diagnostic=lambda value: None)
+    await driver.execute(claimed, asyncio.Event())
+
+asyncio.run(main())
+"""
+
 
 @pytest.mark.parametrize("written", [False, True])
 async def test_sigkill_staged_result_recovers_without_reset_or_implicit_replay(
@@ -138,3 +193,66 @@ async def test_sigkill_staged_result_recovers_without_reset_or_implicit_replay(
     assert budget.used.llm_calls == (1 if written else 2)
     assert await pool.fetchval("SELECT status FROM tool_calls") == "succeeded"
     assert await pool.fetchval("SELECT count(*) FROM reports") == 0
+
+
+async def test_sigkill_between_unit_and_phase_commits_resumes_full_driver_without_paid_plan_replay(
+    pg_database, object_cache
+):
+    from tests.integration.test_mono_run_driver import world
+
+    (
+        pool,
+        store,
+        user,
+        commit,
+        claimed,
+        model,
+        units,
+        phases,
+        terminal,
+        visits,
+        driver,
+    ) = await world(pg_database, object_cache)
+    child = await asyncio.create_subprocess_exec(
+        sys.executable,
+        "-c",
+        DRIVER_CHILD,
+        env=os.environ
+        | {
+            "DR4A_RECOVERY_DATABASE": pg_database[1],
+            "DR4A_RECOVERY_BUCKET": object_cache.bucket,
+            "DR4A_RECOVERY_CLAIM": claimed.model_dump_json(),
+        },
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
+    )
+    try:
+        marker = await asyncio.wait_for(child.stdout.readline(), timeout=20)
+        assert marker == b"DRIVER_UNIT_COMMITTED\n", "Child did not reach the unit/phase boundary"
+        assert await pool.fetchval("SELECT checkpoint_seq FROM research_runs") == 2
+        assert await pool.fetchval("SELECT phase FROM research_runs") == "plan"
+        assert await pool.fetchval("SELECT tokens_used FROM tool_call_attempts") == 70
+        child.kill()
+        await asyncio.wait_for(child.wait(), timeout=5)
+        assert child.returncode == -signal.SIGKILL
+    finally:
+        if child.returncode is None:
+            child.kill()
+        await asyncio.wait_for(child.communicate(), timeout=5)
+    await pool.execute(
+        "UPDATE research_runs SET lease_expires_at=clock_timestamp()-interval '1 second'"
+    )
+    async with store.transaction() as tx:
+        await store.research.scan_interrupted(tx)
+    assert await claim(store, str(uuid4())) is None
+    await resume(store, user.user_id, commit, 2)
+    newer = await claim(store, str(uuid4()))
+    assert newer.run.lease_token == newer.run.attempt_count == 2
+    await driver().execute(newer, asyncio.Event())
+    latest = await store.research.load_latest_checkpoint(user.user_id, commit.run.run_id)
+    assert latest.seq == 20 and latest.phase == "done"
+    assert len(units) == 13 and len(phases) == 4 and len(terminal) == 1
+    assert not model.prompts and not any(phase == "plan" for phase, _ in visits)
+    assert latest.state.run_metadata.budget_used.tokens == 70
+    assert await pool.fetchval("SELECT count(*) FROM tool_call_attempts") == 1
+    assert await pool.fetchval("SELECT count(*) FROM reports") == 1
