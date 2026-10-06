@@ -73,6 +73,7 @@
 
 - [ ] T014 [US2] 新增 `backend/tests/integration/test_mono_run_lifecycle.py`、`test_mono_sse.py`：先测领取竞争/旧token拒写、seq最新、取消与交付竞争、迟到订阅/两订阅者广播、失败done与重连不启动任务；用真实PG和受控阶段结果。
 - [ ] T015 [US2] 在 `backend/infrastructure/storage/postgres.py` 实现 Run领取/续租/失租、checkpoint expected_seq提交、报告/终态原子发布、取消与显式resume、容量约束及扫描查询；模型调用不持数据库长事务。补T014故障点测试。
+  - 首批PG领取/续租/owner与全局容量/完整seq提交已通过，14项真实PG反例与Fake同步接口，全量314通过；取消/恢复/报告发布/扫描/SSE尚未完成，T014/T015均不勾选。证据：[租约与Checkpoint底座](evidence/t014-t015-leases-checkpoints.md)。
 - [ ] T016 [US2] 新增 `backend/application/task_runner.py` 并更新 `backend/application/bootstrap.py`、`backend/interface/main.py`：单worker扫描ready、强引用与异常观察、90s租约/20s续租/5s扫描、排队超时、graceful shutdown；服务器与CLI共同遵PG容量，进程死亡研究不自动付费重跑。
 - [ ] T017 [US2] 更新 `backend/application/orchestrator.py`：execute_phase输入切片/白名单PhaseResult、单元验证合并、unit_manifest、完整seq快照、Machine转换；禁止空计划成功、禁止全局State交给Agent修改，终态先提交再发事件。
 - [ ] T018 [US2] 更新 `backend/application/sse.py`、`backend/domain/research/events.py`：每订阅独立有界队列、bootstrap竞态、心跳、slow consumer、JWT过期、phase/progress/rework/error/done统一帧；为CLI持租Run轮询PG当前投影，不假装共享跨进程内存队列。

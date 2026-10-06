@@ -63,6 +63,13 @@ class DevelopmentUser(User):
         return self
 
 
+class ClaimedRun(Record):
+    """Server/CLI worker handle; subsequent writes must fence its owner and token."""
+
+    owner_id: UUID
+    run: ResearchRun
+
+
 class SessionChange(Record):
     session: SessionState
     messages: list[Message]

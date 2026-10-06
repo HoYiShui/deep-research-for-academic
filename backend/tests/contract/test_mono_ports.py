@@ -215,6 +215,34 @@ def freeze_commit(change):
     )
 
 
+async def test_fake_run_leases_follow_capacity_time_and_latest_seq_contract():
+    db = FakeResearchDatabase()
+    owner = await create_owner(db)
+    change = assessed_change(owner.user_id)
+    commit = freeze_commit(change)
+    async with db.transaction() as tx:
+        await db.research.commit_session_change(0, change, tx)
+        await db.research.freeze_and_create_run(commit, tx)
+    async with db.transaction() as tx:
+        claimed = await db.research.claim_run("controlled-worker", tx)
+    assert claimed.run.lease_token == 1 and claimed.owner_id == owner.user_id
+    snapshot = await db.research.load_latest_checkpoint(owner.user_id, claimed.run.run_id)
+    assert snapshot.seq == 1
+    point = Checkpoint.model_validate(snapshot.model_dump() | {"seq": 2, "snapshot_id": uuid4()})
+    async with db.transaction() as tx:
+        claimed = await db.research.commit_checkpoint(claimed, 1, point, tx)
+    assert claimed.run.checkpoint_seq == 2
+    assert (await db.research.load_latest_checkpoint(owner.user_id, claimed.run.run_id)).seq == 2
+    db.clock.advance(20)
+    async with db.transaction() as tx:
+        renewed = await db.research.renew_lease(claimed, tx)
+    assert renewed.run.lease_expires_at > claimed.run.lease_expires_at
+    db.clock.advance(91)
+    with pytest.raises(AppError, match="stale_resource"):
+        async with db.transaction() as tx:
+            await db.research.renew_lease(renewed, tx)
+
+
 @pytest.mark.asyncio
 async def test_freeze_and_cached_success_share_one_transaction_and_rollback():
     db = FakeResearchDatabase()

@@ -22,6 +22,7 @@ from application.records import (
 from domain.ports import AdapterError
 from domain.research.models import BriefRecord, Message, ResearchRun, SessionState
 from domain.research.state import Checkpoint
+from infrastructure.storage.run_leases import RunLeases
 
 SESSION_JSON = {"brief_draft", "pending_questions", "missing_fields", "source_selection", "failure"}
 BRIEF_JSON = {"content", "source_selection"}
@@ -170,7 +171,7 @@ class _Users:
             )
 
 
-class _Research:
+class _Research(RunLeases):
     def __init__(self, store):
         self.store = store
 

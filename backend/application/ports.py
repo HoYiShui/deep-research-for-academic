@@ -11,6 +11,7 @@ from typing import Protocol
 from uuid import UUID
 
 from application.records import (
+    ClaimedRun,
     DevelopmentUser,
     FreezeCommit,
     IdempotencyRecord,
@@ -88,6 +89,30 @@ class ResearchRepositoryPort(Protocol):
     async def load_checkpoint(
         self, owner: UUID, run_id: UUID, seq: int, tx: TransactionPort | None = None
     ) -> Checkpoint | None: ...
+
+    async def claim_run(
+        self,
+        worker: str,
+        tx: TransactionPort,
+        *,
+        owner: UUID | None = None,
+        run_id: UUID | None = None,
+        lease_s: int = 90,
+        global_limit: int = 2,
+        owner_limit: int = 1,
+    ) -> ClaimedRun | None: ...
+
+    async def renew_lease(
+        self, claimed: ClaimedRun, tx: TransactionPort, *, lease_s: int = 90
+    ) -> ClaimedRun: ...
+
+    async def load_latest_checkpoint(
+        self, owner: UUID, run_id: UUID, tx: TransactionPort | None = None
+    ) -> Checkpoint | None: ...
+
+    async def commit_checkpoint(
+        self, claimed: ClaimedRun, expected_seq: int, checkpoint: Checkpoint, tx: TransactionPort
+    ) -> ClaimedRun: ...
 
 
 class RequestStorePort(Protocol):

@@ -14,18 +14,20 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 from uuid import UUID, uuid4
 
-from pydantic import ValidationError
+from pydantic import TypeAdapter, ValidationError
 
 from application.errors import AppError
 from application.records import (
+    ClaimedRun,
     DevelopmentUser,
     FreezeCommit,
     IdempotencyRecord,
     SessionChange,
     User,
 )
-from domain.research.models import BriefRecord, Message, ResearchRun, SessionState
+from domain.research.models import BriefRecord, Message, ResearchRun, SessionState, Text
 from domain.research.state import Checkpoint
+from infrastructure.storage.run_leases import RunLeases
 
 
 class FakeClock:
@@ -262,6 +264,139 @@ class _Research:
         if await self.get_run(owner, run_id, tx) is None:
             return None
         return copy.deepcopy(self.db.data(tx).checkpoints.get((run_id, seq)))
+
+    async def load_latest_checkpoint(self, owner, run_id, tx=None):
+        run = await self.get_run(owner, run_id, tx)
+        return await self.load_checkpoint(owner, run_id, run.checkpoint_seq, tx) if run else None
+
+    async def claim_run(
+        self, worker, tx, *, owner=None, run_id=None, lease_s=90, global_limit=2, owner_limit=1
+    ):
+        worker = TypeAdapter(Text).validate_python(worker)
+        if any(
+            type(value) is not int or value <= 0 for value in (lease_s, global_limit, owner_limit)
+        ):
+            raise ValueError("Lease and capacity settings must be positive integers")
+        if run_id is not None and owner is None:
+            raise ValueError("A targeted CLI claim requires an owner")
+        data, now = self.db.write_data(tx), self.db.clock.now_utc()
+        active = [
+            run
+            for run in data.runs.values()
+            if run.status in {"running", "cancelling"}
+            and run.lease_expires_at is not None
+            and run.lease_expires_at > now
+        ]
+        if len(active) >= global_limit:
+            return None
+        for run in sorted(data.runs.values(), key=lambda item: (item.created_at, str(item.run_id))):
+            session = data.sessions[run.session_id]
+            if (
+                run.status != "ready"
+                or session.status != "ready"
+                or run.cancel_requested_at is not None
+            ):
+                continue
+            if (
+                owner is not None
+                and session.owner_id != owner
+                or run_id is not None
+                and run.run_id != run_id
+            ):
+                continue
+            if (
+                sum(data.sessions[item.session_id].owner_id == session.owner_id for item in active)
+                >= owner_limit
+            ):
+                continue
+            updated = ResearchRun.model_validate(
+                run.model_dump()
+                | {
+                    "status": "running",
+                    "attempt_count": run.attempt_count + 1,
+                    "lease_owner": worker,
+                    "lease_token": run.lease_token + 1,
+                    "lease_expires_at": now + timedelta(seconds=lease_s),
+                    "started_at": run.started_at or now,
+                    "finished_at": None,
+                    "failure": None,
+                    "resume_allowed": False,
+                }
+            )
+            data.runs[run.run_id] = updated
+            data.sessions[run.session_id] = SessionState.model_validate(
+                session.model_dump()
+                | {
+                    "status": "running",
+                    "revision": session.revision + 1,
+                    "failure": None,
+                    "updated_at": now,
+                }
+            )
+            return ClaimedRun(owner_id=session.owner_id, run=copy.deepcopy(updated))
+        return None
+
+    async def renew_lease(self, claimed, tx, *, lease_s=90):
+        claimed = ClaimedRun.model_validate(claimed)
+        if type(lease_s) is not int or lease_s <= 0:
+            raise ValueError("Lease must be positive")
+        data, now = self.db.write_data(tx), self.db.clock.now_utc()
+        current = await self.get_run(claimed.owner_id, claimed.run.run_id, tx)
+        if current is None:
+            raise AppError("session_not_found", "Session not found")
+        if (
+            current.status not in {"running", "cancelling"}
+            or current.lease_owner != claimed.run.lease_owner
+            or current.lease_token != claimed.run.lease_token
+            or current.lease_expires_at is None
+            or current.lease_expires_at <= now
+        ):
+            raise AppError("stale_resource", "Run lease is no longer owned")
+        updated = ResearchRun.model_validate(
+            current.model_dump() | {"lease_expires_at": now + timedelta(seconds=lease_s)}
+        )
+        data.runs[current.run_id] = updated
+        return ClaimedRun(owner_id=claimed.owner_id, run=copy.deepcopy(updated))
+
+    async def commit_checkpoint(self, claimed, expected_seq, checkpoint, tx):
+        claimed = ClaimedRun.model_validate(claimed)
+        checkpoint = Checkpoint.model_validate(checkpoint)
+        data, now = self.db.write_data(tx), self.db.clock.now_utc()
+        run = await self.get_run(claimed.owner_id, claimed.run.run_id, tx)
+        if run is None:
+            raise AppError("session_not_found", "Session not found")
+        if (
+            run.status not in {"running", "cancelling"}
+            or run.lease_owner != claimed.run.lease_owner
+            or run.lease_token != claimed.run.lease_token
+            or run.lease_expires_at is None
+            or run.lease_expires_at <= now
+        ):
+            raise AppError("stale_resource", "Run lease is no longer owned")
+        session = data.sessions[run.session_id]
+        if session.run_id != run.run_id or session.status != run.status:
+            raise AppError("invalid_state", "Run and Session status are inconsistent")
+        previous = await self.load_latest_checkpoint(claimed.owner_id, run.run_id, tx)
+        RunLeases._checkpoint_input(run, session, previous, checkpoint, expected_seq)
+        if checkpoint.snapshot_id in {item.snapshot_id for item in data.checkpoints.values()}:
+            raise AppError("stale_resource", "Checkpoint identity exists")
+        data.checkpoints[(run.run_id, checkpoint.seq)] = copy.deepcopy(checkpoint)
+        updated = ResearchRun.model_validate(
+            run.model_dump()
+            | {
+                "checkpoint_seq": checkpoint.seq,
+                "phase": checkpoint.phase,
+            }
+        )
+        data.runs[run.run_id] = updated
+        data.sessions[run.session_id] = SessionState.model_validate(
+            session.model_dump()
+            | {
+                "revision": session.revision + 1,
+                "updated_at": now,
+            }
+        )
+        return ClaimedRun(owner_id=claimed.owner_id, run=copy.deepcopy(updated))
 
 
 class _Requests:
