@@ -16,7 +16,7 @@ from infrastructure.llm.deepseek import DeepSeekLLM
 
 
 class _VerboseLLM:
-    """Wrap an LLM to log each prompt/response to stderr (--verbose)."""
+    """Log operation metadata only; prompts/responses may contain private data."""
 
     def __init__(self, inner, verbose: bool) -> None:
         self._inner = inner
@@ -24,20 +24,25 @@ class _VerboseLLM:
 
     async def complete(self, prompt: str) -> str:
         if self._verbose:
-            output.log(f"LLM prompt: {prompt[:300]}")
+            output.log(f"LLM request started; input_chars={len(prompt)}")
         result = await self._inner.complete(prompt)
         if self._verbose:
-            output.log(f"LLM response: {result[:300]}")
+            output.log(f"LLM request completed; output_chars={len(result)}")
         return result
 
 
 def build_container(*, fake: bool, seed: int | None, verbose: bool = False) -> Container:
     """Assemble the container; ``fake=True`` wires seeded in-memory fakes."""
     settings = Settings.load()
-    llm = FakeLLM(seed=seed if seed is not None else 0) if fake else DeepSeekLLM(
-        api_key=settings.anthropic_api_key.get_secret_value(),
-        base_url=settings.anthropic_base_url, model=settings.llm_model,
-        timeout_s=settings.llm_timeout_s,
+    llm = (
+        FakeLLM(seed=seed if seed is not None else 0)
+        if fake
+        else DeepSeekLLM(
+            api_key=settings.anthropic_api_key.get_secret_value(),
+            base_url=settings.anthropic_base_url,
+            model=settings.llm_model,
+            timeout_s=settings.llm_timeout_s,
+        )
     )
     llm = _VerboseLLM(llm, verbose) if verbose else llm
     if fake:

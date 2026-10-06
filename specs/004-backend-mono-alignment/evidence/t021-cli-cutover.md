@@ -48,3 +48,17 @@ uv run python -m scripts.verify_cli_plan --brief ../specs/004-backend-mono-align
 定向含正式PG工具绑定 **40 passed in 6.44s**；全量 **768 passed in 88.67s**。随后补充私有SDK前置测试与verifier线程写文件，最新plan/CLI定向 **24 passed in 3.20s**；fake verifier也成功，实际外部调用计数0。Ruff/format/diff检查通过。
 
 T021仍未完成：run需切到start_frozen/Runner，research/analyze/write/review及多单元执行待注册，signals/完整输出与T022活HTTP验收未收尾。不能宣称US2或真实research完成。恢复业务库与原损坏卷未改动，没有运行Compose PostgreSQL。
+
+## CLI Runner执行范围前置
+
+2026-10-06，基线`f5a3fb7`。上述T022未收尾是当时状态，现已由us2.md完成受控调度验收；本批是T021入口迁移前的执行权限准备，尚未迁移`commands/run.py`。
+
+TaskRunner可显式指定owner+run_id（必须同时提供UUID）；领取和恢复扫描均带同一范围，不能作为全库后台Runner。HTTP默认Runner不带范围，保持全库扫描行为。ResearchRepository的scan_interrupted增加可选范围，PG与Fake同步；PG仍先锁Session后锁Run、仍按全局/owner容量领取，scope不豁免配额。只给Run不校验owner被拒绝。
+
+真实PG反例：同owner其他Run已持租但过期，CLI范围只领取目标ready、不扫描或终止其他Run；CLI关闭后只把自己的Run记interrupted，外部Run仍保持原状态/token。其他进程持有同owner活租约时，CLI不会绕过容量领取。缺owner或缺Run的范围立即拒绝；既有PG竞争/取消/恢复与Fake契约继续覆盖。
+
+同时修复旧CLI的verbose正文外泄：只打印开始/完成及字符数，不打印prompt/模型响应。秘密样例单测核对stdout为空、stderr仅元信息。
+
+首轮Scope与Repository定向49通过，加入verbose后50通过。`run`仍需正式start_frozen、执行器/缓存组合、信号取消、单JSON含Run身份和fake确定性；不能因本范围前置通过而勾选T021。
+
+最终联合回归（Fake ports、TaskRunner、Run生命周期、HTTP runtime、独立进程恢复和verbose）：**60 passed in 41.21s**。ruff/format与git diff --check通过；本批按影响面定向验证，未重跑或冒称新的全量结果。

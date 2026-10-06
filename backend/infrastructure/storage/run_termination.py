@@ -176,19 +176,26 @@ class RunTermination:
         )
         return decode(ResearchRun, row, RUN_JSON)
 
-    async def scan_interrupted(self, tx, *, queue_timeout_s=1800, limit=100):
+    async def scan_interrupted(
+        self, tx, *, queue_timeout_s=1800, limit=100, owner=None, run_id=None
+    ):
         self._positive(queue_timeout_s)
         self._positive(limit)
+        if run_id is not None and owner is None:
+            raise ValueError("A targeted CLI scan requires an owner")
         conn = self.store.connection(tx)
         # Small batches, shared parent-first lock order; no I/O or automatic restart.
         parents = await conn.fetch(
             "SELECT s.owner_id,s.session_id FROM sessions s JOIN research_runs r USING(session_id) "
-            "WHERE (r.status IN ('running','cancelling') AND "
+            "WHERE ($3::uuid IS NULL OR s.owner_id=$3) AND ($4::uuid IS NULL OR r.run_id=$4) "
+            "AND ((r.status IN ('running','cancelling') AND "
             "(r.lease_expires_at IS NULL OR r.lease_expires_at<=clock_timestamp())) "
-            "OR (r.status='ready' AND s.updated_at<=clock_timestamp()-make_interval(secs=>$1)) "
+            "OR (r.status='ready' AND s.updated_at<=clock_timestamp()-make_interval(secs=>$1))) "
             "ORDER BY s.updated_at,s.session_id LIMIT $2 FOR UPDATE OF s SKIP LOCKED",
             queue_timeout_s,
             limit,
+            owner,
+            run_id,
         )
         changed = []
         for parent in parents:

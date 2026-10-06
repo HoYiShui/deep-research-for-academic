@@ -177,6 +177,8 @@ class ResearchRepositoryPort(Protocol):
         *,
         queue_timeout_s: int = 1800,
         limit: int = 100,
+        owner: UUID | None = None,
+        run_id: UUID | None = None,
     ) -> list[ResearchRun]: ...
 
     async def publish_report(

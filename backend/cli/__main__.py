@@ -16,7 +16,9 @@ from domain.ports import AdapterError
 
 def _add_common(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--json", action="store_true", help="emit a single JSON object")
-    parser.add_argument("--verbose", action="store_true", help="LLM prompts/responses to stderr")
+    parser.add_argument(
+        "--verbose", action="store_true", help="operation metadata to stderr (no prompt/body)"
+    )
     parser.add_argument("--quiet", action="store_true", help="only the final report")
 
 

@@ -55,7 +55,7 @@ uv run python -m scripts.verify_cli_plan --brief frozen-brief.json --real
 ## 输出与退出码
 
 - `--json`：stdout 为一个可解析的 JSON 对象；日志和错误走 stderr。
-- `--verbose`：LLM prompt/response 走 stderr。
+- `--verbose`：操作元信息走 stderr，不打印 prompt/response 正文。
 - `--quiet`：`run` 时省略事件。
 - 退出码：`0` 成功、`1` 运行失败、`2` 用法/调试输入错误、`3` 环境错误。
 

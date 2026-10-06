@@ -241,8 +241,20 @@ async def test_fake_run_leases_follow_capacity_time_and_latest_seq_contract():
     with pytest.raises(AppError, match="stale_resource"):
         async with db.transaction() as tx:
             await db.research.renew_lease(renewed, tx)
+    for scope in (
+        {"owner": uuid4(), "run_id": claimed.run.run_id},
+        {"owner": owner.user_id, "run_id": uuid4()},
+    ):
+        async with db.transaction() as tx:
+            assert await db.research.scan_interrupted(tx, **scope) == []
+        assert (await db.research.get_run(owner.user_id, claimed.run.run_id)).status == "running"
+    with pytest.raises(ValueError, match="requires an owner"):
+        async with db.transaction() as tx:
+            await db.research.scan_interrupted(tx, run_id=claimed.run.run_id)
     async with db.transaction() as tx:
-        recovered = await db.research.scan_interrupted(tx)
+        recovered = await db.research.scan_interrupted(
+            tx, owner=owner.user_id, run_id=claimed.run.run_id
+        )
     assert recovered[0].status == "failed" and recovered[0].failure.code == "interrupted"
     async with db.transaction() as tx:
         resumed = await db.research.resume_run(

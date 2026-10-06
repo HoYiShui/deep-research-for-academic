@@ -578,9 +578,13 @@ class _Research:
         )
         return copy.deepcopy(updated)
 
-    async def scan_interrupted(self, tx, *, queue_timeout_s=1800, limit=100):
+    async def scan_interrupted(
+        self, tx, *, queue_timeout_s=1800, limit=100, owner=None, run_id=None
+    ):
         RunLeases._positive(queue_timeout_s)
         RunLeases._positive(limit)
+        if run_id is not None and owner is None:
+            raise ValueError("A targeted CLI scan requires an owner")
         data, now = self.db.write_data(tx), self.db.clock.now_utc()
         changed = []
         for run in sorted(
@@ -588,6 +592,10 @@ class _Research:
             key=lambda item: (data.sessions[item.session_id].updated_at, str(item.session_id)),
         ):
             session = data.sessions[run.session_id]
+            if (owner is not None and session.owner_id != owner) or (
+                run_id is not None and run.run_id != run_id
+            ):
+                continue
             if run.status in {"running", "cancelling"}:
                 if run.lease_expires_at is not None and run.lease_expires_at > now:
                     continue

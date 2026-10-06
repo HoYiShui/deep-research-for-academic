@@ -8,7 +8,7 @@ import asyncio
 import logging
 from collections.abc import Awaitable, Callable
 from datetime import UTC, datetime
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 from application.errors import AppError
 from application.records import ClaimedRun
@@ -21,12 +21,26 @@ logger = logging.getLogger(__name__)
 
 
 class TaskRunner:
-    def __init__(self, *, store, execute: Executor, settings: Settings, worker_id=None):
+    def __init__(
+        self,
+        *,
+        store,
+        execute: Executor,
+        settings: Settings,
+        worker_id=None,
+        owner=None,
+        run_id=None,
+    ):
         if not callable(execute):
             raise TypeError("A real or explicitly controlled executor is required")
         if settings.heartbeat_s >= settings.lease_s:
             raise ValueError("Heartbeat interval must be shorter than the execution lease")
         self.store, self.execute, self.settings = store, execute, settings
+        if (owner is None) != (run_id is None):
+            raise ValueError("A scoped CLI runner requires both owner and Run UUID")
+        if owner is not None and (not isinstance(owner, UUID) or not isinstance(run_id, UUID)):
+            raise TypeError("CLI execution scope requires UUID identities")
+        self.scope = {"owner": owner, "run_id": run_id} if owner is not None else {}
         self.worker_id = worker_id or str(uuid4())
         self._stop, self._wake = asyncio.Event(), asyncio.Event()
         self._loop_task = None
@@ -65,7 +79,7 @@ class TaskRunner:
                 return
             async with self.store.transaction() as tx:
                 await self.store.research.scan_interrupted(
-                    tx, queue_timeout_s=self.settings.queue_timeout_s
+                    tx, queue_timeout_s=self.settings.queue_timeout_s, **self.scope
                 )
             if self.active is not None:
                 return
@@ -76,6 +90,7 @@ class TaskRunner:
                     lease_s=self.settings.lease_s,
                     global_limit=self.settings.pipeline_concurrency,
                     owner_limit=self.settings.owner_run_concurrency,
+                    **self.scope,
                 )
             if claimed is not None:
                 self._active = asyncio.create_task(
