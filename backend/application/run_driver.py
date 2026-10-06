@@ -11,6 +11,7 @@ from collections.abc import Awaitable, Callable
 from datetime import timedelta
 
 from application.errors import AppError
+from application.fetch_tools import FetchBinding
 from application.orchestrator import RunUnitCoordinator
 from application.phase_executor import ExecutionContext, PhaseExecutor
 from application.phase_tools import ModelBinding, PhaseTools
@@ -45,6 +46,7 @@ class RunDriver:
         diagnostic: Callable[[object], None],
         allow_uncertain_replay=False,
         search: SearchBinding | None = None,
+        fetch: FetchBinding | None = None,
     ):
         if not callable(publish):
             raise TypeError("An explicit quality-gated atomic publisher is required")
@@ -57,6 +59,7 @@ class RunDriver:
         self.finished, self.diagnostic = finished, diagnostic
         self.allow_uncertain_replay = allow_uncertain_replay
         self.search = search
+        self.fetch = fetch
 
     def _project_finished(self, run):
         try:
@@ -138,6 +141,7 @@ class RunDriver:
             point.state.run_metadata.knowledge_snapshot,
             model_slots=self.model_slots,
             search=self.search,
+            fetch=self.fetch,
         )
         coordinator = RunUnitCoordinator(
             store=self.store,

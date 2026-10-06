@@ -84,3 +84,24 @@ uv run pytest -q tests/contract/test_document_parser.py tests/contract/test_docu
 第一组 **370 passed in 16.79s**（含新增24项），第二组 **43 passed in 0.45s**。Ruff/format/diff检查通过。PDF块和页码使用明确标注的受控fixture，未声称真实PDF解析；MinIO集成沿用独立测试桶，仅操作测试资源。
 
 **边界：这些函数尚未接入正式research worker或CLI research。** Run搜索/Fetch工具绑定、原文读权限、Claim条件ID/Observation抽取、受限追溯和逐查询提交尚待实现；T023/T026/T027/T043不勾选，不认定M3完成。上文DNS/TLS为历史环境故障记录，不能当作修复后当前环境的诊断。
+
+## 正式Run Fetch绑定（T020/T026/T027部分）
+
+`application/fetch_tools.py` 新增FetchBinding与Run-owned FetchTools，复用DocumentFetchPort和既有HTTPDocumentFetch，而不是再建下载器/对象库。PhaseTools与RunDriver接受显式绑定。
+
+- 每个query callback拥有独立候选注册表；只能Fetch本次SearchBatch确实返回的候选，key为完整已校验候选的canonical hash。Worker不能改URL、metadata、类别、parser配置、预算或replay；新query没有Search授权前，即使原文已成功缓存也拒绝访问。
+- 原文目标和类型构成Fetch语义输入，parser配置/适配版本进入identity；不把query、章节、搜索摘要或不断变化的Claim状态混入下载cache key。另一个query重新取得同一候选后，可以复用本Run已有不可变原文，不重复下载。不同Run不能复用他人的内容引用。
+- 原文缺目标在预留前拒绝；实际Fetch经既有ToolCallService预留/结算fetch budget与attempt。工具缓存只保存FetchedDocument引用，正文保存在50MiB内容存储，避免复制大正文到10MiB工具cache。
+- 返回或缓存重放均回读原文/解析对象，校验Run前缀、hash寻址key、冻结parser版本、结构与完整原文；成功缓存的原文缺失/损坏不会授权再次下载。回读受fetch timeout/Run剩余deadline约束，不因命中cache无限等待。
+
+验证（backend）：
+
+```bash
+uv run pytest -q --tb=short tests/integration/test_mono_fetch_tools.py tests/integration/test_mono_search_tools.py tests/integration/test_mono_phase_tools.py tests/integration/test_mono_fetched_document.py
+```
+
+**24 passed in 10.06s**，其中新增Fetch集成2项。真实PG、真实MinIO、真实HTML Parser、真正httpcore/限制下载器通过受控socket响应获取原文字节；验证跨章节query仍只有一次下载/一次fetch attempt/一次预算消费，并回链Source与有行号Evidence；删除原文后明确失败，网络连接数不增加。
+
+最终全量 **833 passed in 141.93s**；Ruff/format和 `git diff --check` 通过。测试仅创建并清理唯一隔离数据库/桶；无推送。
+
+**不是公网原文/PDF或正式研究Agent验收。** 搜索provider和业务worker为受控fixture，Source/Evidence门在测试中验证，未由正式worker提交事实。正式research抽取、Claim/Observation、受限追溯、真正MinerU PDF及CLI仍缺；T020/T026/T027/T043继续不勾选。用户库/volumes、`.env`和 `docs/implementation/` 不变。

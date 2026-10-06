@@ -1,6 +1,6 @@
 """Coordinator binding from narrow worker callbacks to durable model calls.
 
-Model and optional per-provider search bindings are explicit; fetch/analysis
+Model and optional search/original-fetch bindings are explicit; analysis
 adapters must be registered separately as those phase workers are implemented.
 No legacy I/O or fake fallback is reachable through this capability.
 """
@@ -9,6 +9,7 @@ import asyncio
 from dataclasses import dataclass
 
 from application.errors import AppError
+from application.fetch_tools import FetchBinding, FetchTools
 from application.phase_units import UnitScope
 from application.search_tools import SearchBinding, SearchTools
 from application.tool_budget import ToolBudgetRequest
@@ -17,6 +18,7 @@ from domain.model_completion import MeteredModelPort, ModelCompletion
 from domain.ports import AdapterError
 from domain.research.ids import canonical_hash
 from domain.research.phase_contracts import PhaseInput
+from domain.research.search import SearchBatch
 from domain.research.state import VersionReference
 from domain.research.tool_calls import ToolCallIdentity
 
@@ -42,6 +44,7 @@ class PhaseTools:
         *,
         model_slots: asyncio.Semaphore,
         search: SearchBinding | None = None,
+        fetch: FetchBinding | None = None,
     ):
         config = service.claimed.run.config_snapshot
         versions = config.versions
@@ -69,6 +72,7 @@ class PhaseTools:
             raise TypeError("Composition root must supply its shared process model semaphore")
         self._slots = model_slots
         self._search = SearchTools(service, search, self._knowledge) if search is not None else None
+        self._fetch = FetchTools(service, fetch, self._knowledge) if fetch is not None else None
 
     def for_phase(
         self,
@@ -112,13 +116,26 @@ class PhaseTools:
             }
         )
 
+        candidates = {}
+
         async def invoke(tool, arguments):
             if tool == "search" and self._search is not None:
-                return await self._search.invoke(
+                result = await self._search.invoke(
                     arguments,
                     phase=phase,
                     input_hash=input_hash,
                     unit=unit_scope,
+                    allow_uncertain_replay=allow_uncertain_replay,
+                )
+                for item in SearchBatch.model_validate(result).items:
+                    candidates[canonical_hash(item)] = item
+                return result
+            if tool == "fetch" and self._fetch is not None:
+                return await self._fetch.invoke(
+                    arguments,
+                    phase=phase,
+                    unit=unit_scope,
+                    candidates=candidates,
                     allow_uncertain_replay=allow_uncertain_replay,
                 )
             if tool != "llm":

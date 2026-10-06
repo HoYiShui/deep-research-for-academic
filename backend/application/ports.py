@@ -24,7 +24,7 @@ from application.records import (
 from application.tool_budget import ToolBudgetRequest
 from application.tool_records import ToolBudgetView, ToolReservation
 from domain.content import ContentRef
-from domain.documents import ParsedDocument, ParserConfig
+from domain.documents import FetchedDocument, ParsedDocument, ParserConfig
 from domain.research.facts import FinalReport
 from domain.research.models import (
     BriefRecord,
@@ -64,6 +64,12 @@ class ContentStorePort(Protocol):
 
 class DocumentParserPort(Protocol):
     async def parse(self, reference: ContentRef, config: ParserConfig) -> ParsedDocument: ...
+
+
+class DocumentFetchPort(Protocol):
+    async def fetch(self, candidate: SearchResult) -> FetchedDocument: ...
+
+    async def read_parsed(self, fetched: FetchedDocument) -> ParsedDocument: ...
 
 
 SearchOperation = Callable[[], Awaitable[list[SearchResult]]]
