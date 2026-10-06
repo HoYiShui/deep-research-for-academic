@@ -77,6 +77,7 @@
   - 第二批补取消/失败终态、失租与排队超时扫描、保留原Run/预算的显式恢复、owner队列容量；真实PG验证并发恢复、取消优先、终态故障回滚、FK锁兼容和过期租约终态写入拦截。报告发布、Runner/HTTP/SSE仍待接入，不勾选。证据：[取消与恢复](evidence/t015-cancel-recovery.md)。
   - 第三批补Report+done Checkpoint+Run/Session完成态四事实原子发布，真实PG覆盖四处写入故障回滚、取消/发布竞争、旧token/租约/seq拒绝，审核正文不允许偷改。最初7项加入后全量334通过，后补4项报告反例也通过；质量门、Runner/HTTP/SSE尚未全接入。证据：[Report事务](evidence/t015-report-transaction.md)。
 - [ ] T016 [US2] 新增 `backend/application/task_runner.py` 并更新 `backend/application/bootstrap.py`、`backend/interface/main.py`：单worker扫描ready、强引用与异常观察、90s租约/20s续租/5s扫描、排队超时、graceful shutdown；服务器与CLI共同遵PG容量，进程死亡研究不自动付费重跑。
+  - 调度核心与显式受控executor经过6项真实PG验证，全量349通过；默认HttpRuntime尚不启动，待T017正式执行器后组合，不勾选。证据：[Runner核心](evidence/t016-runner-core.md)。
 - [ ] T017 [US2] 更新 `backend/application/orchestrator.py`：execute_phase输入切片/白名单PhaseResult、单元验证合并、unit_manifest、完整seq快照、Machine转换；禁止空计划成功、禁止全局State交给Agent修改，终态先提交再发事件。
 - [ ] T018 [US2] 更新 `backend/application/sse.py`、`backend/domain/research/events.py`：每订阅独立有界队列、bootstrap竞态、心跳、slow consumer、JWT过期、phase/progress/rework/error/done统一帧；为CLI持租Run轮询PG当前投影，不假装共享跨进程内存队列。
 - [ ] T019 [US2] 更新 `backend/application/research_service.py` 与 `backend/interface/router/research.py` 的status/report/events/cancel/resume：所有权、前置、最新seq、失败恢复资格、报告未就绪409；PG不可用只诊断error，不能发已完成持久失败的假done。
