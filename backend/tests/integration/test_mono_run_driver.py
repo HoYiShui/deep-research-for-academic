@@ -20,24 +20,11 @@ from tests.report_fixtures import insufficient_drafts, proposal_claim
 from tests.unit.test_phase_contracts import issue, writing_state
 
 
-async def world(
-    pg_database,
-    object_cache,
-    *,
-    rework=False,
-    before_worker=None,
-    publish=None,
-    task="evaluation_design",
-):
-    pool, store, user, commit, claimed, model, binding, _, _ = await setup(
-        pg_database, object_cache, task=task
-    )
-    units, phases, terminal, visits = [], [], [], []
-
+def controlled_worker(visits, *, rework=False, before_worker=None):
     async def controlled(value, context):
         visits.append((value.phase, context.unit.unit_id))
         if before_worker:
-            await before_worker(value, context, store, user, commit)
+            await before_worker(value, context)
         changes, degradations = {}, []
         if value.phase == "plan":
             return await plan_worker(value, context)
@@ -96,6 +83,29 @@ async def world(
             degradations=degradations,
             failures=[],
         )
+
+    return controlled
+
+
+async def world(
+    pg_database,
+    object_cache,
+    *,
+    rework=False,
+    before_worker=None,
+    publish=None,
+    task="evaluation_design",
+):
+    pool, store, user, commit, claimed, model, binding, _, _ = await setup(
+        pg_database, object_cache, task=task
+    )
+    units, phases, terminal, visits = [], [], [], []
+
+    async def before(value, context):
+        if before_worker:
+            await before_worker(value, context, store, user, commit)
+
+    controlled = controlled_worker(visits, rework=rework, before_worker=before)
 
     def driver(publisher=None, **options):
         return RunDriver(

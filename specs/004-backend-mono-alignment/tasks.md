@@ -71,13 +71,15 @@
 
 设计：MODEL §3；FLOW §3.1/§4；API §2.5–2.6/§3/§6–7；OPS §2–4。验收 A3/A9/A10/A12。
 
-- [ ] T014 [US2] 新增 `backend/tests/integration/test_mono_run_lifecycle.py`、`test_mono_sse.py`：先测领取竞争/旧token拒写、seq最新、取消与交付竞争、迟到订阅/两订阅者广播、失败done与重连不启动任务；用真实PG和受控阶段结果。
-- [ ] T015 [US2] 在 `backend/infrastructure/storage/postgres.py` 实现 Run领取/续租/失租、checkpoint expected_seq提交、报告/终态原子发布、取消与显式resume、容量约束及扫描查询；模型调用不持数据库长事务。补T014故障点测试。
+- [x] T014 [US2] 新增 `backend/tests/integration/test_mono_run_lifecycle.py`、`test_mono_sse.py`：先测领取竞争/旧token拒写、seq最新、取消与交付竞争、迟到订阅/两订阅者广播、失败done与重连不启动任务；用真实PG和受控阶段结果。完成复核：[T014/T015验收](evidence/t014-t015-acceptance.md)。
+- [x] T015 [US2] 在 `backend/infrastructure/storage/postgres.py` 实现 Run领取/续租/失租、checkpoint expected_seq提交、报告/终态原子发布、取消与显式resume、容量约束及扫描查询；模型调用不持数据库长事务。补T014故障点测试。正式实现拆至 `research_postgres.py` 与 `run_leases.py`/`run_termination.py`/`run_publication.py`，不另建事实源。完成复核：[T014/T015验收](evidence/t014-t015-acceptance.md)。
+  - 以下三批记录是历史进展，不代表当前缺口。2026-10-06按本任务自身验收复核：53项生命周期/SSE/发布测试通过；默认执行器组合、活TCP和真实业务验收分别保留在T016–T022及US3/US4，不再用后续任务阻止已完成Repository任务勾选。
   - 首批PG领取/续租/owner与全局容量/完整seq提交已通过，14项真实PG反例与Fake同步接口，全量314通过；取消/恢复/报告发布/扫描/SSE尚未完成，T014/T015均不勾选。证据：[租约与Checkpoint底座](evidence/t014-t015-leases-checkpoints.md)。
   - 第二批补取消/失败终态、失租与排队超时扫描、保留原Run/预算的显式恢复、owner队列容量；真实PG验证并发恢复、取消优先、终态故障回滚、FK锁兼容和过期租约终态写入拦截。报告发布、Runner/HTTP/SSE仍待接入，不勾选。证据：[取消与恢复](evidence/t015-cancel-recovery.md)。
   - 第三批补Report+done Checkpoint+Run/Session完成态四事实原子发布，真实PG覆盖四处写入故障回滚、取消/发布竞争、旧token/租约/seq拒绝，审核正文不允许偷改。最初7项加入后全量334通过，后补4项报告反例也通过；质量门、Runner/HTTP/SSE尚未全接入。证据：[Report事务](evidence/t015-report-transaction.md)。
 - [ ] T016 [US2] 新增 `backend/application/task_runner.py` 并更新 `backend/application/bootstrap.py`、`backend/interface/main.py`：单worker扫描ready、强引用与异常观察、90s租约/20s续租/5s扫描、排队超时、graceful shutdown；服务器与CLI共同遵PG容量，进程死亡研究不自动付费重跑。
   - 调度核心与显式受控executor经过6项真实PG验证，全量349通过；默认HttpRuntime尚不启动，待T017正式执行器后组合，不勾选。证据：[Runner核心](evidence/t016-runner-core.md)。
+  - HttpRuntime已接受显式executor factory，准备服务后启动Runner、确认提交后wake；关闭时先停止/持久化Run中断再关模型/PG。新增HTTP确认→正式Driver五阶段→原子发布→报告/迟到SSE读取受控闭环，未再复制阶段fixture。默认缺完整业务workers时不自动领取，不暗退fake；CLI run与生产组合仍待完成，不勾选。证据：[HTTP Runner组合](evidence/t016-http-runner.md)。
 - [ ] T017 [US2] 更新 `backend/application/orchestrator.py`：execute_phase输入切片/白名单PhaseResult、单元验证合并、unit_manifest、完整seq快照、Machine转换；禁止空计划成功、禁止全局State交给Agent修改，终态先提交再发事件。
   - `phase_contracts.py`已实现五阶段严格读写白名单、稳定input hash及目标范围纯合并；27项新增反例、全量388通过。正式execute_phase/Worker/manifest/快照/Machine/默认Runner组合尚待接入，不勾选。证据：[阶段契约](evidence/t017-phase-contracts.md)。
   - `phase_executor.py`已补共享dispatch、缩小工具上下文和冻结hash/来源/执行身份前置，正式plan adapter经tool callback接入；9项dispatch反例通过。全量408通过后最后一项在目标集中验证；预算/cache callback与Orchestrator逐单元提交/Machine尚未组合，不勾选。证据：[dispatch](evidence/t017-phase-dispatch.md)。

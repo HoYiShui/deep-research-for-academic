@@ -23,6 +23,7 @@ from application.run_sse import RunEventBus, RunEventStream
 from application.session_service import LegacySessionService, SessionService
 from application.settings import Settings
 from application.sse import EventBus
+from application.task_runner import TaskRunner
 from infrastructure.clock import SystemClock
 from infrastructure.embedding.bge_m3 import BGEM3Embedding
 from infrastructure.embedding.bge_reranker import BGEReranker
@@ -148,8 +149,20 @@ class _PendingAuth:
 class HttpRuntime:
     """Mono HTTP composition; never wires a legacy writable state store."""
 
-    def __init__(self, *, settings: Settings, research_store=None, llm=None, backup_dir=None):
+    def __init__(
+        self,
+        *,
+        settings: Settings,
+        research_store=None,
+        llm=None,
+        backup_dir=None,
+        run_executor_factory=None,
+    ):
         self.settings, self.repository_store = settings, research_store
+        if run_executor_factory is not None and not callable(run_executor_factory):
+            raise TypeError("Run executor factory must be explicitly callable")
+        self.run_executor_factory = run_executor_factory
+        self.runner = None
         self.pool = None
         self.backup_dir = (
             Path(backup_dir)
@@ -209,6 +222,16 @@ class HttpRuntime:
             poll_s=self.settings.scan_s,
             heartbeat_s=self.settings.sse_heartbeat_s,
         )
+        # Only start a scanner when its executor has been explicitly composed.
+        # Missing business workers must not claim paid Runs and invent results.
+        if self.run_executor_factory is not None:
+            self.runner = TaskRunner(
+                store=store,
+                execute=self.run_executor_factory(self),
+                settings=self.settings,
+            )
+            self.research.wake = self.runner.wake
+            await self.runner.start()
 
     @property
     def knowledge_base(self):
@@ -220,9 +243,15 @@ class HttpRuntime:
 
     async def aclose(self):
         try:
-            close = getattr(self.llm, "aclose", None)
-            if close is not None:
-                await close()
+            try:
+                # Keep the model and PG available until held work is stopped
+                # and its interruption has been recorded under the lease.
+                if self.runner is not None:
+                    await self.runner.aclose()
+            finally:
+                close = getattr(self.llm, "aclose", None)
+                if close is not None:
+                    await close()
         finally:
             if self.pool is not None:
                 pool, self.pool = self.pool, None
