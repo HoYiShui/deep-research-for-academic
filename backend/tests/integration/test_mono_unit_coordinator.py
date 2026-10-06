@@ -10,14 +10,15 @@ from application.errors import AppError
 from application.orchestrator import RunUnitCoordinator
 from application.phase_executor import ExecutionContext, PhaseExecutor
 from application.phase_tools import PhaseTools
-from application.phase_units import UnitScope
+from application.phase_units import UnitScope, plan_units
 from application.phase_workers import plan_worker
 from domain.ports import AdapterError
+from domain.research.models import Failure
 from domain.research.phase_contracts import PhaseResult
 from infrastructure.clock import SystemClock
 from tests.integration.test_mono_phase_tools import setup
 from tests.integration.test_mono_run_lifecycle import cancel, claim, resume
-from tests.integration.test_mono_tool_cache import service
+from tests.integration.test_mono_tool_cache import identity, reserve, service
 
 
 async def world(pg_database, object_cache, *, worker=plan_worker):
@@ -26,13 +27,8 @@ async def world(pg_database, object_cache, *, worker=plan_worker):
     )
     calls = service(store, claimed, object_cache)
     tools = PhaseTools(calls, binding, [], model_slots=asyncio.Semaphore(2))
-    unit = UnitScope(
-        unit_id="plan:0:all",
-        phase="plan",
-        section_ids=[f"section_{n}" for n in range(1, 6)],
-        requirement_ids=[],
-        parameters={},
-    )
+    point = await store.research.load_latest_checkpoint(user.user_id, commit.run.run_id)
+    unit = plan_units(point.state)[0]
     projected = []
     coordinator = RunUnitCoordinator(
         store=store,
@@ -410,3 +406,142 @@ async def test_projection_failure_cannot_undo_committed_unit_or_fail_run(
     assert await pool.fetchval("SELECT status FROM research_runs") == "running"
     assert await pool.fetchval("SELECT checkpoint_seq FROM research_runs") == 2
     assert "unit_projection_failed" in caplog.text and "SECRET" not in caplog.text
+
+
+async def test_phase_transition_requires_committed_units_and_has_separate_seq(
+    pg_database, object_cache
+):
+    pool, store, user, commit, claimed, model, unit, _projected, coordinator, context = await world(
+        pg_database, object_cache
+    )
+    frames = []
+    with pytest.raises(AppError, match="uncommitted"):
+        await coordinator.advance_phase(claimed, frames.append)
+    assert frames == [] and await pool.fetchval("SELECT checkpoint_seq FROM research_runs") == 1
+    completed = await coordinator.execute_unit(claimed, unit, context)
+    assert completed.checkpoint.seq == 2 and completed.checkpoint.phase == "plan"
+    transition = await coordinator.advance_phase(completed.claimed, frames.append)
+    assert transition.checkpoint.seq == 3 and transition.checkpoint.phase == "research"
+    assert transition.claimed.run.phase == "research" and not transition.decision.deliver
+    assert transition.checkpoint.state.run_metadata.budget_used.tokens == 70
+    assert len(model.prompts) == 1 and frames == [transition]
+    assert await pool.fetchval("SELECT count(*) FROM phase_snapshots") == 3
+    assert await pool.fetchval("SELECT count(*) FROM reports") == 0
+    old = await store.research.load_checkpoint(user.user_id, commit.run.run_id, 2)
+    assert old.phase == "plan" and old.state == completed.checkpoint.state
+
+
+async def test_phase_transition_failure_cannot_change_phase_or_publish_projection(
+    pg_database, object_cache
+):
+    (
+        pool,
+        _store,
+        _user,
+        _commit,
+        claimed,
+        _model,
+        unit,
+        _projected,
+        coordinator,
+        context,
+    ) = await world(pg_database, object_cache)
+    completed = await coordinator.execute_unit(claimed, unit, context)
+    await pool.execute("""
+        CREATE FUNCTION reject_transition() RETURNS trigger LANGUAGE plpgsql AS $$
+        BEGIN IF NEW.seq=3 THEN RAISE EXCEPTION 'controlled fault' USING ERRCODE='22012'; END IF;
+        RETURN NEW; END $$;
+        CREATE TRIGGER transition_fault BEFORE INSERT ON phase_snapshots
+        FOR EACH ROW EXECUTE FUNCTION reject_transition();
+    """)
+    frames = []
+    with pytest.raises(AdapterError):
+        await coordinator.advance_phase(completed.claimed, frames.append)
+    assert frames == []
+    assert await pool.fetchval("SELECT checkpoint_seq FROM research_runs") == 2
+    assert await pool.fetchval("SELECT phase FROM research_runs") == "plan"
+    assert await pool.fetchval("SELECT count(*) FROM phase_snapshots") == 2
+
+
+async def test_cancel_between_unit_and_transition_preserves_last_pending_phase(
+    pg_database, object_cache
+):
+    (
+        pool,
+        store,
+        user,
+        commit,
+        claimed,
+        _model,
+        unit,
+        _projected,
+        coordinator,
+        context,
+    ) = await world(pg_database, object_cache)
+    completed = await coordinator.execute_unit(claimed, unit, context)
+    await cancel(store, user.user_id, commit.session.session_id)
+    with pytest.raises(AppError, match="invalid_session_state"):
+        await coordinator.advance_phase(completed.claimed, lambda value: None)
+    assert await pool.fetchval("SELECT checkpoint_seq FROM research_runs") == 2
+    assert await pool.fetchval("SELECT phase FROM research_runs") == "plan"
+
+
+async def test_missing_result_object_blocks_phase_transition_not_only_unit_skip(
+    pg_database, object_cache
+):
+    (
+        pool,
+        _store,
+        _user,
+        _commit,
+        claimed,
+        model,
+        unit,
+        _projected,
+        coordinator,
+        context,
+    ) = await world(pg_database, object_cache)
+    completed = await coordinator.execute_unit(claimed, unit, context)
+    entry = completed.checkpoint.state.run_metadata.unit_manifest[unit.unit_id]
+    await asyncio.to_thread(
+        object_cache._client.remove_object, object_cache.bucket, entry.result_ref.key
+    )
+    with pytest.raises(AdapterError, match="content_missing"):
+        await coordinator.advance_phase(completed.claimed, lambda value: None)
+    assert await pool.fetchval("SELECT phase FROM research_runs") == "plan"
+    assert len(model.prompts) == 1
+
+
+async def test_outstanding_zero_token_analysis_blocks_unit_commit(pg_database, object_cache):
+    (
+        pool,
+        store,
+        _user,
+        _commit,
+        claimed,
+        model,
+        unit,
+        _projected,
+        coordinator,
+        context,
+    ) = await world(pg_database, object_cache)
+    receipt = await reserve(store, claimed, identity(claimed, tool="analysis"))
+    with pytest.raises(AppError, match="outstanding"):
+        await coordinator.execute_unit(claimed, unit, context)
+    assert await pool.fetchval("SELECT checkpoint_seq FROM research_runs") == 1
+    failure = Failure(
+        code="controlled_analysis_failure",
+        dependency="analysis",
+        operation="sandbox",
+        phase="plan",
+        message="Controlled test reservation",
+        retryable=False,
+        resume_allowed=False,
+        attempt=1,
+        occurred_at=datetime.now(UTC),
+        details=None,
+    )
+    async with store.transaction() as tx:
+        await store.research.finish_tool_call(claimed, receipt, tx, failure=failure, tokens_used=0)
+    completed = await coordinator.execute_unit(claimed, unit, context)
+    assert completed.checkpoint.seq == 2 and len(model.prompts) == 1

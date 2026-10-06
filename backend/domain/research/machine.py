@@ -9,12 +9,20 @@ from __future__ import annotations
 
 from typing import Any
 
+from pydantic import StrictBool
+
+from domain.research.facts import ReworkTarget
 from domain.research.models import (
     BriefDecision,
     ClarifyAssessment,
+    Nonnegative,
     PartialResearchBrief,
+    Record,
     ResearchBrief,
+    Text,
 )
+from domain.research.phase_contracts import PhaseInput, WorkerPhase, validate_plans
+from domain.research.state import PipelineState
 
 EXPLICIT_BRIEF_FIELDS = ("task_type", "decision_goal", "research_object", "deliverable")
 SAFE_BRIEF_DEFAULTS = {
@@ -173,3 +181,216 @@ def phase_after_review(action: str) -> str:
         "revise": "write",
         "acknowledge_limit": "write",
     }.get(action, "done")
+
+
+TERMINAL_REASONS = {"rework_limit", "budget_exhausted", "deadline_exhausted"}
+
+
+class PipelineDecision(Record):
+    next_phase: WorkerPhase | None
+    deliver: StrictBool
+    rework_count: Nonnegative
+    targets: list[ReworkTarget]
+    withdraw_claim_ids: list[Text]
+    stop_reason: Text | None
+
+
+def _review_claim_ids(state, issue):
+    if issue.target_type == "claim":
+        return [issue.target_id] if issue.target_id in state.claims else []
+    return sorted(
+        {
+            claim
+            for binding in state.draft_claim_bindings
+            if binding.section_id == issue.section_id
+            and (issue.target_type != "statement" or binding.statement_id == issue.target_id)
+            for claim in binding.claim_ids
+        }
+    )
+
+
+def _research_complete(state):
+    expected = {plan.section_id for plan in state.section_plans}
+    if set(state.section_coverage) != expected:
+        raise ValueError("Research must record coverage or explicit gaps for every section")
+    for plan in state.section_plans:
+        coverage = state.section_coverage[plan.section_id]
+        if set(coverage.claim_spec_ids) != {spec.spec_id for spec in plan.claim_specs}:
+            raise ValueError("Research coverage omits planned claim specs")
+        for spec in plan.claim_specs:
+            claims = [
+                state.claims[key]
+                for key in coverage.claim_ids
+                if spec.spec_id in state.claims[key].spec_ids
+            ]
+            supported = any(
+                claim.status not in {"open", "insufficient"}
+                and any(link.claim_id == claim.claim_id for link in state.claim_evidence_links)
+                for claim in claims
+            )
+            gap = any(
+                item.claim_spec_id == spec.spec_id or item.claim_id in {c.claim_id for c in claims}
+                for item in coverage.gaps
+            )
+            if not supported and not gap:
+                raise ValueError("Unverified claim spec requires an explicit gap")
+
+
+def decide_pipeline(state: PipelineState) -> PipelineDecision:
+    """Formal mono policy. Delivery is a candidate, never phase=done publication.
+
+    State schema closes unknown phases/issues. This function performs no I/O,
+    never upgrades a model verdict and never turns a rework cap into approval.
+    """
+    state = PipelineState.model_validate(state)
+    metadata = state.run_metadata
+    base = {
+        "deliver": False,
+        "rework_count": metadata.rework_count,
+        "targets": metadata.rework_targets,
+        "withdraw_claim_ids": [],
+        "stop_reason": metadata.stop_reason,
+    }
+    if state.phase == "done":
+        raise ValueError("A published state has no pending pipeline transition")
+    if state.phase != "review":
+        validate_plans(state.section_plans)
+        if state.phase == "research":
+            _research_complete(state)
+        if state.phase == "analyze":
+            required = {
+                r.requirement_id for plan in state.section_plans for r in plan.analysis_requirements
+            }
+            if required - {group.requirement_id for group in state.comparison_sets.values()}:
+                raise ValueError(
+                    "Analysis must judge every planned requirement, including insufficiency"
+                )
+            if not required and not any(
+                item.operation == "analysis_skipped" for item in metadata.degraded_sources
+            ):
+                raise ValueError(
+                    "Analysis without quantitative requirements must record its skip reason"
+                )
+        next_value = {
+            "plan": "research",
+            "research": "analyze",
+            "analyze": "write",
+            "write": "review",
+        }[state.phase]
+        candidate = PipelineState.model_validate(state.model_dump() | {"phase": next_value})
+        PhaseInput.from_state(candidate)  # Require the actual next worker preconditions.
+        if metadata.stop_reason in TERMINAL_REASONS and next_value in {"research", "analyze"}:
+            raise ValueError("Terminal contraction cannot launch retrieval or computation")
+        return PipelineDecision(next_phase=next_value, **base)
+    PhaseInput.from_state(state)
+    if state.reviewed_draft_version != state.draft_version or state.review_verdict is None:
+        raise ValueError("Review must judge the current complete draft")
+    if any(
+        issue.resolved
+        and (not issue.resolution or issue.resolved_in_version != state.draft_version)
+        for issue in state.critic_feedback
+    ):
+        raise ValueError("Resolved review issues require current-version verification")
+    issues = [
+        item for item in state.critic_feedback if not item.resolved and item.severity != "minor"
+    ]
+    if not issues:
+        return PipelineDecision(next_phase=None, **(base | {"deliver": True, "targets": []}))
+    if metadata.stop_reason in TERMINAL_REASONS:
+        # A known source gap can remain in an explicitly limited auxiliary draft,
+        # but never as an unsupported factual statement or an approved verdict.
+        safe = state.review_verdict == "needs_more_work" and all(
+            issue.issue_type == "missing_source"
+            and not issue.fillable
+            and not any(
+                statement.kind == "factual"
+                for statement in state.draft_sections[issue.section_id].statements
+            )
+            for issue in issues
+        )
+        if safe:
+            return PipelineDecision(next_phase=None, **(base | {"deliver": True}))
+        raise ValueError("Terminal contraction still has unsafe unresolved review issues")
+    targets, withdrawn = [], set()
+    for issue in issues:
+        if issue.issue_type == "comparability_violation":
+            action = "re_analyze"
+        elif issue.issue_type == "overclaim":
+            action = "revise"
+        else:
+            action = "re_research" if issue.fillable else "acknowledge_limit"
+        claims = _review_claim_ids(state, issue)
+        if issue.issue_type == "hallucination":
+            withdrawn.update(claims)
+        targets.append(
+            ReworkTarget(
+                issue_ids=[issue.issue_id],
+                section_ids=[issue.section_id],
+                claim_ids=claims,
+                action=action,
+                reason=issue.description,
+            )
+        )
+    used, limits = metadata.budget_used, metadata.config.limits
+    reason = (
+        "deadline_exhausted"
+        if used.elapsed_s >= limits.deadline_s
+        else "budget_exhausted"
+        if (
+            used.llm_calls >= limits.llm_calls - limits.terminal_reserved_calls
+            or used.tokens >= limits.tokens - limits.terminal_reserved_tokens
+        )
+        else "rework_limit"
+        if metadata.rework_count >= limits.rework_rounds
+        else None
+    )
+    if reason is not None:
+        targets = [
+            ReworkTarget.model_validate(item.model_dump() | {"action": "acknowledge_limit"})
+            for item in targets
+        ]
+        next_value, count = "write", metadata.rework_count
+    else:
+        action = min((item.action for item in targets), key=_ACTION_PRIORITY.index)
+        next_value, count = phase_after_review(action), metadata.rework_count + 1
+    return PipelineDecision(
+        next_phase=next_value,
+        **(
+            base
+            | {
+                "targets": targets,
+                "withdraw_claim_ids": sorted(withdrawn),
+                "stop_reason": reason,
+                "rework_count": count,
+            }
+        ),
+    )
+
+
+def apply_pipeline_decision(state: PipelineState, decision: PipelineDecision) -> PipelineState:
+    """Apply only the exact deterministic decision; report publication is separate."""
+    state, decision = PipelineState.model_validate(state), PipelineDecision.model_validate(decision)
+    if decision != decide_pipeline(state) or decision.deliver:
+        raise ValueError("Only a matching non-delivery policy decision can become a checkpoint")
+    claims = dict(state.claims)
+    for key in decision.withdraw_claim_ids:
+        claims[key] = type(claims[key]).model_validate(
+            claims[key].model_dump()
+            | {
+                "status": "insufficient",
+                "status_reason": "Unverified assertion withdrawn by review policy",
+            }
+        )
+    metadata = state.run_metadata.model_dump() | {
+        "rework_count": decision.rework_count,
+        "rework_targets": decision.targets,
+        "stop_reason": decision.stop_reason,
+    }
+    values = state.model_dump() | {
+        "phase": decision.next_phase,
+        "claims": claims,
+        "run_metadata": metadata,
+    }
+    if state.phase == "review":
+        values |= {"reviewed_draft_version": None, "review_verdict": None}
+    return PipelineState.model_validate(values)

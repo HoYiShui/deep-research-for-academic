@@ -104,13 +104,18 @@ class RunToolCalls:
             "WHERE c.run_id=$1 GROUP BY a.tool,a.status",
             run_id,
         )
+        pending_attempts = 0
         for item in counts:
+            if item["status"] == "reserved":
+                pending_attempts += item["calls"]
             target = pending if item["status"] == "reserved" else used
             if item["tool"] != "analysis":
                 target[item["tool"] + "_calls"] += item["calls"]
             target["tokens"] += int(item["tokens"])
         return ToolBudgetView(
-            used=BudgetUsage.model_validate(used), pending=BudgetUsage.model_validate(pending)
+            used=BudgetUsage.model_validate(used),
+            pending=BudgetUsage.model_validate(pending),
+            pending_attempts=pending_attempts,
         )
 
     @staticmethod

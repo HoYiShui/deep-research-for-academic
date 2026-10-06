@@ -13,6 +13,7 @@ from domain.research.tool_calls import ToolCallRecord
 class ToolBudgetView(Record):
     used: BudgetUsage
     pending: BudgetUsage
+    pending_attempts: Nonnegative = 0
 
 
 class ToolReservation(Record):

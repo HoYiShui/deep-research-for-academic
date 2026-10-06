@@ -18,7 +18,7 @@ from uuid import uuid4
 
 from application.errors import AppError
 from application.phase_executor import ExecutionContext, PhaseExecutor
-from application.phase_units import UnitCommit, UnitEnvelope, UnitScope
+from application.phase_units import PhaseTransition, UnitCommit, UnitEnvelope, UnitScope, plan_units
 from application.ports import CancellationPort, StateStorePort
 from application.records import ClaimedRun
 from application.sse import EventBus
@@ -27,7 +27,14 @@ from domain.research.agents import architect, code_crafter, critic, data_analyst
 from domain.research.events import DoneEvent, ErrorEvent, PhaseEvent, ReworkEvent
 from domain.research.ids import canonical_hash
 from domain.research.legacy_state import PipelineState
-from domain.research.machine import WORKERS, next_phase, phase_after_review, route_after_review
+from domain.research.machine import (
+    WORKERS,
+    apply_pipeline_decision,
+    decide_pipeline,
+    next_phase,
+    phase_after_review,
+    route_after_review,
+)
 from domain.research.phase_contracts import PhaseInput, merge_phase_result
 from domain.research.state import BudgetUsage, Checkpoint, UnitResult
 from domain.research.state import PipelineState as MonoState
@@ -350,9 +357,12 @@ class RunUnitCoordinator:
             budget = await self.store.research.load_tool_budget(
                 claimed.owner_id, claimed.run.run_id, tx
             )
-            if budget is not None and any(
-                getattr(budget.pending, name)
-                for name in ("llm_calls", "search_calls", "fetch_calls", "tokens")
+            if budget is not None and (
+                budget.pending_attempts
+                or any(
+                    getattr(budget.pending, name)
+                    for name in ("llm_calls", "search_calls", "fetch_calls", "tokens")
+                )
             ):
                 raise AppError("invalid_state", "Unit still has outstanding tool reservations")
             used = budget.used if budget is not None else point.state.run_metadata.budget_used
@@ -440,3 +450,61 @@ class RunUnitCoordinator:
             raise AppError(
                 "invalid_state", "Completed unit cannot be verified against its checkpoints"
             ) from None
+
+    async def advance_phase(self, claimed, projected):
+        """Validate every required unit, then separately commit the Machine route."""
+        claimed, point = await self._load_owned(claimed)
+        if claimed.run.status != "running" or claimed.run.cancel_requested_at is not None:
+            raise AppError("invalid_session_state", "Execution is stopping")
+        for unit in plan_units(point.state):
+            entry = point.state.run_metadata.unit_manifest.get(unit.unit_id)
+            if entry is None:
+                raise AppError("invalid_state", "Cannot advance a phase with uncommitted units")
+            await self._verify_completed(claimed, point, unit, entry)
+        try:
+            decision = decide_pipeline(point.state)
+            if decision.deliver:
+                # Not done yet: the report quality gate/atomic publisher must
+                # consume this reviewed state before anything advertises completion.
+                return PhaseTransition(claimed=claimed, checkpoint=point, decision=decision)
+            state = apply_pipeline_decision(point.state, decision)
+        except (ValueError, TypeError):
+            raise AppError(
+                "invalid_state", "Phase output cannot pass its transition gate"
+            ) from None
+        async with self.store.transaction() as tx:
+            budget = await self.store.research.load_tool_budget(
+                claimed.owner_id, claimed.run.run_id, tx
+            )
+            if budget is not None and budget.pending_attempts:
+                raise AppError("invalid_state", "Phase still has outstanding tool reservations")
+            used = budget.used if budget is not None else state.run_metadata.budget_used
+            used = BudgetUsage.model_validate(
+                used.model_dump()
+                | {
+                    "elapsed_s": max(
+                        used.elapsed_s, state.run_metadata.budget_used.elapsed_s, self.elapsed_s()
+                    )
+                }
+            )
+            state = MonoState.model_validate(
+                state.model_dump()
+                | {"run_metadata": state.run_metadata.model_dump() | {"budget_used": used}}
+            )
+            candidate = Checkpoint(
+                snapshot_id=uuid4(),
+                run_id=state.run_id,
+                seq=point.seq + 1,
+                schema_version=1,
+                phase=state.phase,
+                state=state,
+                state_hash=canonical_hash(state),
+                created_at=self.clock.now_utc(),
+            )
+            newer = await self.store.research.commit_checkpoint(claimed, point.seq, candidate, tx)
+        transition = PhaseTransition(claimed=newer, checkpoint=candidate, decision=decision)
+        try:
+            projected(transition)
+        except Exception:  # noqa: BLE001 -- progress projection cannot undo the phase transaction
+            logging.getLogger(__name__).warning("phase_projection_failed")
+        return transition

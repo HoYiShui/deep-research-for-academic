@@ -42,3 +42,17 @@
 最终完整回归 **501 passed in 69.77s**；本轮修改ruff和`git diff --check`通过，`mdbook build docs`成功（工具提示mermaid preprocessor编译版本0.5.0与当前mdbook0.5.4差异，非构建失败）。原PG/原型仓库/无关文件未修改；未push。
 
 T017仍不勾选：phase单元清单规划、Machine转换/返工、报告质量门及默认Runner/CLI组合尚未完成；T022完整独立HTTP/返工恢复仍待补。
+
+## 补充：稳定单元规划与独立阶段推进（2026-10-06）
+
+`application/phase_units.py` 的 `plan_units` 明确 plan/write/review 整阶段单元、research 每章节 query 与 coverage 单元、analyze 每 requirement 或明确 skip 单元。ID 包含 Run、phase、返工轮次/终止原因与可信范围，不包含变化中的预算、输出、draft_version 或 lease；恢复不能因为前一单元的输出而重新收费生成同一工作。新返工轮次及最终收缩使用不同 ID，终止收缩禁止再次检索/计算。
+
+`domain/research/machine.py` 新增正式 typed 决策，不使用旧 dict 的未知 issue fallback。正常推进验证五章计划、每个 ClaimSpec 的证据或 Gap、每个分析要求的 ComparisonSet、无分析要求的明确 skip 理由，以及下一 worker 的实际输入前置。Review 必须对应当前 draft_version；resolved issue 必须有当前版本的核验与说明。返工保留所有目标，选最早阶段，幻觉撤销未核实 Claim；预算/时限/轮次限制进入一次最终收缩，不升级模型 verdict。Review 返回交付候选不等于 done；仍需报告质量门与原子发布。
+
+`RunUnitCoordinator.advance_phase` 在当前租约下验证全部所需单元对象及历史快照，再单独提交 Machine 转换。例如 plan 单元 seq=2、research 入口 seq=3；提交失败或两者之间取消不得提前切换。Projection 仅在提交之后。预算视图增加 `pending_attempts`，防止零 token 的未完成分析预留绕过单元/阶段结算拦截。
+
+确定性 Machine 与真实隔离 PG/MinIO、明确受控模型目标集 **39 passed in 7.85s**：包括前置缺失、未知 issue、当前版本 Review、多目标路由、返工上限、稳定 ID；未完成单元/缺失对象禁止推进、SQL 失败回滚、取消边界，以及未完成零 token 分析预留禁止提交。同一缓存结果恢复后不重复模型调用。
+
+未冒称真实业务报告：默认 Runner/CLI、完整 Run Driver、真实 research/analyze/write/review worker 与报告发布质量门仍待组合；T017 不勾选。原 PG 数据及参考原型不修改，模型为受控 fixture。
+
+包含全部新增反例的最终全量回归 **526 passed in 71.55s**；修改文件 ruff 与 `git diff --check` 通过。测试连接隔离临时 PG，使用本轮唯一测试库/MinIO bucket，不修复或清理原数据库。
