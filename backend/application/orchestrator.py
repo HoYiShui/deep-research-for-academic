@@ -98,7 +98,7 @@ class Orchestrator:
 
     async def _plan(self, state: PipelineState) -> None:
         """Generate section plans from the frozen brief."""
-        state.section_plans = await architect.plan(self._llm, state.research_brief)
+        state.section_plans = await architect.legacy_plan(self._llm, state.research_brief)
 
     async def _research(self, state: PipelineState) -> None:
         """Gather evidence, sources, claims, observations, and per-section coverage."""

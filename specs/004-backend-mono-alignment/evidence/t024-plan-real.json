@@ -1,0 +1,409 @@
+{
+  "mode": "real",
+  "model_alias": "deepseek-flash",
+  "llm_calls": 1,
+  "elapsed_s": 51.73,
+  "brief": {
+    "task_type": "evaluation_design",
+    "decision_goal": "设计一份 Transformer 与 CNN 在网络入侵检测任务上的可复现比较协议，不宣称任一模型已经优胜。",
+    "research_object": "Transformer 与 CNN 网络入侵检测模型",
+    "scope": "公开资料和可获取的基准数据；只设计实验，不执行实验，不捏造指标。",
+    "comparison_scope": "控制数据切分、预处理、训练预算和调参规则，比较两类模型。",
+    "claims_to_verify": "性能差异、资源成本和跨分布泛化是否在同协议下成立。",
+    "evidence_requirements": "方法、数据划分与评测标准需可定位的原文；找不到原文则明确 Gap，不以检索摘要当证据。",
+    "conclusion_boundary": "不得从不同数据集或协议的论文数字得出排名；不得把待验证假设写成实验结果。",
+    "deliverable": "固定五章的验证方案，含协议—指标—结论映射、失败模式、风险与补实验。",
+    "assumptions": "本轮只验证 plan worker，不是已经完成的研究报告。"
+  },
+  "brief_hash": "2244d9630c062b1d9ebd0df8188ac643cb4fcd8b7e0347a45290cef6b70704c8",
+  "section_plans": [
+    {
+      "section_id": "section_1",
+      "title": "问题定义与边界",
+      "objective": "定义该学术研究任务的决策目标：设计一份 Transformer 与 CNN 在网络入侵检测任务上的可复现比较协议，不宣称任一模型已经优胜；界定范围（公开资料和可获取基准数据，只设计实验，不执行实验，不捏造指标）、比较范围（控制数据切分、预处理、训练预算和调参规则）、待验证声明（性能差异、资源成本、跨分布泛化是否在同协议下成立）、证据要求（方法、数据划分与评测标准需可定位原文，缺失则标 Gap）、交付物（固定五章验证方案，含协议—指标—结论映射、失败模式、风险与补实验）和结论边界（不得从不同数据集或协议的论文数字得出排名，不得把待验证假设写成实验结果）。本轮仅验证 plan worker，不是已完成研究报告。",
+      "claim_specs": [
+        {
+          "spec_id": "CS-COMMON-PROTOCOL-COMPARABILITY",
+          "text": "只有在数据切分、预处理、训练预算、调参规则和评测指标可对齐时，Transformer 与 CNN 在网络入侵检测任务上的比较才具有可解释性；未对齐的论文数字不得用于得出排名。",
+          "required_conditions": [
+            "比较必须固定数据切分",
+            "比较必须固定预处理流程",
+            "比较必须固定训练预算",
+            "比较必须固定调参规则",
+            "比较必须固定评测指标定义",
+            "不得从不同数据集或协议的数字推导排名"
+          ],
+          "required_source_tiers": []
+        },
+        {
+          "spec_id": "CS-EVIDENCE-LOCATABILITY-GAP",
+          "text": "方法、数据划分与评测标准必须能定位到可核验的原始文献或官方文档；若原始来源缺失或不可获取，应明确记录为 Gap，而不能以检索摘要替代证据。",
+          "required_conditions": [
+            "方法描述可定位",
+            "数据划分可定位",
+            "预处理流程可定位",
+            "评测标准可定位",
+            "来源可核验",
+            "缺失时记录 Gap"
+          ],
+          "required_source_tiers": [
+            "primary",
+            "official",
+            "peer_reviewed"
+          ]
+        },
+        {
+          "spec_id": "CS-PROTOCOL-CONTROL-METRIC-CONCLUSION-MAPPING",
+          "text": "验证方案必须在实验前明确协议控制、数据集/划分/基线、指标、不确定性报告方式和允许结论范围；任何结论只能映射到预先定义且可定位的证据条件。",
+          "required_conditions": [
+            "协议控制清单",
+            "数据集与划分清单",
+            "基线与调参规则",
+            "指标与不确定性定义",
+            "结论边界",
+            "失败模式与补实验触发条件"
+          ],
+          "required_source_tiers": []
+        }
+      ],
+      "sub_questions": [
+        "哪些条件必须被冻结为比较协议的一部分，才能避免从不同数据集或协议得出排名？",
+        "哪些内容属于问题定义与边界，哪些必须留给证据基础和核心分析章节？",
+        "如何在本方案中显式记录不可获取的原文或数据，而不以摘要替代证据？"
+      ],
+      "retrieval_anchors": [],
+      "evidence_requirements": [
+        "以冻结简报作为问题定义来源",
+        "引用或记录任何外部方法、数据或指标时必须能定位到原文；若不可获取则标为 Gap",
+        "不得在本章填入实测指标或模型排名"
+      ],
+      "analysis_requirements": []
+    },
+    {
+      "section_id": "section_2",
+      "title": "证据基础与待验证发现",
+      "objective": "建立证据基础并列出待验证发现：检索并核验 Transformer 与 CNN 网络入侵检测相关的方法、数据集/划分、预处理、基线、训练预算、调参规则和评测标准的可定位原文；区分 primary、official、peer_reviewed 与二次摘要；将性能差异、资源成本和跨分布泛化作为待验证假设登记，而不是结论。",
+      "claim_specs": [
+        {
+          "spec_id": "CS-PERF-DIFF-UNDER-COMMON-PROTOCOL",
+          "text": "在控制数据切分、预处理、训练预算和调参规则相同的条件下，Transformer 与 CNN 在网络入侵检测基准上的性能差异（如 F1、检测率、误报率等）可被同一协议检验，并需报告不确定性。",
+          "required_conditions": [
+            "同数据集或同基准",
+            "同数据划分",
+            "同预处理",
+            "同训练预算",
+            "同调参规则",
+            "同指标定义",
+            "报告不确定性",
+            "原始证据可定位"
+          ],
+          "required_source_tiers": [
+            "peer_reviewed",
+            "primary",
+            "official"
+          ]
+        },
+        {
+          "spec_id": "CS-RESOURCE-COST-UNDER-COMMON-PROTOCOL",
+          "text": "在控制数据切分、预处理、训练预算和调参规则相同的条件下，Transformer 与 CNN 的网络入侵检测资源成本（训练/推理延迟、内存、参数量等）可被同一协议检验，并需说明测量条件。",
+          "required_conditions": [
+            "同硬件或归一化测量条件",
+            "同批量大小",
+            "同输入尺寸",
+            "同训练/推理流程",
+            "资源指标定义明确",
+            "报告测量不确定性"
+          ],
+          "required_source_tiers": [
+            "peer_reviewed",
+            "primary",
+            "official"
+          ]
+        },
+        {
+          "spec_id": "CS-CROSS-DISTRIBUTION-GENERALIZATION",
+          "text": "在控制数据切分、预处理、训练预算和调参规则相同的条件下，Transformer 与 CNN 的网络入侵检测跨分布泛化差异（时间迁移、新攻击类型、跨数据集/环境迁移等）可被同一协议检验，并需避免标签泄漏。",
+          "required_conditions": [
+            "训练与测试分布差异明确",
+            "迁移设置预先定义",
+            "标签泄漏检查",
+            "同预处理映射规则",
+            "同指标定义",
+            "报告不确定性"
+          ],
+          "required_source_tiers": [
+            "peer_reviewed",
+            "primary",
+            "official"
+          ]
+        },
+        {
+          "spec_id": "CS-EVIDENCE-LOCATABILITY-GAP",
+          "text": "方法、数据划分与评测标准必须能定位到可核验的原始文献或官方文档；若原始来源缺失或不可获取，应明确记录为 Gap，而不能以检索摘要替代证据。",
+          "required_conditions": [
+            "方法描述可定位",
+            "数据划分可定位",
+            "预处理流程可定位",
+            "评测标准可定位",
+            "来源可核验",
+            "缺失时记录 Gap"
+          ],
+          "required_source_tiers": [
+            "primary",
+            "official",
+            "peer_reviewed"
+          ]
+        }
+      ],
+      "sub_questions": [
+        "哪些公开网络入侵检测基准数据集的原始论文或官方文档提供了可定位的数据划分、预处理、标签和评测指标定义？",
+        "针对 Transformer 与 CNN 网络入侵检测方法，哪些原始论文提供了可复现的训练预算、调参规则、基线和指标定义？",
+        "哪些候选来源属于 primary、official 或 peer_reviewed，哪些只是检索摘要或二手描述而必须标为 Gap？",
+        "待验证发现（性能差异、资源成本、跨分布泛化）各自需要哪些可定位证据条件才能被同协议检验？",
+        "是否存在数据集版本、许可证、预处理脚本、标签泄漏或分布偏移说明的缺口？"
+      ],
+      "retrieval_anchors": [
+        "网络入侵检测 数据集 原始论文 数据划分 预处理 评测指标",
+        "Transformer intrusion detection reproducible protocol training budget hyperparameter tuning",
+        "CNN intrusion detection benchmark split preprocessing evaluation metrics",
+        "network intrusion detection cross-dataset generalization distribution shift",
+        "official documentation NIDS benchmark dataset license preprocessing"
+      ],
+      "evidence_requirements": [
+        "方法、数据划分、预处理、训练预算、调参规则和评测标准必须可定位到原始文献或官方文档",
+        "记录来源类型（primary/official/peer_reviewed/secondary/unknown）和可获取状态",
+        "检索摘要不能作为独立证据；缺失原文时明确列出 Gap",
+        "不得在本章填入未检索到的指标或模型排名"
+      ],
+      "analysis_requirements": []
+    },
+    {
+      "section_id": "section_3",
+      "title": "任务特定核心分析",
+      "objective": "设计可复现比较协议的核心分析框架：控制数据切分、预处理、训练预算和调参规则；定义数据集/划分/基线的选择标准；建立协议—控制—指标—结论映射；覆盖性能、资源成本和跨分布泛化的待验证比较；登记失败模式与补实验触发条件。本章只设计实验与指标，不执行实验，不报告实测数值。",
+      "claim_specs": [
+        {
+          "spec_id": "CS-PERF-DIFF-UNDER-COMMON-PROTOCOL",
+          "text": "在控制数据切分、预处理、训练预算和调参规则相同的条件下，Transformer 与 CNN 在网络入侵检测基准上的性能差异（如 F1、检测率、误报率等）可被同一协议检验，并需报告不确定性。",
+          "required_conditions": [
+            "同数据集或同基准",
+            "同数据划分",
+            "同预处理",
+            "同训练预算",
+            "同调参规则",
+            "同指标定义",
+            "报告不确定性",
+            "原始证据可定位"
+          ],
+          "required_source_tiers": [
+            "peer_reviewed",
+            "primary",
+            "official"
+          ]
+        },
+        {
+          "spec_id": "CS-RESOURCE-COST-UNDER-COMMON-PROTOCOL",
+          "text": "在控制数据切分、预处理、训练预算和调参规则相同的条件下，Transformer 与 CNN 的网络入侵检测资源成本（训练/推理延迟、内存、参数量等）可被同一协议检验，并需说明测量条件。",
+          "required_conditions": [
+            "同硬件或归一化测量条件",
+            "同批量大小",
+            "同输入尺寸",
+            "同训练/推理流程",
+            "资源指标定义明确",
+            "报告测量不确定性"
+          ],
+          "required_source_tiers": [
+            "peer_reviewed",
+            "primary",
+            "official"
+          ]
+        },
+        {
+          "spec_id": "CS-CROSS-DISTRIBUTION-GENERALIZATION",
+          "text": "在控制数据切分、预处理、训练预算和调参规则相同的条件下，Transformer 与 CNN 的网络入侵检测跨分布泛化差异（时间迁移、新攻击类型、跨数据集/环境迁移等）可被同一协议检验，并需避免标签泄漏。",
+          "required_conditions": [
+            "训练与测试分布差异明确",
+            "迁移设置预先定义",
+            "标签泄漏检查",
+            "同预处理映射规则",
+            "同指标定义",
+            "报告不确定性"
+          ],
+          "required_source_tiers": [
+            "peer_reviewed",
+            "primary",
+            "official"
+          ]
+        },
+        {
+          "spec_id": "CS-PROTOCOL-CONTROL-METRIC-CONCLUSION-MAPPING",
+          "text": "验证方案必须在实验前明确协议控制、数据集/划分/基线、指标、不确定性报告方式和允许结论范围；任何结论只能映射到预先定义且可定位的证据条件。",
+          "required_conditions": [
+            "协议控制清单",
+            "数据集与划分清单",
+            "基线与调参规则",
+            "指标与不确定性定义",
+            "结论边界",
+            "失败模式与补实验触发条件"
+          ],
+          "required_source_tiers": []
+        },
+        {
+          "spec_id": "CS-FAILURE-MODES",
+          "text": "需要预先登记数据泄漏、分布偏移、类别不平衡、指标选择、训练预算不足、调参不对称、预处理不一致等失败模式及其检出、缓解和报告规则。",
+          "required_conditions": [
+            "失败模式清单",
+            "检出方法",
+            "缓解或报告规则",
+            "触发补实验条件"
+          ],
+          "required_source_tiers": []
+        }
+      ],
+      "sub_questions": [
+        "候选数据集/划分/基线应满足哪些可定位、可复现和可对齐条件？",
+        "如何对齐训练预算（epochs、steps、early stopping、硬件、时间/内存）和调参预算（搜索空间、试验次数、选择指标）？",
+        "如何设计跨分布泛化场景（时间迁移、新攻击类型、跨数据集或环境迁移）并避免标签泄漏？",
+        "性能、资源成本和泛化指标的计算公式、聚合层级与不确定性报告应如何定义？",
+        "哪些失败模式需要预先登记，并对应哪些检出、缓解、报告或补实验动作？"
+      ],
+      "retrieval_anchors": [
+        "intrusion detection dataset official split preprocessing label definition",
+        "Transformer CNN NIDS hyperparameter tuning budget training budget comparison",
+        "cross-dataset generalization intrusion detection evaluation protocol",
+        "network intrusion detection class imbalance metrics uncertainty",
+        "reproducible machine learning benchmark protocol failure modes data leakage"
+      ],
+      "evidence_requirements": [
+        "数据集/划分/基线/预处理/指标定义必须来自可定位原文或官方文档",
+        "训练预算和调参规则需有可执行参数或明确 Gap",
+        "跨分布泛化设置需明确训练与测试分布差异及防泄漏检查",
+        "失败模式与补实验触发条件需写入协议，不得以事后解释替代"
+      ],
+      "analysis_requirements": []
+    },
+    {
+      "section_id": "section_4",
+      "title": "可支持结论与条件性建议",
+      "objective": "规定可支持的结论形式：在协议未执行或证据不完整时，只能给出条件性、可证伪的协议建议和下一轮验证条件；不得输出 Transformer 或 CNN 的模型排名、实测性能结论或把待验证假设写成实验结果。建议应覆盖协议冻结、数据集/划分/基线选择、指标与不确定性报告、失败模式登记和补实验触发。",
+      "claim_specs": [
+        {
+          "spec_id": "CS-COMMON-PROTOCOL-COMPARABILITY",
+          "text": "只有在数据切分、预处理、训练预算、调参规则和评测指标可对齐时，Transformer 与 CNN 在网络入侵检测任务上的比较才具有可解释性；未对齐的论文数字不得用于得出排名。",
+          "required_conditions": [
+            "比较必须固定数据切分",
+            "比较必须固定预处理流程",
+            "比较必须固定训练预算",
+            "比较必须固定调参规则",
+            "比较必须固定评测指标定义",
+            "不得从不同数据集或协议的数字推导排名"
+          ],
+          "required_source_tiers": []
+        },
+        {
+          "spec_id": "CS-PROTOCOL-CONTROL-METRIC-CONCLUSION-MAPPING",
+          "text": "验证方案必须在实验前明确协议控制、数据集/划分/基线、指标、不确定性报告方式和允许结论范围；任何结论只能映射到预先定义且可定位的证据条件。",
+          "required_conditions": [
+            "协议控制清单",
+            "数据集与划分清单",
+            "基线与调参规则",
+            "指标与不确定性定义",
+            "结论边界",
+            "失败模式与补实验触发条件"
+          ],
+          "required_source_tiers": []
+        },
+        {
+          "spec_id": "CS-EVIDENCE-LOCATABILITY-GAP",
+          "text": "方法、数据划分与评测标准必须能定位到可核验的原始文献或官方文档；若原始来源缺失或不可获取，应明确记录为 Gap，而不能以检索摘要替代证据。",
+          "required_conditions": [
+            "方法描述可定位",
+            "数据划分可定位",
+            "预处理流程可定位",
+            "评测标准可定位",
+            "来源可核验",
+            "缺失时记录 Gap"
+          ],
+          "required_source_tiers": [
+            "primary",
+            "official",
+            "peer_reviewed"
+          ]
+        }
+      ],
+      "sub_questions": [],
+      "retrieval_anchors": [],
+      "evidence_requirements": [
+        "结论必须绑定到可定位证据条件或明确标为待验证假设",
+        "不得从不同数据集或协议的论文数字推导排名",
+        "不得把未执行的实验、未检索到的原文或未测量指标写成结果"
+      ],
+      "analysis_requirements": []
+    },
+    {
+      "section_id": "section_5",
+      "title": "未验证风险与验证动作",
+      "objective": "识别未验证风险并规划验证动作：证据缺失或不可定位、协议漂移、预处理不一致、数据泄漏、分布偏移、类别不平衡、训练/调参预算不可比、指标误用、资源测量条件不可比和可复现性不足；为每项风险定义触发条件、验证动作、需要的可定位证据和 Gap 记录方式。不得声称风险已发生、已解决或已测得。",
+      "claim_specs": [
+        {
+          "spec_id": "CS-FAILURE-MODES",
+          "text": "需要预先登记数据泄漏、分布偏移、类别不平衡、指标选择、训练预算不足、调参不对称、预处理不一致等失败模式及其检出、缓解和报告规则。",
+          "required_conditions": [
+            "失败模式清单",
+            "检出方法",
+            "缓解或报告规则",
+            "触发补实验条件"
+          ],
+          "required_source_tiers": []
+        },
+        {
+          "spec_id": "CS-EVIDENCE-LOCATABILITY-GAP",
+          "text": "方法、数据划分与评测标准必须能定位到可核验的原始文献或官方文档；若原始来源缺失或不可获取，应明确记录为 Gap，而不能以检索摘要替代证据。",
+          "required_conditions": [
+            "方法描述可定位",
+            "数据划分可定位",
+            "预处理流程可定位",
+            "评测标准可定位",
+            "来源可核验",
+            "缺失时记录 Gap"
+          ],
+          "required_source_tiers": [
+            "primary",
+            "official",
+            "peer_reviewed"
+          ]
+        },
+        {
+          "spec_id": "CS-RESOURCE-COST-UNDER-COMMON-PROTOCOL",
+          "text": "在控制数据切分、预处理、训练预算和调参规则相同的条件下，Transformer 与 CNN 的网络入侵检测资源成本（训练/推理延迟、内存、参数量等）可被同一协议检验，并需说明测量条件。",
+          "required_conditions": [
+            "同硬件或归一化测量条件",
+            "同批量大小",
+            "同输入尺寸",
+            "同训练/推理流程",
+            "资源指标定义明确",
+            "报告测量不确定性"
+          ],
+          "required_source_tiers": [
+            "peer_reviewed",
+            "primary",
+            "official"
+          ]
+        }
+      ],
+      "sub_questions": [
+        "当原始划分、预处理或指标定义缺失时，应如何记录 Gap 并触发替代验证？",
+        "当训练预算或调参预算不可比时，应执行哪些对齐检查？",
+        "当发现数据泄漏、分布偏移或类别不平衡时，应如何登记并触发补实验？"
+      ],
+      "retrieval_anchors": [],
+      "evidence_requirements": [
+        "每项风险需记录触发条件、验证动作、所需证据层级和 Gap 处理方式",
+        "验证动作只能引用可定位原文或明确标为需新增检索或实验",
+        "不得预标风险已发生或已解决"
+      ],
+      "analysis_requirements": []
+    }
+  ],
+  "plan_hash": "f998f14c2a2e41d7547b156802dd32d9e1e3ebd1b14237427a775422ccf1216a"
+}

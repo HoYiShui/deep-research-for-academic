@@ -80,6 +80,7 @@
   - 调度核心与显式受控executor经过6项真实PG验证，全量349通过；默认HttpRuntime尚不启动，待T017正式执行器后组合，不勾选。证据：[Runner核心](evidence/t016-runner-core.md)。
 - [ ] T017 [US2] 更新 `backend/application/orchestrator.py`：execute_phase输入切片/白名单PhaseResult、单元验证合并、unit_manifest、完整seq快照、Machine转换；禁止空计划成功、禁止全局State交给Agent修改，终态先提交再发事件。
   - `phase_contracts.py`已实现五阶段严格读写白名单、稳定input hash及目标范围纯合并；27项新增反例、全量388通过。正式execute_phase/Worker/manifest/快照/Machine/默认Runner组合尚待接入，不勾选。证据：[阶段契约](evidence/t017-phase-contracts.md)。
+  - `phase_executor.py`已补共享dispatch、缩小工具上下文和冻结hash/来源/执行身份前置，正式plan adapter经tool callback接入；9项dispatch反例通过。全量408通过后最后一项在目标集中验证；预算/cache callback与Orchestrator逐单元提交/Machine尚未组合，不勾选。证据：[dispatch](evidence/t017-phase-dispatch.md)。
 - [ ] T018 [US2] 更新 `backend/application/sse.py`、`backend/domain/research/events.py`：每订阅独立有界队列、bootstrap竞态、心跳、slow consumer、JWT过期、phase/progress/rework/error/done统一帧；为CLI持租Run轮询PG当前投影，不假装共享跨进程内存队列。
   - 默认HTTP已使用`run_sse.py`/`run_events.py`严格事件、每订阅队列与PG bootstrap/poll；全量361通过。旧CLI事件隔离，实时Orchestrator发布/JWT截止传递/独立TCP尚待接入，不勾选。证据：[SSE核心](evidence/t018-sse-core.md)。
 - [ ] T019 [US2] 更新 `backend/application/research_service.py` 与 `backend/interface/router/research.py` 的status/report/events/cancel/resume：所有权、前置、最新seq、失败恢复资格、报告未就绪409；PG不可用只诊断error，不能发已完成持久失败的假done。
@@ -98,6 +99,7 @@
 
 - [ ] T023 [US3] 在 `backend/tests/unit/test_plan.py`、`test_scout.py`、`test_scout_trace.py`、`test_scout_observations.py` 写五章覆盖/空计划失败、摘要不成关键证据、arXiv不自动peer_reviewed、Spec无Claim仍有Gap、观察保留表头/单位/脚注等反例。
 - [ ] T024 [US3] 更新 `backend/domain/research/agents/architect.py` 的plan与 `backend/domain/research/state.py` 的SectionPlan/ClaimSpec/AnalysisRequirement Schema：恰section_1..5、至少一主张/查询、分析需求计划态参数、任务维度覆盖，结构失败有界修复后明确失败。
+  - 正式`architect.plan`已迁移严格Brief/五章/有界修复，公开evaluation_design真实模型调用暴露并修正“文字协议表误入数值分析”问题，保存完整回归输出/hash；旧CLI显式legacy_plan，未称正式CLI可用。任务维度质量门/三类型代表性与取证尚未全部验收，不勾选。证据：[真实plan worker](evidence/t024-plan-worker.md)。
 - [ ] T025 [US3] 更新 `backend/infrastructure/search/arxiv.py`、`bocha.py`、`composite.py`：来源并发/限流/timeout、规范SearchResult、真实空结果与依赖错误区分；原有 `backend/tests/contract/test_search.py` 增单源故障和全部失败行为。
 - [ ] T026 [US3] 新增 `backend/infrastructure/fetch/http.py` 与真实取证内容存储（建议 `backend/infrastructure/storage/minio.py`）：原文下载/版本/hash/定位/不可变对象、SSRF/DNS/重定向/大小限制；对论文PDF复用Parser、不保存假正文；补 `backend/tests/contract/test_fetch.py`、`test_content.py`，含私网/重定向/同键异hash拒绝。
 - [ ] T027 [US3] 更新 `backend/domain/research/state.py`、`ids.py` 和 `agents/scout.py`：Source/Evidence/Claim/Link/Observation/Coverage/Gap严格Schema与原文摘录校验、条件稳定ID、章节相关材料、受限追溯/补查、来源可选降级；每单元更新全部相关链路和coverage。接T017的单元提交/进度，不等整phase结束才保存。
