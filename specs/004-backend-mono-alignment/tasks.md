@@ -87,6 +87,7 @@
   - cancel/resume/report已经接同一幂等事务和owner查询，27项HTTP+PG回归通过；events、Runner及真实配置可用性尚待接入，不勾选。证据：[HTTP生命周期](evidence/t019-http-lifecycle.md)。
 - [ ] T020 [US2] 新增 `backend/application/tool_calls.py`（新）、更新 Repository/ContentStore 契约与实现：调用身份、预算事务预留、结果hash缓存、uncertain记录、恢复不重置预算；用 `backend/tests/integration/test_mono_tool_cache.py` 覆盖成功缓存不重发、不确定窗口只读重放有记录、并发不超预算。内容 Adapter 必须真实持久化调用缓存，不能用空存根。
   - 工具结果专用 MinIO 内容寻址缓存已完成真实并发/跨客户端读回、缺失/损坏测试；调用预算和 PG 账本尚未接入，不勾选。证据：[内容缓存](evidence/t020-content-cache.md)。
+  - 调用身份/记录与单次模型计量接口已补；真实基础设施探针取得供应商用量。PG预算事务及恢复闭环仍未实现，不勾选。证据：[调用身份与计量](evidence/t020-call-contracts.md)。
 - [ ] T021 [US2] 更新 `backend/cli/container.py`、`commands/run.py`、`commands/phase.py`、`commands/dump.py`、`phase_state.py`、`output.py`、`__main__.py`：复用start_frozen/execute_phase/最新seq；phase只调一阶段且不写Session/Report；stdout单JSON、退出码、signals/owner/租约符合API §5，日志脱敏；fake seed固定ID/时间/结果且real不宣称确定；更新现有CLI单测。
 - [ ] T022 [US2] 新增 `backend/scripts/verify_run_http.py`：活HTTP启动/确认/订阅/取消/恢复/取状态，支持显式受控依赖模式；配合 `backend/tests/integration/test_mono_process_recovery.py` 用独立进程SIGKILL测试确认提交后未wake、返工阶段中断、成功缓存后中断。输出SQL终态/seq/attempt证据 `evidence/us2.md`。
 

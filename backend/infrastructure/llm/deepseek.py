@@ -11,7 +11,9 @@ import asyncio
 import os
 
 from anthropic import AsyncAnthropic
+from pydantic import ValidationError
 
+from domain.model_completion import ModelCompletion
 from domain.ports import AdapterError
 
 
@@ -73,11 +75,7 @@ class DeepSeekLLM:
 
     async def _complete_once(self, prompt: str) -> str:
         """Perform a single (non-retried) completion call."""
-        response = await self._client.messages.create(
-            model=self._model,
-            max_tokens=self._max_tokens,
-            messages=[{"role": "user", "content": prompt}],
-        )
+        response = await self._request(prompt)
         if getattr(response, "stop_reason", None) == "max_tokens":
             raise AdapterError(
                 "llm",
@@ -88,3 +86,38 @@ class DeepSeekLLM:
             )
         # Some models emit thinking blocks alongside text; keep only the text.
         return "".join(getattr(block, "text", "") for block in response.content)
+
+    async def _request(self, prompt: str):
+        return await self._client.messages.create(
+            model=self._model,
+            max_tokens=self._max_tokens,
+            messages=[{"role": "user", "content": prompt}],
+        )
+
+    async def complete_metered(self, prompt: str) -> ModelCompletion:
+        """Exactly one attempt; coordinator owns reservations and retries.
+
+        A truncated response still carries its measured usage. The coordinator
+        must record that spend before rejecting/repairing the model output.
+        Missing usage is an error, not zero tokens; no mutable last_usage field
+        is shared between concurrent calls.
+        """
+        response = await self._request(prompt)
+        usage = getattr(response, "usage", None)
+        try:
+            return ModelCompletion(
+                response_id=getattr(response, "id", None),
+                model=getattr(response, "model", None),
+                text="".join(getattr(block, "text", "") for block in response.content),
+                stop_reason=getattr(response, "stop_reason", None),
+                input_tokens=getattr(usage, "input_tokens", None),
+                output_tokens=getattr(usage, "output_tokens", None),
+            )
+        except (ValidationError, AttributeError, TypeError):
+            raise AdapterError(
+                "llm",
+                "model_usage_invalid",
+                "Provider response has invalid usage metadata",
+                False,
+                "complete_metered",
+            ) from None
