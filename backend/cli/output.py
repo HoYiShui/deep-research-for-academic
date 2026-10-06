@@ -40,7 +40,7 @@ def emit_json(status: str, data: dict[str, Any] | None = None) -> None:
     print(json.dumps(payload, ensure_ascii=False, default=str))
 
 
-def emit_error(args, exit_code: int, code: str, message: str, retryable=False) -> int:
+def emit_error(args, exit_code: int, code: str, message: str, retryable=False, *, data=None) -> int:
     status = {1: "failed", 2: "usage_error", 3: "env_error"}[exit_code]
     error = {
         "code": code,
@@ -50,9 +50,18 @@ def emit_error(args, exit_code: int, code: str, message: str, retryable=False) -
         "request_id": str(uuid4()),
     }
     if args.json:
-        emit_json(status, {"error": error})
+        emit_json(status, {**(data or {}), "error": error})
     else:
-        emit_human(status, f"{code}: {message}")
+        body = f"{code}: {message}"
+        if data:
+            identities = {
+                key: data[key]
+                for key in ("session_id", "run_id", "phase", "checkpoint_seq")
+                if key in data
+            }
+            if identities:
+                body += "\n" + json.dumps(identities)
+        emit_human(status, body)
     log(f"{status}: {code}")
     return exit_code
 

@@ -46,3 +46,10 @@ def test_run_rejects_non_frozen_brief(tmp_path) -> None:
 
 def test_run_rejects_missing_brief_file() -> None:
     assert main(["run", "--brief", "not-found.json", "--json"]) == 2
+
+
+def test_real_run_rejects_legacy_list_brief_before_adapters(tmp_path, capsys):
+    path = tmp_path / "brief.json"
+    path.write_text(json.dumps(_brief()))
+    assert main(["run", "--brief", str(path), "--real", "--json"]) == 2
+    assert json.loads(capsys.readouterr().out)["error"]["code"] == "validation_error"

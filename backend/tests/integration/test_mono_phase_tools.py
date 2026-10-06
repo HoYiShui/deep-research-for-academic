@@ -89,6 +89,29 @@ async def test_canonical_plan_dispatch_is_metered_cached_and_does_not_advance_st
     assert await pool.fetchval("SELECT count(*) FROM reports") == 0
 
 
+async def test_per_prompt_reservation_keeps_measured_usage_and_refuses_oversize_before_io(
+    pg_database, object_cache
+):
+    pool, store, _, _, claimed, model, binding, _, value = await setup(pg_database, object_cache)
+    tools = PhaseTools(
+        service(store, claimed, object_cache),
+        replace(binding, output_token_limit=100),
+        [],
+        model_slots=asyncio.Semaphore(2),
+    )
+    callback = tools.for_phase(value)
+    await callback("llm", {"phase": "plan", "prompt": "public fixture"})
+    assert (
+        await pool.fetchval("SELECT tokens_reserved FROM tool_call_attempts")
+        == len(b"public fixture") + 64 + 100
+    )
+    assert await pool.fetchval("SELECT tokens_used FROM tool_call_attempts") == 70
+    with pytest.raises(AppError, match="budget_exhausted"):
+        await callback("llm", {"phase": "plan", "prompt": "oversize" * 1000})
+    assert len(model.prompts) == 1
+    assert await pool.fetchval("SELECT count(*) FROM tool_call_attempts") == 1
+
+
 @pytest.mark.parametrize(
     "extra",
     [

@@ -2,7 +2,7 @@
 
 `python -m cli` 是给 Agent 和开发者的后端调试入口。它不是用户研究入口：Clarify 的多轮对话由 HTTP/API 或前端处理；CLI 只消费已经冻结的 ResearchBrief。
 
-当前正在迁移到 [mono CLI 契约](../../docs/mono/api-contract.md#5-cli-契约)。`dump` 已读取新的 owner-scoped Run Checkpoint；`phase` 已使用正式执行器/合并，仅注册已有的 plan worker。其他 phase 明确报未配置；`run/ingest/search` 仍使用旧执行链，尚不能用来验收 mono 流水线。
+当前正在迁移到 [mono CLI 契约](../../docs/mono/api-contract.md#5-cli-契约)。`dump` 已读取新的 owner-scoped Run Checkpoint；`phase` 已使用正式执行器/合并，仅注册已有的 plan worker。`run --real`已使用正式冻结/账本/Driver/限定Runner；缺少research等worker时明确failed并保留plan检查点，不能验收完整研究。默认fake run仍是旧链路，JSON标记legacy_fake；ingest/search也仍待迁移。
 
 在 `backend/` 目录中运行：
 
@@ -25,7 +25,9 @@ python -m cli dump <session-id> --json
 | `dump SESSION_ID` | 从 PostgreSQL 读取当前 Run 的最新 seq，不按阶段倒序。 |
 | `ingest PDF` / `search QUERY` | 独立调试知识库入库与检索。 |
 
-`run` 的 Brief 必须含 ResearchBrief 的 10 个字段，且 `task_type` 为 `idea_exploration`、`method_differentiation`、`evaluation_design` 或 `reviewer_response`。CLI 会在调用 Agent 前拒绝不完整输入。
+`run --real`的Brief是严格mono ResearchBrief十字段，全部为字符串（assumptions允许空），task_type仅idea_exploration/method_differentiation/evaluation_design。旧fake仍接受历史列表格式/四类型，但不代表mono报告能力。CLI会在调用Agent前拒绝不完整输入。
+
+真实run支持`--owner UUID`（production必需）、`--sources papers,web`、重复`--kb UUID`；KB选择必须包含knowledge_base类别，当前未配置的KB授权明确拒绝。需提前显式迁移到mono schema并准备MinIO bucket；run不会自动迁移历史数据库或建bucket。SIGINT/SIGTERM只在同事务确认仍持有租约时请求取消，不取消别的worker已领取的Run。失败JSON仍给session_id/run_id/phase/checkpoint_seq，可接dump继续检查；--quiet省略events，--seed不影响real。
 
 ## phase 输入前置
 

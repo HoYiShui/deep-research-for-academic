@@ -62,3 +62,30 @@ TaskRunner可显式指定owner+run_id（必须同时提供UUID）；领取和恢
 首轮Scope与Repository定向49通过，加入verbose后50通过。`run`仍需正式start_frozen、执行器/缓存组合、信号取消、单JSON含Run身份和fake确定性；不能因本范围前置通过而勾选T021。
 
 最终联合回归（Fake ports、TaskRunner、Run生命周期、HTTP runtime、独立进程恢复和verbose）：**60 passed in 41.21s**。ruff/format与git diff --check通过；本批按影响面定向验证，未重跑或冒称新的全量结果。
+
+## Real run正式冻结与执行入口
+
+2026-10-06，基线`fb606be`。`commands/run.py`的real分支已移除旧Container/LegacyResearchService/Orchestrator，新增`cli/run_real.py`组合正式ResearchService.start_frozen、owner+Run限定TaskRunner、RunDriver、PhaseExecutor、PG工具账本和真实MinIO结果缓存。沿用同一Settings、十字段字符串Brief和三种task枚举；来源/KB/owner约束交给同一App政策。production须显式owner，未知显式owner在开发身份创建之前拒绝。
+
+数据库必须已显式迁移0002；CLI不迁移历史库、不新建bucket。默认开发owner可由正式Runtime创建；无本地模型能力/无API key提前拒绝。只注册已实现的plan worker，其他阶段明确service_not_ready并持久failed，保留安全seq；**尚不能产出完整真实报告**。失败JSON带session_id/run_id/phase/checkpoint_seq，含合法终态events；接受后观察/依赖错误也保留已知Run身份，但不假称PG已有终态。quiet省略events，real忽略seed。
+
+SIGINT/SIGTERM设置停止请求；在同一PG事务核对worker/owner/run/未过期租约后请求取消，再关闭Runner。其他worker已持租、已失租不被取消；发布/取消竞争以再次读取的PG终态为准。关闭先Runner、再内容客户端、模型和pool，恢复原signal handler。成功路径只有PG报告/终态一致才输出FinalReport JSON，但当前正式workers未齐，此批没有实测完整成功报告。
+
+模型预算增加可选真实output_token_limit：每prompt用UTF-8字节+64+输出上限作为保守预留，不能预留全部剩余Run预算，否则第一次失败耗费后无法有界修复。超出上限在SDK/账本调用之前拒绝；按供应商返回用量结算。明确输出上限进入调用版本hash，未指定的新字段保持旧hash兼容。该预留不是实际token统计或账单金额。
+
+### 真实CLI子进程证据（供应商受控，不是all-real业务）
+
+- 从完整冻结Brief直接创建Session/Run，真正Anthropic SDK只发plan请求，无Clarify；真实PG/MinIO保存plan后最新seq=3/phase=research。缺research worker返回exit3/service_not_ready，PG failed，reports=0。
+- 单次受控模型返回input20/output30，tool_call_attempts=1，Checkpoint预算tokens=50；`cli dump`子进程读回完全相同的state/Run/seq。
+- 首次模型输出not JSON再修复：物理SDK请求2、账本2、已计tokens=100；修复后的plan保存，不因第一次消费而错误耗尽预算。
+- SIGINT与SIGTERM分别在真正SDK HTTP等待期间发送，只取消本CLI持租Run；退出1/cancelled、reports=0，quiet无events。
+- 其他worker或过期租约取消函数返回false，原Run仍running。未迁移的空schema返回3/schema_incompatible，public表数仍0且模型请求0；列表版旧Brief在适配器前被拒绝。
+- 默认fake尚用旧内存链，输出明确legacy_fake；fake确定性/完整正式workers及更细事件仍待实施，T021不勾选。
+
+首轮2条主路径最终 **2 passed in 4.50s**。首次测试Model server在关闭时等待挂起连接产生清理死锁，已中断该轮（1 passed/91.45s）、验证独有PG/bucket清理，再修正先取消handler后等待server关闭；没有借此重启真实用户服务。
+
+迁移+Runner/旧CLI定向 **27 passed in 13.23s**；CLI run/dump/phase **21 passed in 12.00s**。预算/Driver定向 **40 passed in 21.75s**，修复分支/预算与CLI **29 passed in 10.94s**；补信号和HTTP投影竞态后，含独立SIGKILL的联合 **40 passed in 41.11s**。
+
+中间全量 **798 passed in 135.25s**；随后全量暴露1个HTTP测试竞态（798 passed/1 failed）：独立SQL观察到completed不代表finished回调已经执行。测试改为等所持Runner task结束再断言回调，不延迟或修改PG发布事实。此点体现投影在持久事实之后，而不是业务失败被忽略。
+
+最终完整版本全量 **801 passed in 138.26s**；ruff/format及git diff --check通过。未修改用户历史库、恢复卷、.env或docs/implementation；本批仅唯一测试PG/bucket，未向真实供应商收费。

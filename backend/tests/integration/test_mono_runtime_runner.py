@@ -168,6 +168,12 @@ async def test_http_confirm_driver_publish_and_read_report(pg_database, object_c
         completed = await wait_for_status(
             runtime.repository_store, DEVELOPMENT_USER_ID, run_id, "completed"
         )
+        # PG completion precedes the lossy finished projection by design.
+        # Join the owned task before asserting its in-process callback, rather
+        # than assuming a separate SQL observer waits for that callback too.
+        active = runtime.runner.active
+        if active is not None:
+            await asyncio.wait_for(asyncio.shield(active), timeout=5)
         assert completed.phase == "done" and completed.checkpoint_seq == 20
         assert len(visits) == len(units) == 14 and len(phases) == 4 and len(terminal) == 1
         assert len(model.prompts) == 1

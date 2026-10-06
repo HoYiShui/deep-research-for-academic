@@ -27,6 +27,7 @@ class ModelBinding:
     model: str
     revision: str
     token_reservation: int
+    output_token_limit: int | None = None
 
 
 class PhaseTools:
@@ -50,6 +51,10 @@ class PhaseTools:
             raise AppError("invalid_state", "Model adapter differs from frozen Run configuration")
         if type(model.token_reservation) is not int or model.token_reservation <= 0:
             raise ValueError("Model token reservation must be a positive integer")
+        if model.output_token_limit is not None and (
+            type(model.output_token_limit) is not int or model.output_token_limit <= 0
+        ):
+            raise ValueError("Model output token limit must be a positive integer")
         if config.source_policy.private_only and model.provider != "local":
             raise AppError(
                 "privacy_policy_conflict", "Private scope cannot invoke an external model"
@@ -96,6 +101,11 @@ class PhaseTools:
                 "model": model.model,
                 "revision": model.revision,
                 "prompt_version": config.versions.prompt_versions[phase],
+                **(
+                    {"output_token_limit": model.output_token_limit}
+                    if model.output_token_limit is not None
+                    else {}
+                ),
             }
         )
 
@@ -115,6 +125,14 @@ class PhaseTools:
             # Make owned immutable-by-copy arguments before any await; workers
             # cannot change the prompt between its identity and the actual SDK request.
             prompt = arguments["prompt"]
+            reservation = model.token_reservation
+            if model.output_token_limit is not None:
+                # UTF-8 byte count is a conservative input allowance, not a
+                # claim of measured usage. Reserve each prompt, not the entire
+                # remaining Run budget (which would prevent schema repair).
+                reservation = len(prompt.encode("utf-8")) + 64 + model.output_token_limit
+                if reservation > model.token_reservation:
+                    raise AppError("budget_exhausted", "Model input allowance exceeds Run budget")
             identity = ToolCallIdentity(
                 run_id=self._service.claimed.run.run_id,
                 tool="llm",
@@ -127,7 +145,7 @@ class PhaseTools:
             )
             request = ToolBudgetRequest(
                 tool="llm",
-                token_reservation=model.token_reservation,
+                token_reservation=reservation,
                 terminal=terminal,
             )
 
