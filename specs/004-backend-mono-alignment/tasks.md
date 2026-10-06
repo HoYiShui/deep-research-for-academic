@@ -81,6 +81,7 @@
 - [ ] T017 [US2] 更新 `backend/application/orchestrator.py`：execute_phase输入切片/白名单PhaseResult、单元验证合并、unit_manifest、完整seq快照、Machine转换；禁止空计划成功、禁止全局State交给Agent修改，终态先提交再发事件。
   - `phase_contracts.py`已实现五阶段严格读写白名单、稳定input hash及目标范围纯合并；27项新增反例、全量388通过。正式execute_phase/Worker/manifest/快照/Machine/默认Runner组合尚待接入，不勾选。证据：[阶段契约](evidence/t017-phase-contracts.md)。
   - `phase_executor.py`已补共享dispatch、缩小工具上下文和冻结hash/来源/执行身份前置，正式plan adapter经tool callback接入；9项dispatch反例通过。全量408通过后最后一项在目标集中验证；预算/cache callback与Orchestrator逐单元提交/Machine尚未组合，不勾选。证据：[dispatch](evidence/t017-phase-dispatch.md)。
+  - `phase_tools.py`已把正式plan worker的LLM入口绑定真实PG预算/cache，包含模型用量与版本/来源/权限前置及共享进程信号量；13项真实PG/MinIO+受控模型反例通过。逐单元manifest/Checkpoint与Machine仍待组合，不勾选。证据：[持久phase工具入口](evidence/t017-phase-dispatch.md)。
 - [ ] T018 [US2] 更新 `backend/application/sse.py`、`backend/domain/research/events.py`：每订阅独立有界队列、bootstrap竞态、心跳、slow consumer、JWT过期、phase/progress/rework/error/done统一帧；为CLI持租Run轮询PG当前投影，不假装共享跨进程内存队列。
   - 默认HTTP已使用`run_sse.py`/`run_events.py`严格事件、每订阅队列与PG bootstrap/poll；全量361通过。旧CLI事件隔离，实时Orchestrator发布/JWT截止传递/独立TCP尚待接入，不勾选。证据：[SSE核心](evidence/t018-sse-core.md)。
 - [ ] T019 [US2] 更新 `backend/application/research_service.py` 与 `backend/interface/router/research.py` 的status/report/events/cancel/resume：所有权、前置、最新seq、失败恢复资格、报告未就绪409；PG不可用只诊断error，不能发已完成持久失败的假done。
@@ -91,6 +92,7 @@
   - 预算纯策略含终末预留/未结算调用/deadline反例已通过；磁盘断连后改用独立真实测试PG完整回归452通过，原PG数据未修改且仍不能启动。策略不代表事务预算完成。证据：[预算策略与隔离回归](evidence/t020-budget-policy.md)。
   - PG预算 baseline/逐尝试账本已接真实 MinIO 服务；有真实供应商单次调用后缓存复用探针。并发预算、跨新租约成功缓存不重发、uncertain/取消/失租回滚均有真实PG测试；对象落盘到PG成功前的恢复定位、正式phase callback仍待补，不勾选。证据：[调用账本](evidence/t020-ledger.md)。
   - 结果候选定位与已知用量先提交PG，再写/校验MinIO；新租约可结算原尝试。真实独立进程SIGKILL覆盖写入前/后两窗口，已写对象不重发、未写只允许显式只读重放；正式phase callback仍待绑定，不勾选。证据：[恢复窗口](evidence/t020-ledger.md)。
+  - 正式plan的LLM callback已绑定预算/cache及共享进程模型并发门；其他工具将随对应worker接入，完整Orchestrator尚未组合。最终全量487通过；T020仍不勾选。证据：[phase绑定](evidence/t017-phase-dispatch.md)。
 - [ ] T021 [US2] 更新 `backend/cli/container.py`、`commands/run.py`、`commands/phase.py`、`commands/dump.py`、`phase_state.py`、`output.py`、`__main__.py`：复用start_frozen/execute_phase/最新seq；phase只调一阶段且不写Session/Report；stdout单JSON、退出码、signals/owner/租约符合API §5，日志脱敏；fake seed固定ID/时间/结果且real不宣称确定；更新现有CLI单测。
 - [ ] T022 [US2] 新增 `backend/scripts/verify_run_http.py`：活HTTP启动/确认/订阅/取消/恢复/取状态，支持显式受控依赖模式；配合 `backend/tests/integration/test_mono_process_recovery.py` 用独立进程SIGKILL测试确认提交后未wake、返工阶段中断、成功缓存后中断。输出SQL终态/seq/attempt证据 `evidence/us2.md`。
 
@@ -205,4 +207,4 @@ Web执行顺序：T063 → T064 → T065 → T066 → T061–T062；T064依赖T0
 
 验收覆盖索引：A1=T008–T013；A2=T006/T008/T011/T053；A3=T006/T015/T036；A4=T027/T033–T038；A5=T029–T032；A6=T034–T039；A7=T043–T048/T050/T052；A8=T040–T041/T047/T049/T052；A9=T020/T022/T055；A10=T014/T018–T019/T022；A11=T007/T050/T053–T054；A12=T021/T051/T059；A13=T056–T058/T061。
 
-**当前下一步：T020 phase callback → T017正式阶段执行与逐单元快照 → 组合T016 Runner → T021 CLI → T022完整HTTP与独立进程恢复验收。** T015租约/取消/恢复/报告事务和T019 HTTP生命周期已接入；T018默认HTTP可订阅当前持久状态。最新隔离真实PG/MinIO环境全量474通过，工具结果写入前/后的真实SIGKILL恢复已验证；原PG在磁盘断连后不能启动且数据未修改。正式phase executor已有typed dispatch和plan worker；预算/cache服务及PG账本已实现，但尚未与Orchestrator组合，默认ready Run不会自动研究；尚不能宣称M2或业务报告完成。T011仅KB授权/版本/隐私部分等待T041/T050，当前对KB请求明确404且零模型调用。历史阶段说明记录当时边界，以最新证据为准。Web仍按T063–T066纳入最终交付。
+**当前下一步：T017正式阶段执行与逐单元快照（结合T020其他工具绑定） → 组合T016 Runner → T021 CLI → T022完整HTTP与独立进程恢复验收。** T015租约/取消/恢复/报告事务和T019 HTTP生命周期已接入；T018默认HTTP可订阅当前持久状态。最新隔离真实PG/MinIO环境全量487通过，工具结果写入前/后的真实SIGKILL恢复已验证；原PG在磁盘断连后不能启动且数据未修改。正式phase executor已有typed dispatch和plan worker，LLM callback已接PG预算/cache与共享进程信号量；尚未与Orchestrator组合，默认ready Run不会自动研究；尚不能宣称M2或业务报告完成。T011仅KB授权/版本/隐私部分等待T041/T050，当前对KB请求明确404且零模型调用。历史阶段说明记录当时边界，以最新证据为准。Web仍按T063–T066纳入最终交付。
