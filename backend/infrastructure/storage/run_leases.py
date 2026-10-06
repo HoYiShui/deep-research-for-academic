@@ -148,7 +148,7 @@ class RunLeases:
         return conn, session, run
 
     @staticmethod
-    def _checkpoint_input(run, session, previous, point, expected_seq):
+    def _checkpoint_input(run, session, previous, point, expected_seq, *, publication=False):
         if type(expected_seq) is not int or expected_seq <= 0:
             raise ValueError("Expected checkpoint sequence must be a positive integer")
         if run.checkpoint_seq != expected_seq or point.seq != expected_seq + 1:
@@ -161,8 +161,8 @@ class RunLeases:
             or state.brief_version != run.brief_version
             or state.run_metadata.config != run.config_snapshot
             or state.source_selection != session.source_selection
-            or state.phase == "done"
-            or state.final_report is not None
+            or (not publication and (state.phase == "done" or state.final_report is not None))
+            or (publication and (state.phase != "done" or state.final_report is None))
         ):
             raise AppError(
                 "invalid_state", "Checkpoint changes frozen input or requires report publication"

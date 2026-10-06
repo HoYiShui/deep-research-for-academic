@@ -25,9 +25,11 @@ from application.records import (
     SessionChange,
     User,
 )
+from domain.research.facts import FinalReport
 from domain.research.models import BriefRecord, Failure, Message, ResearchRun, SessionState, Text
 from domain.research.state import Checkpoint
 from infrastructure.storage.run_leases import RunLeases
+from infrastructure.storage.run_publication import RunPublication
 from infrastructure.storage.run_termination import RunTermination
 
 
@@ -63,6 +65,7 @@ class _Data:
     messages: dict[UUID, list[Message]] = field(default_factory=dict)
     runs: dict[UUID, ResearchRun] = field(default_factory=dict)
     checkpoints: dict[tuple[UUID, int], Checkpoint] = field(default_factory=dict)
+    reports: dict[UUID, FinalReport] = field(default_factory=dict)
     requests: dict[tuple[UUID, str, str], IdempotencyRecord] = field(default_factory=dict)
 
 
@@ -401,6 +404,28 @@ class _Research:
             }
         )
         return ClaimedRun(owner_id=claimed.owner_id, run=copy.deepcopy(updated))
+
+    async def publish_report(self, claimed, expected_seq, checkpoint, tx):
+        point = Checkpoint.model_validate(checkpoint)
+        session, run = await self._owned_lease(claimed, tx)
+        previous = await self.load_latest_checkpoint(claimed.owner_id, run.run_id, tx)
+        RunPublication._publication_input(run, session, previous, point, expected_seq)
+        data = self.db.write_data(tx)
+        if run.run_id in data.reports or any(
+            item.snapshot_id == point.snapshot_id for item in data.checkpoints.values()
+        ):
+            raise AppError("stale_resource", "Publication identity already exists")
+        data.reports[run.run_id] = copy.deepcopy(point.state.final_report)
+        data.checkpoints[(run.run_id, point.seq)] = copy.deepcopy(point)
+        updated = ResearchRun.model_validate(
+            run.model_dump() | {"phase": "done", "checkpoint_seq": point.seq}
+        )
+        return self._terminal(session, updated, "completed", tx)[1]
+
+    async def load_report(self, owner, run_id, tx=None):
+        if await self.get_run(owner, run_id, tx) is None:
+            return None
+        return copy.deepcopy(self.db.data(tx).reports.get(run_id))
 
     def _ready_capacity(self, owner, tx, *, queue_limit=20):
         RunLeases._positive(queue_limit)

@@ -20,6 +20,7 @@ from application.records import (
     User,
     ValidatedFrozenInput,
 )
+from domain.research.facts import FinalReport
 from domain.research.models import (
     BriefRecord,
     Failure,
@@ -144,6 +145,14 @@ class ResearchRepositoryPort(Protocol):
         queue_timeout_s: int = 1800,
         limit: int = 100,
     ) -> list[ResearchRun]: ...
+
+    async def publish_report(
+        self, claimed: ClaimedRun, expected_seq: int, checkpoint: Checkpoint, tx: TransactionPort
+    ) -> ResearchRun: ...
+
+    async def load_report(
+        self, owner: UUID, run_id: UUID, tx: TransactionPort | None = None
+    ) -> FinalReport | None: ...
 
 
 class RequestStorePort(Protocol):

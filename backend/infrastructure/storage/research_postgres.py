@@ -23,6 +23,7 @@ from domain.ports import AdapterError
 from domain.research.models import BriefRecord, Message, ResearchRun, SessionState
 from domain.research.state import Checkpoint
 from infrastructure.storage.run_leases import RunLeases
+from infrastructure.storage.run_publication import RunPublication
 from infrastructure.storage.run_termination import RunTermination
 
 SESSION_JSON = {"brief_draft", "pending_questions", "missing_fields", "source_selection", "failure"}
@@ -172,7 +173,7 @@ class _Users:
             )
 
 
-class _Research(RunLeases, RunTermination):
+class _Research(RunLeases, RunTermination, RunPublication):
     def __init__(self, store):
         self.store = store
 
