@@ -1,18 +1,179 @@
 """Independent SIGKILL windows, real PG/MinIO, explicitly controlled tool output."""
 
 import asyncio
+import json
 import os
 import signal
 import sys
 from uuid import uuid4
 
+import httpx
 import pytest
 
 from application.tool_budget import ToolBudgetRequest
 from application.tool_calls import ToolOutput
 from domain.ports import AdapterError
+from scripts.verify_clarify_http import verify as clarify_http
+from scripts.verify_run_http import verify as run_http
 from tests.integration.test_mono_run_lifecycle import claim, resume
 from tests.integration.test_mono_tool_cache import identity, service, started
+from tests.integration.test_verify_clarify_http import server
+
+
+async def http_confirmation(http):
+    result = await clarify_http(http, query="Public controlled recovery question")
+    session = result["view"]["session_id"]
+    result = await clarify_http(
+        http, session_id=session, answers=[{"content": "Public evaluation"}]
+    )
+    assert result["view"]["status"] == "confirm"
+    return session, {"accepted": True, "brief_version": result["view"]["brief_version"]}
+
+
+async def wait_sql(pool, predicate):
+    async with asyncio.timeout(15):
+        while True:
+            rows = await pool.fetch(
+                "SELECT r.*,p.state FROM research_runs r JOIN phase_snapshots p "
+                "ON p.run_id=r.run_id AND p.seq=r.checkpoint_seq"
+            )
+            if len(rows) == 1 and predicate(rows[0]):
+                return rows[0]
+            await asyncio.sleep(0.02)
+
+
+async def test_sigkill_http_confirm_committed_before_wake_recovers_ready(pg_database, object_cache):
+    pool, database = pg_database
+    async with (
+        server(
+            database, run_bucket=object_cache.bucket, pause="confirm", with_process=True
+        ) as pair,
+        httpx.AsyncClient(base_url=pair[0], timeout=15) as http,
+    ):
+        _, process = pair
+        session, body = await http_confirmation(http)
+        headers = {"Idempotency-Key": str(uuid4())}
+        pending = asyncio.create_task(
+            http.post(f"/research/{session}/confirm", json=body, headers=headers)
+        )
+        try:
+            original = await wait_sql(pool, lambda row: row["status"] == "ready")
+            assert original["attempt_count"] == 0 and original["checkpoint_seq"] == 1
+            assert not pending.done()
+            async with asyncio.timeout(5):
+                while True:
+                    status = await asyncio.create_subprocess_exec(
+                        "ps",
+                        "-o",
+                        "state=",
+                        "-p",
+                        str(process.pid),
+                        stdout=asyncio.subprocess.PIPE,
+                    )
+                    output, _ = await status.communicate()
+                    if output.strip().startswith(b"T"):
+                        break
+                    await asyncio.sleep(0.02)
+            # This process is SIGSTOP'd in the wake callback; kill, no cleanup.
+            process.kill()
+            await asyncio.wait_for(process.wait(), timeout=5)
+            assert process.returncode == -signal.SIGKILL
+        finally:
+            pending.cancel()
+            await asyncio.gather(pending, return_exceptions=True)
+    assert await pool.fetchval("SELECT count(*) FROM research_runs") == 1
+    async with (
+        server(database, run_bucket=object_cache.bucket) as url,
+        httpx.AsyncClient(base_url=url, timeout=15) as http,
+    ):
+        result = await run_http(http, session_id=session)
+        assert result["status"] == "completed" and result["view"]["checkpoint_seq"] == 20
+        replay = await http.post(f"/research/{session}/confirm", json=body, headers=headers)
+        assert replay.status_code == 202 and replay.json()["run_id"] == str(original["run_id"])
+        assert await pool.fetchval("SELECT count(*) FROM research_runs") == 1
+        assert await pool.fetchval("SELECT attempt_count FROM research_runs") == 1
+        assert await pool.fetchval("SELECT count(*) FROM reports") == 1
+
+
+async def test_sigkill_http_rework_requires_explicit_resume_without_repaying_plan(
+    pg_database, object_cache
+):
+    pool, database = pg_database
+    async with (
+        server(
+            database, run_bucket=object_cache.bucket, pause="rework", rework=True, with_process=True
+        ) as pair,
+        httpx.AsyncClient(base_url=pair[0], timeout=15) as http,
+    ):
+        session, body = await http_confirmation(http)
+        response = await http.post(
+            f"/research/{session}/confirm", json=body, headers={"Idempotency-Key": str(uuid4())}
+        )
+        assert response.status_code == 202
+        original = await wait_sql(
+            pool,
+            lambda row: (
+                row["phase"] == "write"
+                and json.loads(row["state"])["run_metadata"]["rework_count"] == 1
+            ),
+        )
+        assert original["status"] == "running"
+        assert await pool.fetchval("SELECT count(*) FROM tool_call_attempts") == 1
+        process = pair[1]
+        process.kill()
+        await asyncio.wait_for(process.wait(), timeout=5)
+        assert process.returncode == -signal.SIGKILL
+    # Advance the sole invocation-owned lease expiry, never wait 90 seconds or touch user data.
+    await pool.execute(
+        "UPDATE research_runs SET lease_expires_at=clock_timestamp()-interval '1 second' WHERE run_id=$1",
+        original["run_id"],
+    )
+    async with (
+        server(database, run_bucket=object_cache.bucket, rework=True) as url,
+        httpx.AsyncClient(base_url=url, timeout=15) as http,
+    ):
+        interrupted = await wait_sql(pool, lambda row: row["status"] == "failed")
+        assert interrupted["checkpoint_seq"] == original["checkpoint_seq"]
+        assert interrupted["attempt_count"] == 1 and interrupted["resume_allowed"]
+        view = (await http.get(f"/research/{session}")).json()
+        assert view["failure"]["code"] == "interrupted"
+        assert (await http.get(f"/research/{session}/report")).status_code == 409
+        observed = await run_http(http, session_id=session)
+        assert observed["status"] == "failed"
+        assert await pool.fetchval("SELECT attempt_count FROM research_runs") == 1
+        result = await run_http(http, session_id=session, action="resume")
+        assert result["status"] == "completed" and result["view"]["run_id"] == str(
+            original["run_id"]
+        )
+        assert result["view"]["checkpoint_seq"] == 24
+        assert await pool.fetchval("SELECT attempt_count FROM research_runs") == 2
+        assert await pool.fetchval("SELECT count(*) FROM tool_call_attempts") == 1
+        assert await pool.fetchval("SELECT count(*) FROM reports") == 1
+
+
+async def test_live_http_cancel_running_worker_never_publishes(pg_database, object_cache):
+    pool, database = pg_database
+    async with (
+        server(database, run_bucket=object_cache.bucket, pause="research") as url,
+        httpx.AsyncClient(base_url=url, timeout=15) as http,
+    ):
+        session, body = await http_confirmation(http)
+        response = await http.post(
+            f"/research/{session}/confirm", json=body, headers={"Idempotency-Key": str(uuid4())}
+        )
+        assert response.status_code == 202
+        original = await wait_sql(pool, lambda row: row["phase"] == "research")
+        assert original["status"] == "running" and original["checkpoint_seq"] == 3
+        result = await run_http(http, session_id=session, action="cancel")
+        assert result["status"] == "cancelled" and result["report"] is None
+        assert not result["view"]["resume_allowed"]
+        assert (await http.get(f"/research/{session}/report")).status_code == 409
+        assert await pool.fetchval("SELECT count(*) FROM reports") == 0
+        assert await pool.fetchval("SELECT count(*) FROM tool_call_attempts") == 1
+        assert await pool.fetchval("SELECT attempt_count FROM research_runs") == 1
+        repeated = await run_http(http, session_id=session, action="cancel")
+        assert repeated["status"] == "cancelled"
+
 
 CHILD = """
 import asyncio, os, asyncpg

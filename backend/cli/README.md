@@ -80,4 +80,6 @@ JSON 模式错误也返回单个对象，`error` 包含 code/message/details/ret
 uv run python -m scripts.verify_run_http --session SESSION_UUID --model-mode real
 ```
 
-该命令只订阅SSE并核对最新HTTP状态/报告，不直接执行或创建Run。`--action cancel`或`--action resume`才发送对应控制请求；resume需要failed且resume_allowed。`--url`可指定后端，`--timeout`限制整个过程。`--model-mode controlled`用于明确受控测试，不代表真实研究能力通过。当前生产完整worker尚未组合，缺能力时超时/失败是有效诊断，不会自动退回fake。
+仅传已有`--session`时只订阅SSE并核对最新HTTP状态/报告，不直接执行或创建Run。`--action cancel`或`--action resume`才发送对应控制请求；resume需要failed且resume_allowed。`--url`可指定后端，`--timeout`限制整个过程。`--model-mode controlled`用于明确受控测试，不代表真实研究能力通过。当前生产完整worker尚未组合，缺能力时超时/失败是有效诊断，不会自动退回fake。
+
+也可以用同一探针创建/澄清：`--query "公开研究问题"`，随后用返回的Session UUID加`--answers-file answers.json`继续。系统到confirm后需审阅完整Brief，再显式提供`--approve-file approval.json`；格式复用Clarify探针的session_id/brief_version/research_brief。未提供确认文件不会启动Run，不能与cancel/resume action混用。

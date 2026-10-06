@@ -1,6 +1,7 @@
 """Observe/control an explicitly selected accepted Run over live HTTP/SSE.
 
-First use verify_clarify_http to create/clarify and explicitly approve a Brief.
+Create/clarify with --query/--answers-file; --approve-file is explicit approval.
+An existing accepted --session without these options is observed read-only.
 This probe never approves model assumptions or starts another Run on reconnect.
 Model-mode is an operator declaration, not proof of real business execution.
 """
@@ -9,6 +10,7 @@ import argparse
 import asyncio
 import json
 import math
+from pathlib import Path
 from urllib.parse import urlsplit
 from uuid import UUID, uuid4
 
@@ -16,7 +18,8 @@ import httpx
 from pydantic import TypeAdapter, ValidationError
 
 from domain.research.run_events import RunFrame
-from scripts.verify_clarify_http import VerificationError
+from scripts.verify_clarify_http import VerificationError, _read_json
+from scripts.verify_clarify_http import verify as clarify
 
 _frames = TypeAdapter(RunFrame)
 
@@ -109,7 +112,11 @@ async def verify(http, *, session_id, action=None):
 async def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--url", default="http://127.0.0.1:8000")
-    parser.add_argument("--session", required=True)
+    initial = parser.add_mutually_exclusive_group(required=True)
+    initial.add_argument("--session")
+    initial.add_argument("--query", help="public test query; does not implicitly approve Brief")
+    parser.add_argument("--answers-file", type=Path)
+    parser.add_argument("--approve-file", type=Path)
     parser.add_argument("--action", choices=["cancel", "resume"])
     parser.add_argument("--model-mode", required=True, choices=["real", "controlled"])
     parser.add_argument("--timeout", type=float, default=120)
@@ -132,7 +139,34 @@ async def main(argv=None):
             asyncio.timeout(args.timeout),
             httpx.AsyncClient(base_url=args.url, timeout=args.timeout) as http,
         ):
-            result = await verify(http, session_id=args.session, action=args.action)
+            session_id = args.session
+            if (
+                args.query is not None
+                or args.answers_file is not None
+                or args.approve_file is not None
+            ):
+                if args.action is not None:
+                    raise VerificationError(
+                        "Clarify inputs cannot be combined with a Run control action"
+                    )
+                result = await clarify(
+                    http,
+                    query=args.query,
+                    session_id=session_id,
+                    answers=_read_json(args.answers_file),
+                    approval=_read_json(args.approve_file),
+                )
+                session_id = result["view"]["session_id"]
+                if result["view"]["run_id"] is None:
+                    print(
+                        json.dumps(
+                            result
+                            | {"status": result["view"]["status"], "model_mode": args.model_mode},
+                            ensure_ascii=False,
+                        )
+                    )
+                    return 0
+            result = await verify(http, session_id=session_id, action=args.action)
         print(json.dumps(result | {"model_mode": args.model_mode}, ensure_ascii=False))
         return 0
     except (VerificationError, httpx.HTTPError, TimeoutError) as exc:

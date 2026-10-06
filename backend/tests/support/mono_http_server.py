@@ -4,6 +4,7 @@ import asyncio
 import json
 import os
 import re
+import signal
 from urllib.parse import urlsplit
 
 from application.bootstrap import HttpRuntime
@@ -68,6 +69,13 @@ def create_run_test_app():
         raise RuntimeError("Controlled Run server requires isolated PG and MinIO")
 
     class Runtime(HttpRuntime):
+        async def prepare(self):
+            await super().prepare()
+            if os.environ.get("DR4A_TEST_PAUSE") == "confirm":
+                # Freeze and idempotency commit have finished before this wake.
+                # SIGSTOP is an exact test window, SIGKILL is sent by the parent.
+                self.research.wake = lambda: os.kill(os.getpid(), signal.SIGSTOP)
+
         async def aclose(self):
             try:
                 await super().aclose()
@@ -83,12 +91,25 @@ def create_run_test_app():
     )
 
     def executor(runtime):
+        async def before_worker(value, context):
+            pause = os.environ.get("DR4A_TEST_PAUSE")
+            if pause == "rework" and value.phase == "write" and value.values["draft_version"] == 1:
+                await asyncio.Event().wait()
+            if pause == "research" and value.phase == "research":
+                while not await context.cancel_check():
+                    await asyncio.sleep(0.02)
+
         driver = RunDriver(
             store=runtime.repository_store,
             cache=cache,
             executor=PhaseExecutor(
                 dict.fromkeys(
-                    ["plan", "research", "analyze", "write", "review"], controlled_worker([])
+                    ["plan", "research", "analyze", "write", "review"],
+                    controlled_worker(
+                        [],
+                        rework=os.environ.get("DR4A_TEST_REWORK") == "1",
+                        before_worker=before_worker,
+                    ),
                 )
             ),
             model=ModelBinding(

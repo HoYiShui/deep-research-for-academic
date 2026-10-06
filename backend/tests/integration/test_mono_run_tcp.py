@@ -11,6 +11,61 @@ from scripts.verify_run_http import verify as verify_run
 from tests.integration.test_verify_clarify_http import server
 
 
+async def probe(url, *arguments):
+    process = await asyncio.create_subprocess_exec(
+        sys.executable,
+        "-m",
+        "scripts.verify_run_http",
+        "--url",
+        url,
+        "--model-mode",
+        "controlled",
+        *arguments,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
+    )
+    try:
+        stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=20)
+    finally:
+        if process.returncode is None:
+            process.kill()
+            await process.wait()
+    assert process.returncode == 0, stderr.decode()
+    return json.loads(stdout)
+
+
+async def test_probe_cli_creates_answers_then_requires_explicit_approval(
+    pg_database, object_cache, tmp_path
+):
+    pool, database = pg_database
+    async with server(database, run_bucket=object_cache.bucket) as url:
+        asked = await probe(url, "--query", "Public controlled question")
+        assert asked["status"] == "ask"
+        assert await pool.fetchval("SELECT count(*) FROM research_runs") == 0
+        session = asked["view"]["session_id"]
+        answers = tmp_path / "answers.json"
+        answers.write_text(json.dumps([{"content": "Public evaluation"}]))
+        confirmation = await probe(url, "--session", session, "--answers-file", str(answers))
+        assert confirmation["status"] == "confirm" and confirmation["approval_required"]
+        assert await pool.fetchval("SELECT count(*) FROM research_runs") == 0
+        approval = tmp_path / "approval.json"
+        approval.write_text(
+            json.dumps(
+                {
+                    "session_id": session,
+                    "brief_version": confirmation["view"]["brief_version"],
+                    "research_brief": confirmation["view"]["research_brief"],
+                }
+            )
+        )
+        completed = await probe(url, "--session", session, "--approve-file", str(approval))
+        assert completed["status"] == "completed"
+        assert completed["view"]["checkpoint_seq"] == 20
+        assert completed["model_mode"] == "controlled"
+        assert await pool.fetchval("SELECT count(*) FROM research_runs") == 1
+        assert await pool.fetchval("SELECT count(*) FROM reports") == 1
+
+
 async def test_confirm_live_driver_report_and_reconnect_after_process_restart(
     pg_database, object_cache
 ):
