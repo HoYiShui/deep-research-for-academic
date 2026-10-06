@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock, patch
 import pytest
 
 from domain.ports import AdapterError
-from domain.research.agents import architect
+from domain.research.agents import architect, structured
 from domain.research.models import PartialResearchBrief, SourceSelection
 from infrastructure.llm.deepseek import DeepSeekLLM
 from tests.unit.test_mono_clarify import assessment, core
@@ -67,7 +67,7 @@ async def test_total_calls_include_network_failure_and_schema_repair(monkeypatch
             ]
         )
     )
-    monkeypatch.setattr(architect, "_retry_pause", AsyncMock())
+    monkeypatch.setattr(structured, "_retry_pause", AsyncMock())
     assert (await invoke(model)).brief_patch.task_type == "evaluation_design"
     assert model.complete.await_count == 3
 

@@ -190,6 +190,10 @@ def _append_map(existing, additions, *, mutable=()):
             record = type(record).model_validate(
                 record.model_dump() | {"provenance": list(provenance.values())}
             )
+        if old is not None and "spec_ids" in mutable:
+            record = type(record).model_validate(
+                record.model_dump() | {"spec_ids": sorted(set(old.spec_ids) | set(record.spec_ids))}
+            )
         result[key] = record
     return result
 
@@ -233,18 +237,27 @@ def merge_phase_result(state, result, *, target_sections=None, target_requiremen
             if plan.section_id in sections
             for spec in plan.claim_specs
         }
-        if any(not set(claim.spec_ids) <= specs for claim in changes.get("claims", {}).values()):
+        if any(
+            not set(claim.spec_ids) & specs
+            or not set(claim.spec_ids)
+            <= (
+                specs | set(state.claims[claim.claim_id].spec_ids)
+                if claim.claim_id in state.claims
+                else specs
+            )
+            for claim in changes.get("claims", {}).values()
+        ):
             raise ValueError("Research claim escapes its target sections")
         combined_claims = state.claims | changes.get("claims", {})
         if any(
             link.claim_id not in combined_claims
-            or not set(combined_claims[link.claim_id].spec_ids) <= specs
+            or not set(combined_claims[link.claim_id].spec_ids) & specs
             for link in changes.get("claim_evidence_links", [])
         ):
             raise ValueError("Research relation escapes its target claims")
         for name in ("sources", "evidence", "claims", "quantitative_observations"):
             mutable = (
-                {"status", "status_reason"}
+                {"status", "status_reason", "spec_ids"}
                 if name == "claims"
                 else {"provenance"}
                 if name == "sources"

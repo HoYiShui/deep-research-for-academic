@@ -211,19 +211,24 @@ class Location(Record):
         return self
 
 
+EvidenceType = Literal[
+    "method",
+    "protocol",
+    "result_table",
+    "limitation",
+    "dataset_description",
+    "code_configuration",
+    "standard_clause",
+    "other",
+]
+ClaimType = Literal["factual", "empirical_comparison", "hypothesis", "recommendation"]
+ObservationKind = Literal["benchmark_result", "dataset_stat", "hyperparameter", "resource_cost"]
+
+
 class Evidence(Record):
     evidence_id: Text
     source_id: Text
-    evidence_type: Literal[
-        "method",
-        "protocol",
-        "result_table",
-        "limitation",
-        "dataset_description",
-        "code_configuration",
-        "standard_clause",
-        "other",
-    ]
+    evidence_type: EvidenceType
     location: Location
     quote_or_raw_content: Text
     extraction_method: Text
@@ -234,7 +239,7 @@ class Claim(Record):
     claim_id: Text
     spec_ids: NonemptyTexts
     text: Text
-    claim_type: Literal["factual", "empirical_comparison", "hypothesis", "recommendation"]
+    claim_type: ClaimType
     conditions: Attributes
     status: Literal["open", "supported", "limited", "refuted", "insufficient"]
     status_reason: Text
@@ -270,7 +275,7 @@ class SectionCoverage(Record):
 class QuantitativeObservation(Record):
     observation_id: Text
     evidence_id: Text
-    kind: Literal["benchmark_result", "dataset_stat", "hyperparameter", "resource_cost"]
+    kind: ObservationKind
     row_key: Attributes
     column_key: Attributes
     raw_value: Text

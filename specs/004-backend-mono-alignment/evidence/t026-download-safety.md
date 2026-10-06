@@ -105,3 +105,27 @@ uv run pytest -q --tb=short tests/integration/test_mono_fetch_tools.py tests/int
 最终全量 **833 passed in 141.93s**；Ruff/format和 `git diff --check` 通过。测试仅创建并清理唯一隔离数据库/桶；无推送。
 
 **不是公网原文/PDF或正式研究Agent验收。** 搜索provider和业务worker为受控fixture，Source/Evidence门在测试中验证，未由正式worker提交事实。正式research抽取、Claim/Observation、受限追溯、真正MinerU PDF及CLI仍缺；T020/T026/T027/T043继续不勾选。用户库/volumes、`.env`和 `docs/implementation/` 不变。
+
+## 正式research worker与原文抽取（T023/T027部分）
+
+实现 `application/phase_workers.py::research_worker` 和 `domain/research/agents/extraction.py`，不调用legacy Scout。Architect与研究抽取复用移出的 `agents/structured.py`；原来的重试/修复实现已从Architect删除，避免复制两套有界循环。
+
+- 模型只提出当前章节Spec下的原文quote、SRO/conditions/关系和Observation，不接受模型给出的Source/Evidence/Claim ID、位置、status。代码生成稳定ID，Claim的条件变化产生新ID；Spec关联不是自然键，跨章同一Claim追加关联而不制造重复Claim，不能借此新增目标章之外的Spec或覆盖既有主张内容。
+- Quote和完整表格/公式范围、块索引、Spec/关系引用、raw值/单位/标签、原始数值/uncertainty均校验。无关系先insufficient，coverage依据来源门、显式条件与支持/限制/反驳重算；共享Claim会考虑全部已关联Spec的要求。
+- Observation不换算百分比、不计算差值，保留raw值和原始source_block/caption/notes。原文明确的十进制零不会因模型漏value变成null；缺失/歧义数字仍null。数值子串不能截取另一个原数字。这里的机械范围校验不证明模型语义/表格行列归属已正确，仍需Analyze/Critic和真实抽查。
+- 查询单元Search→授权Fetch→原文抽取→Source/Evidence/Claim/Link/Observation/coverage作为完整PhaseResult交给既有单元提交；coverage单元不重新搜索。真正空结果保留未满足Spec的Gap；全部provider失败明确失败；存储/hash/控制错误不当来源降级。
+- 每query最多检查4个去重原文目标；以查询/anchor相关词排序选择完整原文块，最多12块/32KiB JSON。不切块、不裁表；未检查的候选/块作为degradation记录，不宣称整篇已读。提取prompt上限96KiB，输出上限64K字符。未实现追溯/定向补查或“预算耗尽后最终收缩”，不能把候选/块上限当这些能力的替代品。
+
+验证：
+
+```bash
+uv run pytest -q --tb=short tests/unit/test_scout_extraction.py tests/unit/test_phase_contracts.py tests/unit/test_scout_originals.py tests/integration/test_mono_research_worker.py tests/integration/test_mono_phase_tools.py
+```
+
+**81 passed in 4.98s**。新的Driver集成真正运行plan_worker/research_worker（模型和搜索结果受控），HTTP下载器/HTML Parser/PG/MinIO真实：五章10个research单元各有checkpoint，到analyze时seq=14；同一原文1次Fetch，最终1 Source/1 Evidence/1共享Claim（spec-1..5）/1 Observation，五章coverage回链。空搜索零Fetch/零原文/零Claim，但各Spec有Gap。Analyze未注册，Driver明确未配置失败，没有Report或假completed。
+
+结构化反例包括裁切表格、越界原文、章节越权、未知引用、虚构值/误归一化、unit/header/uncertainty捏造、重复quote键、条件新ID、零值，以及一次quote修复后成功或明确失败。
+
+**尚未提供CLI正式research或真实供应商/公网论文证据。** KB请求明确未配置，受限追溯/补查、相关派生数据返工失效、MinerU、CLI默认/HTTP组合仍未完成。T023/T027继续不勾选；用户数据/配置不变。
+
+首次全量848通过/1失败：旧测试仍mock Architect已迁出的私有重试函数。迁到共享structured模块后定向19项通过，最终全量 **849 passed in 144.95s**；Ruff/format（10文件）及diff检查通过。无真实供应商付费调用、无用户数据改动或推送。

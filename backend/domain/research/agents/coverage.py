@@ -18,6 +18,8 @@ def section_coverage(
     evidence: dict[str, Evidence],
     sources: dict[str, SourceRecord],
     links: list[ClaimEvidenceLink],
+    *,
+    all_specs=None,
 ) -> tuple[dict[str, Claim], SectionCoverage]:
     """Return relevant status updates and coverage from already-verified facts.
 
@@ -41,6 +43,7 @@ def section_coverage(
         if link.claim_id not in claims or link.evidence_id not in evidence:
             raise ValueError("Claim link contains an unknown reference")
     specs = {spec.spec_id: spec for spec in plan.claim_specs}
+    global_specs = specs if all_specs is None else all_specs
     updates, used, covered, gaps = {}, set(), set(), []
     covered_specs = set()
     for claim_id, claim in claims.items():
@@ -53,8 +56,11 @@ def section_coverage(
         refutes = any(link.relation == "refutes" for link in relations)
         limits = any(link.relation == "limits" for link in relations)
         qualified = set()
-        for spec_id in relevant:
-            spec = specs[spec_id]
+        required = set(claim.spec_ids) if all_specs is not None else relevant
+        for spec_id in required:
+            if spec_id not in global_specs:
+                raise ValueError("Claim references an unknown ClaimSpec")
+            spec = global_specs[spec_id]
             conditions_present = all(
                 field in claim.conditions and claim.conditions[field] not in (None, "", [])
                 for field in spec.required_conditions
@@ -74,7 +80,7 @@ def section_coverage(
             )
         elif refutes:
             status, reason = "refuted", "Evidence refutes this claim; support is absent"
-        elif qualified == relevant:
+        elif qualified == required:
             status, reason = (
                 "supported",
                 "Support meets all relevant source-tier and condition requirements",
@@ -87,7 +93,7 @@ def section_coverage(
         updates[claim_id] = claim.model_copy(update={"status": status, "status_reason": reason})
         if status == "supported":
             covered.add(claim_id)
-            covered_specs.update(qualified)
+            covered_specs.update(qualified & relevant)
         else:
             for spec_id in sorted(relevant):
                 gaps.append(
