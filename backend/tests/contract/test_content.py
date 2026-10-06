@@ -4,6 +4,8 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
+from domain.ports import AdapterError
+
 from infrastructure.parser.pdf import HttpFetch, MinerUParser, MinioContentStore
 
 
@@ -19,6 +21,8 @@ async def test_http_fetch_returns_text() -> None:
 
 @pytest.mark.asyncio
 async def test_minio_content_store_and_parser_have_interface() -> None:
-    assert await MinioContentStore().get("c1") == ""
+    with pytest.raises(AdapterError) as failure:
+        await MinioContentStore().get("c1")
+    assert failure.value.code == "content_store_not_configured"
     parsed = await MinerUParser().parse("x.pdf")
     assert set(parsed) == {"text", "tables", "formulas"}

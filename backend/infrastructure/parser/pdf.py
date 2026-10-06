@@ -8,6 +8,8 @@ from __future__ import annotations
 
 import httpx
 
+from domain.ports import AdapterError
+
 
 class MinerUParser:
     """Parse a PDF into structured text (body + tables + formulas)."""
@@ -19,14 +21,24 @@ class MinerUParser:
 
 
 class MinioContentStore:
-    """ContentStorePort implementation backed by MinIO."""
+    """Unmigrated legacy chunk interface; never pretend missing content is valid.
+
+    Tool result persistence uses infrastructure.storage.content_cache instead.
+    Document/chunk lifecycle storage is implemented in the ingestion tasks.
+    """
 
     def __init__(self) -> None:
         self._bucket = None
 
     async def get(self, chunk_id: str) -> str:
         """Read a chunk's text from MinIO."""
-        return ""  # wired in S4; placeholder satisfies the contract
+        raise AdapterError(
+            "minio",
+            "content_store_not_configured",
+            "Document content storage is not configured",
+            False,
+            "get",
+        )
 
 
 class HttpFetch:
