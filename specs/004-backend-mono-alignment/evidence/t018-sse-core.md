@@ -39,3 +39,23 @@ T018仍未全完成：JWT截止传递、全套source_degraded/rework/后续阶�
 扩大回归：`uv run --no-sync pytest -q tests/integration/test_tui_live_http.py tests/integration/test_mono_run_tcp.py tests/integration/test_mono_process_recovery.py tests/integration/test_mono_sse.py --tb=short`：**22 passed in 53.58s**。改动测试的Ruff/format与`git diff --check`通过；本批没有全量回归声明。
 
 此验证不涉及收费模型、真实论文或终端布局；T060整体业务/终端交接与T018其它事件仍未全部验收，保持未完成。资源仅fixture生成的`dr4a_test_<uuid>`数据库与`dr4a-test-<uuid>`bucket，结束清理仅这些确切资源；用户历史库、备份/恢复卷、.env和docs/implementation未修改。
+
+## T060客户端契约交接完成复核（2026-10-07）
+
+基线`5a72717`。上文为历史controller证据；此批补终端入口，不再以其它任务的业务质量要求阻止客户端自身任务完成。T060的范围是客户端HTTP/SSE交接；T039真实业务报告、T053正式认证、T050私有KB仍独立且未完成。
+
+实际`node --import tsx src/main.ts`在本测试创建的POSIX PTY中启动pi-tui，不替换App/Editor/Terminal；父进程经PTY写键盘输入、读取真实渲染输出。后端为独立TCP进程，PG与MinIO为真实隔离fixture；模型/业务报告明确受控，不宣称all-real研究。
+
+完成条目与当前证据：
+
+- 版本/幂等键/确认：api-client和ResearchSession传当前brief_version与请求键；单测证明网络失败重试保留原body/version/key，409只GET不隐式确认。活HTTP脚本/SQL证明Clarify和退回不建Run，明确确认才冻结一份Brief/唯一Run；PTY直接敲/confirm同样成立。
+- SourceSelection/SessionView：来源类别及KB IDs按mono序列化；类型补齐knowledge_base枚举并测试服务端404仍原样翻译为ApiError，不替客户端猜测支持。UI的/sources仍只选公开papers/web。GET/open/status读取持久状态，客户端保留返回字段、拒绝未知status和缺少十字段string的确认Brief。
+- 错误/身份：匿名请求不发token/cookie；HTTP失败使用标准ApiError/code/request_id。401客户端测试通过，App.error对401明确解释匿名开发模式，不声称验证了正式JWT。
+- SSE/恢复：事件ID去重而非seq，同seq多progress保留；失败done不取报告，未知done拒绝；EOF/stop只GET/重订阅，不发启动/恢复。活HTTP+SIGKILL重启验证已提交Run事实、显式resume同Run/seq和缓存成功plan不重发。
+- 交互/终态：controller脚本真实HTTP覆盖多轮/退回/确认/进度/运行取消/恢复/报告；PTY第一条从真实界面输入到cancelled，SQL核对attempt=0/reports=0，显示CLI dump提示并正常Ctrl+C退出。PTY第二条看到query_completed、needs_more_work、Report和References；SQL核对completed/seq=20/attempt=1/1Report，运行完成与受控报告质量仍分开。
+
+首条PTY **1 passed in 2.09s**；两条PTY+三条活HTTP客户端：`uv run --no-sync pytest -q tests/integration/test_tui_terminal.py tests/integration/test_tui_live_http.py --tb=short`：**5 passed in 25.46s**。TUI `npm test` **13 passed**，typecheck通过；Ruff/format/diff检查通过。
+
+类型对齐后同一PTY/活HTTP目标集复跑 **5 passed in 26.15s**；本批未重跑整个后端，不将上批935通过冒充本批全量结果。
+
+这组证据满足T060客户端自身的脚本化活后端验收，不把mock客户端测试替代HTTP集成，也不把受控Report替代T039真实报告验收。无收费供应商调用、不变更Agent/共享Schema/.env或用户历史资源；只清测试专属PTY/子进程/数据库/bucket。T018未完成项仍不勾选。

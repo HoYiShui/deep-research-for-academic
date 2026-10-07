@@ -5,7 +5,7 @@ export class ApiError extends Error {
     readonly retryable = false, readonly requestId?: string) { super(message); }
 }
 export type RecordValue = Record<string, unknown>;
-export type SourceSelection = { categories: ("papers" | "web")[]; knowledge_base_ids: string[] };
+export type SourceSelection = { categories: ("papers" | "web" | "knowledge_base")[]; knowledge_base_ids: string[] };
 export type Session = RecordValue & { session_id: string; status: string; brief_version: number };
 export type SseEvent = { event: string; data: RecordValue; id?: string };
 export type RequestOptions = { key?: string; signal?: AbortSignal };

@@ -76,3 +76,11 @@ phase 也接受 dump/phase 的 JSON 结果外壳，可直接 `--state dump.json`
 `npm test`、`npm run typecheck` 验证客户端控制逻辑。后端 `tests/integration/test_tui_live_http.py` 使用真实 TCP FastAPI/PG 与 TypeScript 客户端验证多轮/退回/确认/SSE/CLI dump/取消终态，但模型受控；不是报告或 Research 质量验收。
 
 同一集成集还验证运行中取消、后端SIGKILL后重新打开会话、显式resume保留Run/seq、query进度与受控报告读取（真实PG/MinIO，模型受控）。它不验证终端布局或真实报告质量；`completed`与`review_verdict`仍必须分开理解。
+
+`tests/integration/test_tui_terminal.py`另启动真正`src/main.ts`和pi-tui到POSIX伪终端，通过键盘输入验证Brief展示/显式确认/取消/CLI提示，以及SSE query进度和受控报告渲染；它不评价终端样式或真实报告质量。可在backend运行：
+
+```bash
+uv run --no-sync pytest -q tests/integration/test_tui_terminal.py tests/integration/test_tui_live_http.py
+```
+
+底层HTTP客户端的SourceSelection类型与mono三种类别一致；交互命令`/sources`仍只支持papers/web，不提供KB调试界面，也不据此宣称后端已支持KB。

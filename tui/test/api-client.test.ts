@@ -29,6 +29,24 @@ test("structured failures become ApiError", async () => {
   try { await assert.rejects(() => new ResearchApiClient(server.baseUrl).createResearch("q", { categories: ["papers"], knowledge_base_ids: [] }), (error: unknown) => error instanceof ApiError && error.statusCode === 401 && error.code === "unauthenticated"); } finally { await server.close(); }
 });
 
+test("typed source selection preserves knowledge-base scope without claiming backend support", async () => {
+  const id = "00000000-0000-4000-8000-000000000002";
+  const server = await fixture((request, response) => {
+    let body = "";
+    request.on("data", chunk => body += chunk);
+    request.on("end", () => {
+      assert.deepEqual(JSON.parse(body), { query: "public research", sources: ["knowledge_base"], knowledge_base_ids: [id] });
+      response.writeHead(404, { "content-type": "application/json" });
+      response.end(JSON.stringify({ error: { code: "knowledge_base_not_found", message: "Unavailable scope", retryable: false } }));
+    });
+  });
+  try {
+    await assert.rejects(() => new ResearchApiClient(server.baseUrl).createResearch("public research", {
+      categories: ["knowledge_base"], knowledge_base_ids: [id],
+    }), error => error instanceof ApiError && error.code === "knowledge_base_not_found");
+  } finally { await server.close(); }
+});
+
 test("SSE handles CRLF split across chunks and retains JSON unicode", async () => {
   const server = await fixture((_, response) => {
     response.writeHead(200, { "content-type": "text/event-stream" });
