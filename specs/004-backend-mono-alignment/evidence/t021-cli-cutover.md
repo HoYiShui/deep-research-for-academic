@@ -89,3 +89,16 @@ SIGINT/SIGTERM设置停止请求；在同一PG事务核对worker/owner/run/未�
 中间全量 **798 passed in 135.25s**；随后全量暴露1个HTTP测试竞态（798 passed/1 failed）：独立SQL观察到completed不代表finished回调已经执行。测试改为等所持Runner task结束再断言回调，不延迟或修改PG发布事实。此点体现投影在持久事实之后，而不是业务失败被忽略。
 
 最终完整版本全量 **801 passed in 138.26s**；ruff/format及git diff --check通过。未修改用户历史库、恢复卷、.env或docs/implementation；本批仅唯一测试PG/bucket，未向真实供应商收费。
+## 旧smoke入口退役（2026-10-07）
+
+范围：T059部分，开发者调试交接；不涉及Agent prompt/tool、Serializer或共享Schema变更。
+
+发现：`scripts/smoke_e2e.py`直接调用旧Service，隐式同意默认假设并声称完整real E2E；`scripts/smoke_real.py`默认收费调用模型并向硬编码5433的旧库写固定`smoke-1`记录。两者不符合mono HTTP验收与隔离测试约定。
+
+修改：保留两个可执行入口，但只打印退役原因和`cli doctor`、`verify_clarify_http`、`verify_run_http`替代命令到stderr，退出2；不加载环境文件或Adapter，不发请求、不写数据库。没有自动重定向到任何可能付费/写入的替代命令。CLI README明确当前real run只注册plan、不保证完整报告，并转向mono权威契约。
+
+验证：`uv run --no-sync pytest -q tests/unit/test_retired_smoke.py tests/unit/test_debug_backend.py`：6 passed。新增4项分别以module/file启动两个旧入口，并通过`python -S`移除site-packages；先验证旧实现4项失败，再验证新实现全部通过。检查退出2、stdout为空、stderr有替代命令且无异常堆栈/凭据canary。此验证是本地入口回归，不是研究E2E，不包含收费模型或真实存储写入。
+
+扩大回归：`uv run --no-sync pytest -q tests/unit/test_retired_smoke.py tests/unit/test_debug_backend.py tests/unit/test_cli_doctor.py tests/unit/test_cli_output.py tests/unit/test_verify_run_http.py tests/integration/test_mono_cli_phase.py`：34 passed in 6.34s；涉及变动Python文件的Ruff与`git diff --check`通过。没有运行全量或真实业务E2E，不以该目标集宣称它们通过。
+
+边界：T059仍未完成；T021完整workers/fake迁移与T056完整能力诊断仍未完成。本次不修改任务全量完成定义。

@@ -197,6 +197,7 @@
 设计：API §1–7；OPS §8 A1–A13。
 
 - [ ] T059 [交接] 更新 `backend/cli/README.md`、现有 `backend/scripts/smoke_e2e.py`/`smoke_real.py` 的用途/命令：移除旧端口、隐式freeze、最高phase恢复和“全real”误称；实现指向mono及新验证入口的准确说明，不再复制API规范。
+  - 2026-10-07外围调试交接：两个旧smoke入口已改为无依赖、无I/O的退役提示，退出2并指向现有HTTP/CLI验证入口；CLI README纠正real run完整报告及历史契约权威误称。模块/文件两种子进程启动共4项反例先失败后通过，连同debug profile共6项通过。完整CLI迁移/交接仍未结束，本任务不勾选。证据：[调试入口清理](evidence/t021-cli-cutover.md#旧smoke入口退役2026-10-07)。
 - [ ] T060 [交接] 更新 `tui/src/api-client.ts`、`app.ts`、`tui/test/api-client.test.ts`：当前brief_version/Idempotency-Key、SourceSelection、SessionView、失败done/统一error、重连只读状态；保留无登录开发用法、401明确解释。用活后端手工/脚本验证多轮、退回、确认、进度、取消、报告，不以客户端mock测试代替HTTP集成。
 - [ ] T061 [交接] 新增 `backend/scripts/verify_mono_suite.py`，调度前述HTTP/phase/KB/deployment验证脚本，逐项声明依赖与结果；缺资源/网络/模型不标通过。跑backend全量pytest、TUI test/typecheck、Web测试/typecheck/build及真实代表性E2E，保存 `evidence/final.md` 对应A1–A13与T066 Web验收，列出未通过项与不能承诺exactly-once的窗口。依赖T063–T066。
 - [ ] T062 [交接] 审核实际代码与五份mono的Schema/枚举/状态码/事务/阶段/隐私/版本一致性，核对三报告引用及失败路径证据；必要设计修订同时修改受影响mono而非局部客户端设计。确认所有完成任务有证据链接，工作区未包含密钥/私有正文/不相关用户文件；只有全部验收通过才宣布后端mono-v1完成。

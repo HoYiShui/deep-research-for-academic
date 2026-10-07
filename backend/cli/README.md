@@ -20,7 +20,7 @@ python -m cli dump <session-id> --json
 | 命令 | 用途 |
 |---|---|
 | `doctor` | 检查真实环境的 env、PostgreSQL、Milvus、MinIO 和模型权重。 |
-| `run --brief FILE` | 用完整冻结 Brief 跑 pipeline 到报告。 |
+| `run --brief FILE` | 跳过 Clarify 执行冻结 Brief；当前 real 仅装配 plan，不能产出完整报告。 |
 | `phase PHASE --state FILE` | 用快照状态只执行一个 phase。 |
 | `dump SESSION_ID` | 从 PostgreSQL 读取当前 Run 的最新 seq，不按阶段倒序。 |
 | `ingest PDF` / `search QUERY` | 独立调试知识库入库与检索。 |
@@ -82,7 +82,18 @@ Observation 的表格 `raw_value` 必须来自完整单元格，不能截取系�
 - `--quiet`：`run` 时省略事件。
 - 退出码：`0` 成功、`1` 运行失败、`2` 用法/调试输入错误、`3` 环境错误。
 
-正式契约见 [`specs/002-cli/contracts/cli.md`](../../specs/002-cli/contracts/cli.md)；冻结 Brief 与报告约定见 `specs/001-deep-research-agent/`。
+当前设计权威是 [mono CLI 契约](../../docs/mono/api-contract.md#5-cli-契约) 与 [mono 数据模型](../../docs/mono/data-model.md)。`specs/002-cli/` 和 `specs/001-deep-research-agent/` 是历史需求，冲突的实现设计不优先于 mono。
+
+## 验证入口与历史脚本
+
+`scripts.smoke_e2e` 与 `scripts.smoke_real` 已退役，执行只输出替代入口并以退出码 2 结束，不加载 `.env`、不请求模型、不写数据库。它们旧有的自动同意默认假设、直接调用旧 Service、硬编码数据库和“全真实 E2E”声明不能用于当前验收。
+
+- 依赖连通诊断：`uv run python -m cli doctor --json`，不收费调用模型；通过不等于模型、Parser、执行器或完整研究可用。
+- Clarify HTTP：`uv run python -m scripts.verify_clarify_http --help`，支持用户明确提供回答与审阅后的确认文件；不自动确认任务书。
+- Run HTTP/SSE：`uv run python -m scripts.verify_run_http --help`，已有会话的观察默认只读，取消/恢复需显式 action。
+- 单阶段：上文的 `verify_cli_plan` / `verify_research_phase`；`--real` 会产生相应模型/检索调用，不把缺证据或网络失败记录为通过。
+
+开发入口推荐 `scripts.debug_backend` 与 TUI，使用独立 `dr4a_debug` 数据库。当前本机 PostgreSQL 已恢复到新卷，原 Compose 定义仍指向损坏旧卷：**不要运行 `docker compose up postgres` 或 `services.sh restart`**。本段是当前本机交接警告，不改变 mono 的目标部署设计。
 
 ## mono 状态读取
 
