@@ -1,0 +1,12 @@
+{
+  "task_type": "evaluation_design",
+  "decision_goal": "核对Transformer base与big在同一公开论文中报告的BLEU及比较条件，判断哪些值可以进入评估协议映射",
+  "research_object": "Attention Is All You Need (arXiv:1706.03762v7)中的Transformer base与big",
+  "scope": "仅使用公开论文原文，重点核对Table 2和对应实验描述，不开展新实验",
+  "comparison_scope": "分别处理newstest2014 EN-DE与EN-FR，不跨语言任务或不同协议排序",
+  "claims_to_verify": "base与big的BLEU原始单元格及对应语言、测试集、训练和解码条件；FLOPs合并列是否能可靠读取",
+  "evidence_requirements": "公开原文完整表格、caption、页码和hash；Observation必须来自完整单元格，含糊科学计数法保留原文但数值为null",
+  "conclusion_boundary": "不把搜索摘要作为正文；不修补Parser误识别；不以单篇论文证明当前SOTA；缺原文或缺协议明确Gap",
+  "deliverable": "固定结构的评估设计报告，包含协议—指标—结论映射、证据风险和可回链参考文献；本轮CLI先验证plan和research快照",
+  "assumptions": "用于公开业务能力调试；不声称执行了训练或计时实验"
+}

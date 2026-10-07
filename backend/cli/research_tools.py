@@ -9,6 +9,8 @@ from domain.research.ids import canonical_hash
 from domain.research.search import SearchBatch, SearchOutcome
 from infrastructure.fetch.document import HTTPDocumentFetch
 from infrastructure.parser.html import HTML_PARSER_VERSION, HTMLDocumentParser
+from infrastructure.parser.mineru_output import MINERU_PARSER_VERSION
+from infrastructure.parser.pdf import MinerUDocumentParser
 from infrastructure.search.arxiv import ArxivSearch
 from infrastructure.search.bocha import BochaSearch
 from infrastructure.search.composite import CompositeSearch
@@ -22,10 +24,8 @@ class ResearchDebugTools:
         self.unit, self.candidates, self.results = None, {}, {}
         if fake:
             return
-        if config.versions.parser_version != HTML_PARSER_VERSION:
-            raise output.EnvError(
-                "Research debug currently requires parser_version=dr4a-html-v1; PDF Parser is not configured"
-            )
+        if config.versions.parser_version not in {HTML_PARSER_VERSION, MINERU_PARSER_VERSION}:
+            raise output.EnvError("Research debug parser version is not configured")
         self.scope = uuid4()  # Never write content under the input snapshot's Run ID.
         self.usage["artifact_scope"] = str(self.scope)
         timeout = max(0.1, config.timeouts_s.search - 1)
@@ -48,9 +48,18 @@ class ResearchDebugTools:
             settings.minio_bucket,
             secure=settings.minio_secure,
         )
-        self.parser = HTMLDocumentParser(self.store)
+        self.parser = (
+            HTMLDocumentParser(self.store)
+            if config.versions.parser_version == HTML_PARSER_VERSION
+            else MinerUDocumentParser(
+                self.store, settings.mineru_models_dir, timeout_s=config.timeouts_s.parser
+            )
+        )
         self.fetch = HTTPDocumentFetch(
-            self.store, self.parser, ParserConfig(parser_version=HTML_PARSER_VERSION), self.scope
+            self.store,
+            self.parser,
+            ParserConfig(parser_version=config.versions.parser_version),
+            self.scope,
         )
 
     def for_unit(self, unit):
@@ -85,6 +94,22 @@ class ResearchDebugTools:
 
             batch = await self.search.search_batch(
                 payload["query"], categories=categories, invoke=attempt
+            )
+            self.usage.setdefault("search_outcomes", []).append(
+                {
+                    "unit_id": self.unit.unit_id,
+                    "outcomes": [
+                        {
+                            "source": item.source,
+                            "status": item.status,
+                            "attempts": item.attempts,
+                            "failure": (
+                                item.failure.model_dump(mode="json") if item.failure else None
+                            ),
+                        }
+                        for item in batch.outcomes
+                    ],
+                }
             )
             self.candidates.update({canonical_hash(item): item for item in batch.items})
             return batch.model_dump(mode="json")

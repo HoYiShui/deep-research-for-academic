@@ -9,6 +9,8 @@ from pydantic import Field, StrictInt, model_validator
 
 from domain.research.agents.originals import evidence_from_original, validate_original
 from domain.research.agents.structured import complete
+from domain.research.agents.table_values import cell_values
+from domain.research.agents.table_values import normalized as _normalized
 from domain.research.facts import (
     Attributes,
     Claim,
@@ -63,10 +65,6 @@ class ExtractionOutput(Record):
     evidence: Annotated[list[QuoteDraft], Field(max_length=32)]
     claims: Annotated[list[ClaimDraft], Field(max_length=32)]
     observations: Annotated[list[ObservationDraft], Field(max_length=64)]
-
-
-def _normalized(value):
-    return " ".join(value.split())
 
 
 def materialize(output, *, source, fetched, parsed, spec_ids, block_ids):
@@ -125,7 +123,10 @@ def materialize(output, *, source, fetched, parsed, spec_ids, block_ids):
         if draft.evidence_key not in keys:
             raise ValueError("Observation references an unknown original quote")
         quote, block = keys[draft.evidence_key]
-        if draft.raw_value not in quote.quote_or_raw_content:
+        if block.type == "table":
+            if _normalized(draft.raw_value) not in cell_values(block.content):
+                raise ValueError("Observation raw value must be one complete original table cell")
+        elif draft.raw_value not in quote.quote_or_raw_content:
             raise ValueError("Observation raw value is absent from its original evidence")
         if draft.unit and draft.unit not in quote.quote_or_raw_content:
             raise ValueError("Observation unit is absent from original evidence")
@@ -135,7 +136,8 @@ def materialize(output, *, source, fetched, parsed, spec_ids, block_ids):
             rf"\s*({number})(?:\s*±\s*({number}))?\s*(?:{suffix})?\s*", draft.raw_value
         )
         if (
-            numeric is not None
+            block.type != "table"
+            and numeric is not None
             and re.search(
                 r"(?<![0-9A-Za-z_.+\-])" + re.escape(draft.raw_value) + r"(?![0-9A-Za-z_.])",
                 quote.quote_or_raw_content,
@@ -241,6 +243,8 @@ async def extract(llm, *, source, fetched, parsed, plan, brief, block_ids, timeo
         "Separate hypotheses/recommendations from observed facts. Conditions changing the assertion must be explicit. "
         "Observations are literal observed values only, not proposed protocol numbers. Keep original row/column labels; "
         "no invented headers, units, statistics, splits, uncertainty or resource measurements. Preserve zero; absent is null, not zero. "
+        "For a table, raw_value must be the COMPLETE cell, not a clipped coefficient or exponent. "
+        "Superscripts in cells use ^ and subscripts use _; do not concatenate powers into integers. "
         "Do not normalize percentages/fractions or derive deltas. A value must equal its raw decimal; unreadable/ambiguous is null. "
         "Schema:\n"
         + json.dumps(ScopedOutput.model_json_schema(), ensure_ascii=False)

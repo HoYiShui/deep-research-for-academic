@@ -1,0 +1,733 @@
+{
+  "scope": "isolated_cli_research",
+  "dependency_mode": "real",
+  "persisted_run": false,
+  "result": {
+    "status": "env_error",
+    "error": {
+      "code": "all_search_sources_failed",
+      "message": "All selected search providers failed",
+      "details": null,
+      "retryable": true,
+      "request_id": "c9b9fa5b-23c9-43c3-a05f-f4e82f5224b1"
+    },
+    "phase": "research",
+    "state": {
+      "schema_version": 1,
+      "session_id": "1c71d506-0501-44b2-bd2d-028a0eaae52d",
+      "run_id": "c8f7a79e-2231-450f-ba52-a1ca14e875dd",
+      "brief_version": 1,
+      "brief_hash": "27912a0f84eec754d436c3592a98f18134933d451e74d96c1fba513ee9ce730b",
+      "phase": "research",
+      "research_brief": {
+        "task_type": "evaluation_design",
+        "decision_goal": "核对Transformer base与big在同一公开论文中报告的BLEU及比较条件，判断哪些值可以进入评估协议映射",
+        "research_object": "Attention Is All You Need (arXiv:1706.03762v7)中的Transformer base与big",
+        "scope": "仅使用公开论文原文，重点核对Table 2和对应实验描述，不开展新实验",
+        "comparison_scope": "分别处理newstest2014 EN-DE与EN-FR，不跨语言任务或不同协议排序",
+        "claims_to_verify": "base与big的BLEU原始单元格及对应语言、测试集、训练和解码条件；FLOPs合并列是否能可靠读取",
+        "evidence_requirements": "公开原文完整表格、caption、页码和hash；Observation必须来自完整单元格，含糊科学计数法保留原文但数值为null",
+        "conclusion_boundary": "不把搜索摘要作为正文；不修补Parser误识别；不以单篇论文证明当前SOTA；缺原文或缺协议明确Gap",
+        "deliverable": "固定结构的评估设计报告，包含协议—指标—结论映射、证据风险和可回链参考文献；本轮CLI先验证plan和research快照",
+        "assumptions": "用于公开业务能力调试；不声称执行了训练或计时实验"
+      },
+      "source_selection": {
+        "categories": [
+          "papers"
+        ],
+        "knowledge_base_ids": []
+      },
+      "section_plans": [
+        {
+          "section_id": "section_1",
+          "title": "问题定义与边界",
+          "objective": "定义本次评估设计任务：围绕 arXiv:1706.03762v7 原文 Table 2 及对应实验描述，核对 Transformer base 与 big 在 newstest2014 EN-DE 与 EN-FR 上报告的 BLEU 原始单元格、对应语言/测试集/训练/解码条件和 FLOPs 合并列可读性，并界定哪些值可进入评估协议映射。范围仅限公开论文原文，不开展新实验；EN-DE 与 EN-FR 分别处理，不跨语言任务或不同协议排序；不把搜索摘要作为正文，不修补 Parser 误识别，不以单篇论文证明当前 SOTA；缺原文或缺协议明确时标记 Gap。",
+          "claim_specs": [],
+          "sub_questions": [],
+          "retrieval_anchors": [],
+          "evidence_requirements": [],
+          "analysis_requirements": []
+        },
+        {
+          "section_id": "section_2",
+          "title": "证据基础与待核验发现",
+          "objective": "建立可回链的原文证据基础：定位 arXiv:1706.03762v7 的完整原文、Table 2、caption、页码与 hash；分别对 newstest2014 EN-DE 和 EN-FR 核验 Transformer base/big 的 BLEU 原始单元格、训练/解码条件和 FLOPs 合并列可读性。所有 Observation 必须来自完整单元格；含糊科学计数法保留原文但数值为 null。",
+          "claim_specs": [
+            {
+              "spec_id": "spec_table2_bleu_newstest2014_en_de_base_big",
+              "text": "在 arXiv:1706.03762v7 原文 Table 2 中，Transformer base 与 big 在 newstest2014 EN-DE 上的 BLEU 原始单元格数值及其对应语言、测试集、训练和解码条件可从完整单元格核验；未核验前不得视为已支持。",
+              "required_conditions": [
+                "原文为 arXiv:1706.03762v7 或可核验的同一公开论文完整表格",
+                "使用 Table 2 完整单元格、caption、页码和原文 hash",
+                "语言对为 EN-DE，测试集为 newstest2014",
+                "分别记录 Transformer base 与 big，不混合模型",
+                "训练和解码条件若原文报告则逐项转录；缺失则标记 Gap",
+                "不使用搜索摘要、二手转述或 Parser 修补值"
+              ],
+              "required_source_tiers": [
+                "primary"
+              ]
+            },
+            {
+              "spec_id": "spec_table2_bleu_newstest2014_en_fr_base_big",
+              "text": "在 arXiv:1706.03762v7 原文 Table 2 中，Transformer base 与 big 在 newstest2014 EN-FR 上的 BLEU 原始单元格数值及其对应语言、测试集、训练和解码条件可从完整单元格核验；未核验前不得视为已支持。",
+              "required_conditions": [
+                "原文为 arXiv:1706.03762v7 或可核验的同一公开论文完整表格",
+                "使用 Table 2 完整单元格、caption、页码和原文 hash",
+                "语言对为 EN-FR，测试集为 newstest2014",
+                "分别记录 Transformer base 与 big，不混合模型",
+                "训练和解码条件若原文报告则逐项转录；缺失则标记 Gap",
+                "不使用搜索摘要、二手转述或 Parser 修补值"
+              ],
+              "required_source_tiers": [
+                "primary"
+              ]
+            },
+            {
+              "spec_id": "spec_table2_flops_merged_column_readability",
+              "text": "在 arXiv:1706.03762v7 原文 Table 2 中，Transformer base 与 big 的 FLOPs 合并列是否能可靠读取为明确数值可从完整单元格核验；含糊科学计数法保留原文但数值为 null；未核验前不得视为已支持。",
+              "required_conditions": [
+                "使用 Table 2 完整单元格、caption、页码和原文 hash",
+                "分别记录 Transformer base 与 big 的 FLOPs 列",
+                "若排版或科学计数法含糊，保留原文标记但数值为 null",
+                "不进行 Parser 误识别修补或推断",
+                "不把 FLOPs 可读性用于跨语言或跨协议排序"
+              ],
+              "required_source_tiers": [
+                "primary"
+              ]
+            },
+            {
+              "spec_id": "spec_protocol_controls_metrics_conclusion_mapping",
+              "text": "在原文证据充分时，Transformer base/big 的 BLEU 值、语言/测试集、训练和解码条件可分别映射到评估协议的指标和控制条件；缺原文或缺协议明确时标记 Gap，不跨语言排序，不以单篇论文证明当前 SOTA。",
+              "required_conditions": [
+                "仅使用公开论文原文及相关完整表格/caption/实验描述",
+                "EN-DE 与 EN-FR 分别映射，不跨语言任务或不同协议排序",
+                "每条映射可回链到完整单元格、caption、页码和 hash",
+                "协议字段缺失时标记 Gap，不推断补齐",
+                "结论仅限该论文报告值能否进入评估协议映射，不证明当前 SOTA"
+              ],
+              "required_source_tiers": [
+                "primary"
+              ]
+            }
+          ],
+          "sub_questions": [
+            "如何定位并校验 arXiv:1706.03762v7 的完整原文、Table 2、caption、页码和 hash？",
+            "Table 2 中 Transformer base 与 big 在 newstest2014 EN-DE 的 BLEU 原始单元格数值分别是什么？对应训练和解码条件是什么？",
+            "Table 2 中 Transformer base 与 big 在 newstest2014 EN-FR 的 BLEU 原始单元格数值分别是什么？对应训练和解码条件是什么？",
+            "Table 2 中 FLOPs 合并列对 base 与 big 是否能从完整单元格可靠读取为明确数值？哪些单元格含糊必须保留原文但数值为 null？",
+            "原文哪些 caption、脚注或实验描述定义了这些值对应的数据集、测试集、训练/解码和比较条件？"
+          ],
+          "retrieval_anchors": [
+            "arXiv:1706.03762v7 Attention Is All You Need PDF",
+            "Attention Is All You Need Table 2 BLEU",
+            "newstest2014 EN-DE Transformer base big BLEU",
+            "newstest2014 EN-FR Transformer base big BLEU",
+            "Attention Is All You Need Table 2 FLOPs merged column",
+            "arXiv 1706.03762v7 hash"
+          ],
+          "evidence_requirements": [
+            "公开原文完整 PDF/HTML，含 Table 2、caption、页码和可核验 hash",
+            "Table 2 完整单元格原始值，不使用搜索摘要或二手转述",
+            "按 EN-DE 与 EN-FR 分开记录 base/big BLEU 和对应训练/解码条件",
+            "FLOPs 含糊科学计数法保留原文，数值字段为 null",
+            "所有 Observation 可回链到完整单元格、caption 和页码",
+            "若原文不可得或协议条件缺失，记录 Gap 而非推断"
+          ],
+          "analysis_requirements": []
+        },
+        {
+          "section_id": "section_3",
+          "title": "任务特定核心分析：协议—控制—指标—结论映射",
+          "objective": "在不开展新实验、不跨语言排序的前提下，对已核验的原文单元格执行协议—控制—指标—结论映射：分别针对 newstest2014 EN-DE 与 EN-FR，整理 Transformer base 与 big 的 BLEU 指标、训练/解码控制条件、测试集和 FLOPs 可读性，并判定哪些字段可进入评估协议映射、哪些因原文缺失或含糊只能标记 Gap。",
+          "claim_specs": [
+            {
+              "spec_id": "spec_protocol_controls_metrics_conclusion_mapping",
+              "text": "在原文证据充分时，Transformer base/big 的 BLEU 值、语言/测试集、训练和解码条件可分别映射到评估协议的指标和控制条件；缺原文或缺协议明确时标记 Gap，不跨语言排序，不以单篇论文证明当前 SOTA。",
+              "required_conditions": [
+                "仅使用公开论文原文及相关完整表格/caption/实验描述",
+                "EN-DE 与 EN-FR 分别映射，不跨语言任务或不同协议排序",
+                "每条映射可回链到完整单元格、caption、页码和 hash",
+                "协议字段缺失时标记 Gap，不推断补齐",
+                "结论仅限该论文报告值能否进入评估协议映射，不证明当前 SOTA"
+              ],
+              "required_source_tiers": [
+                "primary"
+              ]
+            }
+          ],
+          "sub_questions": [
+            "对 newstest2014 EN-DE，如何分别用原文完整单元格构建 base 与 big 的协议—指标—结论映射？",
+            "对 newstest2014 EN-FR，如何分别用原文完整单元格构建 base 与 big 的协议—指标—结论映射？",
+            "哪些训练/解码/测试条件字段必须来自原文，缺失时该映射应标记为 Gap？",
+            "FLOPs 合并列可读或不可读分别如何影响协议映射，且为何不用于跨语言排序？",
+            "如何确保映射只支持该论文报告值能否进入评估协议，而不外推当前 SOTA？"
+          ],
+          "retrieval_anchors": [],
+          "evidence_requirements": [
+            "使用 section_2 已定位并核验的完整原文证据",
+            "按 EN-DE 与 EN-FR 分别构建映射，不跨语言排序",
+            "协议字段缺失时标记 Gap，不推断补齐",
+            "不把搜索摘要或 Parser 修补值写入映射",
+            "映射仅覆盖该论文报告值能否进入评估协议，不外推 SOTA"
+          ],
+          "analysis_requirements": []
+        },
+        {
+          "section_id": "section_4",
+          "title": "可支持结论与条件性建议",
+          "objective": "仅基于原文完整单元格和可回链证据，形成关于哪些 Transformer base/big 的 BLEU 原始值、训练/解码/测试条件和 FLOPs 可读性可进入评估协议映射的可支持结论；对每条结论注明条件与边界。若原文缺失、协议条件不完整或单元格含糊，结论只能是 Gap 或需人工复核，不得外推当前 SOTA。给出条件性建议：在证据满足时如何使用对应值进入映射，在证据不满足时如何标记不可用并触发复核。",
+          "claim_specs": [
+            {
+              "spec_id": "spec_protocol_controls_metrics_conclusion_mapping",
+              "text": "在原文证据充分时，Transformer base/big 的 BLEU 值、语言/测试集、训练和解码条件可分别映射到评估协议的指标和控制条件；缺原文或缺协议明确时标记 Gap，不跨语言排序，不以单篇论文证明当前 SOTA。",
+              "required_conditions": [
+                "仅使用公开论文原文及相关完整表格/caption/实验描述",
+                "EN-DE 与 EN-FR 分别映射，不跨语言任务或不同协议排序",
+                "每条映射可回链到完整单元格、caption、页码和 hash",
+                "协议字段缺失时标记 Gap，不推断补齐",
+                "结论仅限该论文报告值能否进入评估协议映射，不证明当前 SOTA"
+              ],
+              "required_source_tiers": [
+                "primary"
+              ]
+            }
+          ],
+          "sub_questions": [],
+          "retrieval_anchors": [],
+          "evidence_requirements": [],
+          "analysis_requirements": []
+        },
+        {
+          "section_id": "section_5",
+          "title": "未核验风险与验证行动",
+          "objective": "列出并暴露影响评估协议映射的未核验风险：原文不可得或版本/hash 不匹配、Table 2 单元格 Parser 误识别、caption/页码错位、BLEU 或 FLOPs 科学计数法含糊、训练/解码协议条件缺失、搜索摘要污染、跨语言或跨协议排序误用、单篇论文外推 SOTA。为每项风险给出验证行动与 Gap 标记规则，而不预设任何 claim 已支持。",
+          "claim_specs": [],
+          "sub_questions": [
+            "如何验证证据来自 arXiv:1706.03762v7 完整原文而非搜索摘要或二手转述？",
+            "如何人工复核 Table 2 的 base/big BLEU 与 FLOPs 单元格，避免 Parser 误识别？",
+            "当原文、页码、hash、caption 或协议条件不完整时，如何标记 Gap 并阻止进入协议映射？",
+            "如何防止将 EN-DE 与 EN-FR 或不同协议条件混合排序？",
+            "如何防止用该单篇论文结论外推当前 SOTA？"
+          ],
+          "retrieval_anchors": [
+            "arXiv:1706.03762v7 full PDF hash",
+            "Attention Is All You Need Table 2 page caption",
+            "Attention Is All You Need experimental setup decoding conditions",
+            "newstest2014 EN-DE EN-FR test set description"
+          ],
+          "evidence_requirements": [
+            "验证行动需回链到完整原文、hash、页码和人工复核记录",
+            "无法验证的项标记未核验风险，不进入支持结论",
+            "Parser 可疑单元格需人工对照原文图像或排版复核",
+            "跨语言/跨协议排序风险需在映射规则中显式禁止",
+            "SOTA 外推风险需在结论边界中显式排除"
+          ],
+          "analysis_requirements": []
+        }
+      ],
+      "sources": {
+        "src-0228afded5cd8c3cb6f202b55b4156e36d58eed5cd745fa91429eae333517b33": {
+          "source_id": "src-0228afded5cd8c3cb6f202b55b4156e36d58eed5cd745fa91429eae333517b33",
+          "source_type": "paper",
+          "title": "Post-quantum hash functions using $\\mathrm{SL}_n(\\mathbb{F}_p)$",
+          "authors_or_publisher": [
+            "Corentin Le Coz",
+            "Christopher Battarbee",
+            "Ramón Flores",
+            "Thomas Koberda",
+            "Delaram Kahrobaei"
+          ],
+          "published_at": "2022-07-08T16:15:11Z",
+          "version": "v3",
+          "canonical_url": "https://arxiv.org/pdf/2207.03987v3",
+          "provenance": [
+            {
+              "retrieved_at": "2026-10-07T01:28:13.585193Z",
+              "retrieved_via": "papers",
+              "original_ref": "https://arxiv.org/pdf/2207.03987v3",
+              "document_version_id": null,
+              "upstream_source_id": null
+            }
+          ],
+          "source_tier": "primary",
+          "content_object_key": "research-content/2e4efb9d-f756-4f41-ac9f-3e2fdbe2dd44/fb35eaafd1ea7b244bf3f134867a244cb839bac3bd15f4136941921fdc8e4f82",
+          "content_hash": "fb35eaafd1ea7b244bf3f134867a244cb839bac3bd15f4136941921fdc8e4f82",
+          "data_classification": "public"
+        }
+      },
+      "evidence": {},
+      "claims": {},
+      "claim_evidence_links": [],
+      "quantitative_observations": {},
+      "comparable_metrics": {},
+      "comparison_sets": {},
+      "analysis_artifacts": {},
+      "section_coverage": {
+        "section_1": {
+          "section_id": "section_1",
+          "claim_spec_ids": [],
+          "claim_ids": [],
+          "evidence_ids": [],
+          "covered_claim_ids": [],
+          "gaps": [],
+          "unresolved_items": []
+        },
+        "section_2": {
+          "section_id": "section_2",
+          "claim_spec_ids": [
+            "spec_protocol_controls_metrics_conclusion_mapping",
+            "spec_table2_bleu_newstest2014_en_de_base_big",
+            "spec_table2_bleu_newstest2014_en_fr_base_big",
+            "spec_table2_flops_merged_column_readability"
+          ],
+          "claim_ids": [],
+          "evidence_ids": [],
+          "covered_claim_ids": [],
+          "gaps": [
+            {
+              "gap_id": "gap-67b3417db557cc0efad7a885851ebab51590491ac90966a86611dbafaff9f3a3",
+              "section_id": "section_2",
+              "claim_spec_id": "spec_protocol_controls_metrics_conclusion_mapping",
+              "claim_id": null,
+              "reason": "No extracted claim for this ClaimSpec",
+              "fillable": true,
+              "verification_action": "Retrieve original evidence addressing this spec and its required conditions"
+            },
+            {
+              "gap_id": "gap-29b416c7de236e8e296a7c042a7f5d1fd744661617425ee4791ae42e00cfc929",
+              "section_id": "section_2",
+              "claim_spec_id": "spec_table2_bleu_newstest2014_en_de_base_big",
+              "claim_id": null,
+              "reason": "No extracted claim for this ClaimSpec",
+              "fillable": true,
+              "verification_action": "Retrieve original evidence addressing this spec and its required conditions"
+            },
+            {
+              "gap_id": "gap-9d9d13471fccaf7561908b199ee751ed61c20249f4b0d311bfd53f7d73663df8",
+              "section_id": "section_2",
+              "claim_spec_id": "spec_table2_bleu_newstest2014_en_fr_base_big",
+              "claim_id": null,
+              "reason": "No extracted claim for this ClaimSpec",
+              "fillable": true,
+              "verification_action": "Retrieve original evidence addressing this spec and its required conditions"
+            },
+            {
+              "gap_id": "gap-b00e954761c1a47a524a2809c5f674c90fd3121c8ac42412703c464e9f87848c",
+              "section_id": "section_2",
+              "claim_spec_id": "spec_table2_flops_merged_column_readability",
+              "claim_id": null,
+              "reason": "No extracted claim for this ClaimSpec",
+              "fillable": true,
+              "verification_action": "Retrieve original evidence addressing this spec and its required conditions"
+            }
+          ],
+          "unresolved_items": [
+            "No extracted claim for this ClaimSpec",
+            "No extracted claim for this ClaimSpec",
+            "No extracted claim for this ClaimSpec",
+            "No extracted claim for this ClaimSpec"
+          ]
+        }
+      },
+      "draft_sections": {},
+      "draft_claim_bindings": [],
+      "critic_feedback": [],
+      "draft_version": 0,
+      "reviewed_draft_version": null,
+      "review_verdict": null,
+      "final_report": null,
+      "run_metadata": {
+        "config": {
+          "versions": {
+            "llm_provider": "anthropic_compatible",
+            "llm_model": "deepseek-flash",
+            "llm_revision": "unconfigured",
+            "prompt_versions": {
+              "clarify": "mono-v1",
+              "plan": "mono-v1",
+              "research": "mono-v1",
+              "analyze": "mono-v1",
+              "write": "mono-v1",
+              "review": "mono-v1"
+            },
+            "template_versions": {
+              "comparison_matrix": "mono-v1",
+              "pairwise_delta": "mono-v1",
+              "plot": "mono-v1",
+              "statistic": "mono-v1",
+              "aggregation": "mono-v1"
+            },
+            "parser_version": "dr4a-mineru-4.0.10-standard-v1",
+            "chunker_version": "mono-v1",
+            "embedding_version": "unconfigured",
+            "reranker_version": "unconfigured",
+            "index_version": "dr4a_chunks_v1"
+          },
+          "source_policy": {
+            "categories": [
+              "papers"
+            ],
+            "knowledge_base_ids": [],
+            "private_only": false
+          },
+          "limits": {
+            "deadline_s": 1800,
+            "search_calls": 60,
+            "fetch_calls": 30,
+            "llm_calls": 60,
+            "tokens": 120000,
+            "terminal_reserved_calls": 8,
+            "terminal_reserved_tokens": 12000,
+            "rework_rounds": 3,
+            "citation_depth": 2,
+            "gap_queries_per_spec": 2
+          },
+          "timeouts_s": {
+            "llm": 60,
+            "search": 20,
+            "fetch": 45,
+            "embedding": 120,
+            "rerank": 60,
+            "vector": 15,
+            "content": 30,
+            "parser": 600,
+            "sandbox": 30
+          },
+          "concurrency": {
+            "search": 4,
+            "fetch": 2,
+            "llm": 2,
+            "local_inference": 1
+          }
+        },
+        "budget_used": {
+          "llm_calls": 0,
+          "search_calls": 0,
+          "fetch_calls": 0,
+          "tokens": 0,
+          "elapsed_s": 0
+        },
+        "rework_count": 0,
+        "rework_targets": [],
+        "degraded_sources": [
+          {
+            "source": "research",
+            "reason": "Additional candidates remain unexamined beyond the bounded selection",
+            "operation": "candidate_selection",
+            "section_id": "section_2",
+            "occurred_at": "2026-10-07T01:27:04.114801Z"
+          },
+          {
+            "source": "http://arxiv.org/abs/1611.03274v2",
+            "reason": "fetch_unavailable",
+            "operation": "fetch",
+            "section_id": "section_2",
+            "occurred_at": "2026-10-07T01:27:04.470126Z"
+          },
+          {
+            "source": "src-0228afded5cd8c3cb6f202b55b4156e36d58eed5cd745fa91429eae333517b33",
+            "reason": "Some whole original blocks were not examined within extraction limits",
+            "operation": "block_selection",
+            "section_id": "section_2",
+            "occurred_at": "2026-10-07T01:28:13.589558Z"
+          },
+          {
+            "source": "http://arxiv.org/abs/1703.00726v1",
+            "reason": "fetch_unavailable",
+            "operation": "fetch",
+            "section_id": "section_2",
+            "occurred_at": "2026-10-07T01:28:17.215396Z"
+          },
+          {
+            "source": "http://arxiv.org/abs/2605.28034v1",
+            "reason": "fetch_unavailable",
+            "operation": "fetch",
+            "section_id": "section_2",
+            "occurred_at": "2026-10-07T01:28:17.534314Z"
+          }
+        ],
+        "unit_manifest": {},
+        "knowledge_snapshot": [],
+        "stop_reason": null
+      },
+      "errors": []
+    },
+    "state_delta": {
+      "sources": {
+        "src-0228afded5cd8c3cb6f202b55b4156e36d58eed5cd745fa91429eae333517b33": {
+          "source_id": "src-0228afded5cd8c3cb6f202b55b4156e36d58eed5cd745fa91429eae333517b33",
+          "source_type": "paper",
+          "title": "Post-quantum hash functions using $\\mathrm{SL}_n(\\mathbb{F}_p)$",
+          "authors_or_publisher": [
+            "Corentin Le Coz",
+            "Christopher Battarbee",
+            "Ramón Flores",
+            "Thomas Koberda",
+            "Delaram Kahrobaei"
+          ],
+          "published_at": "2022-07-08T16:15:11Z",
+          "version": "v3",
+          "canonical_url": "https://arxiv.org/pdf/2207.03987v3",
+          "provenance": [
+            {
+              "retrieved_at": "2026-10-07T01:28:13.585193Z",
+              "retrieved_via": "papers",
+              "original_ref": "https://arxiv.org/pdf/2207.03987v3",
+              "document_version_id": null,
+              "upstream_source_id": null
+            }
+          ],
+          "source_tier": "primary",
+          "content_object_key": "research-content/2e4efb9d-f756-4f41-ac9f-3e2fdbe2dd44/fb35eaafd1ea7b244bf3f134867a244cb839bac3bd15f4136941921fdc8e4f82",
+          "content_hash": "fb35eaafd1ea7b244bf3f134867a244cb839bac3bd15f4136941921fdc8e4f82",
+          "data_classification": "public"
+        }
+      },
+      "section_coverage": {
+        "section_1": {
+          "section_id": "section_1",
+          "claim_spec_ids": [],
+          "claim_ids": [],
+          "evidence_ids": [],
+          "covered_claim_ids": [],
+          "gaps": [],
+          "unresolved_items": []
+        },
+        "section_2": {
+          "section_id": "section_2",
+          "claim_spec_ids": [
+            "spec_protocol_controls_metrics_conclusion_mapping",
+            "spec_table2_bleu_newstest2014_en_de_base_big",
+            "spec_table2_bleu_newstest2014_en_fr_base_big",
+            "spec_table2_flops_merged_column_readability"
+          ],
+          "claim_ids": [],
+          "evidence_ids": [],
+          "covered_claim_ids": [],
+          "gaps": [
+            {
+              "gap_id": "gap-67b3417db557cc0efad7a885851ebab51590491ac90966a86611dbafaff9f3a3",
+              "section_id": "section_2",
+              "claim_spec_id": "spec_protocol_controls_metrics_conclusion_mapping",
+              "claim_id": null,
+              "reason": "No extracted claim for this ClaimSpec",
+              "fillable": true,
+              "verification_action": "Retrieve original evidence addressing this spec and its required conditions"
+            },
+            {
+              "gap_id": "gap-29b416c7de236e8e296a7c042a7f5d1fd744661617425ee4791ae42e00cfc929",
+              "section_id": "section_2",
+              "claim_spec_id": "spec_table2_bleu_newstest2014_en_de_base_big",
+              "claim_id": null,
+              "reason": "No extracted claim for this ClaimSpec",
+              "fillable": true,
+              "verification_action": "Retrieve original evidence addressing this spec and its required conditions"
+            },
+            {
+              "gap_id": "gap-9d9d13471fccaf7561908b199ee751ed61c20249f4b0d311bfd53f7d73663df8",
+              "section_id": "section_2",
+              "claim_spec_id": "spec_table2_bleu_newstest2014_en_fr_base_big",
+              "claim_id": null,
+              "reason": "No extracted claim for this ClaimSpec",
+              "fillable": true,
+              "verification_action": "Retrieve original evidence addressing this spec and its required conditions"
+            },
+            {
+              "gap_id": "gap-b00e954761c1a47a524a2809c5f674c90fd3121c8ac42412703c464e9f87848c",
+              "section_id": "section_2",
+              "claim_spec_id": "spec_table2_flops_merged_column_readability",
+              "claim_id": null,
+              "reason": "No extracted claim for this ClaimSpec",
+              "fillable": true,
+              "verification_action": "Retrieve original evidence addressing this spec and its required conditions"
+            }
+          ],
+          "unresolved_items": [
+            "No extracted claim for this ClaimSpec",
+            "No extracted claim for this ClaimSpec",
+            "No extracted claim for this ClaimSpec",
+            "No extracted claim for this ClaimSpec"
+          ]
+        }
+      },
+      "run_metadata": {
+        "config": {
+          "versions": {
+            "llm_provider": "anthropic_compatible",
+            "llm_model": "deepseek-flash",
+            "llm_revision": "unconfigured",
+            "prompt_versions": {
+              "clarify": "mono-v1",
+              "plan": "mono-v1",
+              "research": "mono-v1",
+              "analyze": "mono-v1",
+              "write": "mono-v1",
+              "review": "mono-v1"
+            },
+            "template_versions": {
+              "comparison_matrix": "mono-v1",
+              "pairwise_delta": "mono-v1",
+              "plot": "mono-v1",
+              "statistic": "mono-v1",
+              "aggregation": "mono-v1"
+            },
+            "parser_version": "dr4a-mineru-4.0.10-standard-v1",
+            "chunker_version": "mono-v1",
+            "embedding_version": "unconfigured",
+            "reranker_version": "unconfigured",
+            "index_version": "dr4a_chunks_v1"
+          },
+          "source_policy": {
+            "categories": [
+              "papers"
+            ],
+            "knowledge_base_ids": [],
+            "private_only": false
+          },
+          "limits": {
+            "deadline_s": 1800,
+            "search_calls": 60,
+            "fetch_calls": 30,
+            "llm_calls": 60,
+            "tokens": 120000,
+            "terminal_reserved_calls": 8,
+            "terminal_reserved_tokens": 12000,
+            "rework_rounds": 3,
+            "citation_depth": 2,
+            "gap_queries_per_spec": 2
+          },
+          "timeouts_s": {
+            "llm": 60,
+            "search": 20,
+            "fetch": 45,
+            "embedding": 120,
+            "rerank": 60,
+            "vector": 15,
+            "content": 30,
+            "parser": 600,
+            "sandbox": 30
+          },
+          "concurrency": {
+            "search": 4,
+            "fetch": 2,
+            "llm": 2,
+            "local_inference": 1
+          }
+        },
+        "budget_used": {
+          "llm_calls": 0,
+          "search_calls": 0,
+          "fetch_calls": 0,
+          "tokens": 0,
+          "elapsed_s": 0
+        },
+        "rework_count": 0,
+        "rework_targets": [],
+        "degraded_sources": [
+          {
+            "source": "research",
+            "reason": "Additional candidates remain unexamined beyond the bounded selection",
+            "operation": "candidate_selection",
+            "section_id": "section_2",
+            "occurred_at": "2026-10-07T01:27:04.114801Z"
+          },
+          {
+            "source": "http://arxiv.org/abs/1611.03274v2",
+            "reason": "fetch_unavailable",
+            "operation": "fetch",
+            "section_id": "section_2",
+            "occurred_at": "2026-10-07T01:27:04.470126Z"
+          },
+          {
+            "source": "src-0228afded5cd8c3cb6f202b55b4156e36d58eed5cd745fa91429eae333517b33",
+            "reason": "Some whole original blocks were not examined within extraction limits",
+            "operation": "block_selection",
+            "section_id": "section_2",
+            "occurred_at": "2026-10-07T01:28:13.589558Z"
+          },
+          {
+            "source": "http://arxiv.org/abs/1703.00726v1",
+            "reason": "fetch_unavailable",
+            "operation": "fetch",
+            "section_id": "section_2",
+            "occurred_at": "2026-10-07T01:28:17.215396Z"
+          },
+          {
+            "source": "http://arxiv.org/abs/2605.28034v1",
+            "reason": "fetch_unavailable",
+            "operation": "fetch",
+            "section_id": "section_2",
+            "occurred_at": "2026-10-07T01:28:17.534314Z"
+          }
+        ],
+        "unit_manifest": {},
+        "knowledge_snapshot": [],
+        "stop_reason": null
+      }
+    },
+    "events": [
+      {
+        "event": "unit",
+        "phase": "research",
+        "unit_id": "unit-592bc2f2956e8bafbce2d20fded87cade3a367366b812119c1a17e65ebd7d5ee",
+        "section_ids": [
+          "section_1"
+        ],
+        "kind": "coverage"
+      },
+      {
+        "event": "unit",
+        "phase": "research",
+        "unit_id": "unit-912f01d1023ef127e788bfabd5074eb4267f55c5b37758f759441dbd98a803cb",
+        "section_ids": [
+          "section_2"
+        ],
+        "kind": "query",
+        "query": "如何定位并校验 arXiv:1706.03762v7 的完整原文、Table 2、caption、页码和 hash？"
+      }
+    ],
+    "dependency_mode": "real",
+    "debug_usage": {
+      "llm_calls": 1,
+      "input_tokens": 253,
+      "output_tokens": 426,
+      "search_calls": 4,
+      "fetch_calls": 4,
+      "artifact_scope": "2e4efb9d-f756-4f41-ac9f-3e2fdbe2dd44",
+      "search_outcomes": [
+        {
+          "unit_id": "unit-912f01d1023ef127e788bfabd5074eb4267f55c5b37758f759441dbd98a803cb",
+          "outcomes": [
+            {
+              "source": "arxiv",
+              "status": "ok",
+              "attempts": 2,
+              "failure": null
+            }
+          ]
+        },
+        {
+          "unit_id": "unit-f276917b6920093e5369f187c3d681624a5b67cb3aa4307759e5d33b48eb24b1",
+          "outcomes": [
+            {
+              "source": "arxiv",
+              "status": "failed",
+              "attempts": 2,
+              "failure": {
+                "code": "search_unavailable",
+                "retryable": true
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "failed_unit_id": "unit-f276917b6920093e5369f187c3d681624a5b67cb3aa4307759e5d33b48eb24b1"
+  },
+  "verified_evidence": [],
+  "unmet_acceptance": [
+    "CLI research failed"
+  ]
+}

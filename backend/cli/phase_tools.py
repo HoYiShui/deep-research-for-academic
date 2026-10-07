@@ -6,6 +6,7 @@ Physical debug model calls are reported separately from committed budget_used.
 
 import asyncio
 import json
+from pathlib import Path
 
 from application.errors import AppError
 from application.settings import Settings
@@ -13,6 +14,8 @@ from cli import output
 from cli.research_tools import ResearchDebugTools
 from domain.ports import AdapterError
 from infrastructure.llm.deepseek import DeepSeekLLM
+from infrastructure.parser.html import HTML_PARSER_VERSION
+from infrastructure.parser.mineru_output import MINERU_PARSER_VERSION
 
 
 class DebugTools:
@@ -35,10 +38,22 @@ class DebugTools:
         if state.phase == "research":
             if self.config.source_policy.private_only or state.source_selection.knowledge_base_ids:
                 raise output.EnvError("Knowledge-base research debug is not configured")
-            if not fake and self.config.versions.parser_version != "dr4a-html-v1":
+            if not fake and self.config.versions.parser_version not in {
+                HTML_PARSER_VERSION,
+                MINERU_PARSER_VERSION,
+            }:
                 raise output.EnvError(
-                    "Research debug requires parser_version=dr4a-html-v1; PDF is not configured"
+                    "Research debug requires parser_version=dr4a-html-v1 or dr4a-mineru-4.0.10-standard-v1"
                 )
+            if (
+                not fake
+                and self.config.versions.parser_version == MINERU_PARSER_VERSION
+                and (
+                    not settings.mineru_models_dir
+                    or not (Path(settings.mineru_models_dir) / "dr4a-models.json").is_file()
+                )
+            ):
+                raise output.EnvError("Prepared local MINERU_MODELS_DIR is required for PDF debug")
         if not fake:
             versions = self.config.versions
             if self.config.source_policy.private_only or settings.llm_local:

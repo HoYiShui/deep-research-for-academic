@@ -127,6 +127,7 @@
   - 已新增正式 `research_worker` 与 `agents/extraction.py`：原文摘录/关联/观察的有界结构化修复、SRO+conditions的Claim ID、Evidence+row/column的Observation ID、逐query/coverage保存；受控模型+真实PG/MinIO/下载器/HTML Parser验证五章10单元、共享Claim合并及空搜索Gap。跨章Spec追加受章节权限约束，既有自然键内容不能覆盖。真实供应商/PDF、受限追溯/补查、KB及CLI注册仍缺，不勾选；证据：[正式research worker](evidence/t026-download-safety.md#正式research-worker与原文抽取t023t027部分)。
 - [ ] T028 [US3] 更新 `backend/tests/integration/test_slice_retrieval.py` 并新增 `backend/scripts/verify_research_phase.py`：从CLI真实plan/research输出，逐条抽查可下载原文、位置/hash、Spec覆盖/Gap；用 `evidence/us3.md` 保存至少一个真实论文来源、一项观察（资料确有数值时）与单源故障降级。无原文时验收应失败或明确Gap，不为完成任务伪造观察。
   - `phase research` 与原文审计探针已接正式worker；真实Bocha/模型/下载/HTML Parser/MinIO产出7条Evidence并重新读取原文验证hash/位置/摘录。前两轮Fake-IP和缺bucket失败保留，未弱化安全检查。输入计划手工构造、PDF未接、无数值观察，真实探针按缺失验收退出1；T028不勾选。证据：[US3真实CLI](evidence/us3.md)。
+  - 2026-10-07：PDF调试分支已接真实本地MinerU，真实plan产出五章/15子问题并原样进入research。重试保留两个完成单元、真实Source与各源错误码，但下载的是不相关论文、零Evidence/Observation，随后arXiv两次search_unavailable退出3。发现自然语言子问题直接作为arXiv查询的缺陷；不勾选。表格完整单元格边界已拦截系数/指数误读，但不替代行列和比较条件验证。细节见同一US3证据。
 
 里程碑 M3：`phase plan` 与 `phase research` 可复现真实取证，研究卡点有query/section进度；所有关键Evidence有真实原文，不以“搜到了链接”勾完成。
 

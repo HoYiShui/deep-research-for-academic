@@ -1,6 +1,7 @@
 """Model proposals cannot own IDs, quote locations, or invented table values."""
 
 import copy
+import hashlib
 import json
 
 import pytest
@@ -67,6 +68,65 @@ def facts(value, source, fetched, parsed):
         spec_ids={"spec-1"},
         block_ids={0},
     )
+
+
+def table_original(content):
+    _, fetched, parsed, source = original(table=True)
+    block = parsed.blocks[0].model_copy(update={"content": content})
+    parsed = parsed.model_copy(update={"blocks": [block]})
+    body = json.dumps(
+        parsed.model_dump(mode="json"), sort_keys=True, separators=(",", ":"), ensure_ascii=False
+    ).encode()
+    digest = hashlib.sha256(body).hexdigest()
+    reference = fetched.parsed_content_ref.model_copy(
+        update={
+            "key": f"parsed/{digest}",
+            "sha256": digest,
+            "size": len(body),
+        }
+    )
+    return fetched.model_copy(update={"parsed_content_ref": reference}), parsed, source
+
+
+@pytest.mark.parametrize(
+    "cell,raw",
+    [
+        ("3.3 ·", "3.3"),
+        ("95.0 ± 0.2", "95.0"),
+        ("10<sup>18</sup>", "18"),
+        ("10<sup>18</sup>", "1018"),
+    ],
+)
+def test_table_numbers_cannot_clip_coefficients_uncertainty_or_superscripts(cell, raw):
+    fetched, parsed, source = table_original(
+        f"<table><tr><th>Method</th><th>Accuracy (%)</th></tr><tr><td>A</td><td>{cell}</td></tr></table>"
+    )
+    value = proposal(parsed)
+    value["observations"][0].update(raw_value=raw, value=raw)
+    with pytest.raises(ValueError, match="complete original table cell"):
+        facts(value, source, fetched, parsed)
+
+
+def test_whole_ambiguous_scientific_cell_stays_null_not_coefficient_as_value():
+    fetched, parsed, source = table_original(
+        "<table><tr><th>Method</th><th>Accuracy (%)</th></tr><tr><td>A</td><td>3.3 ·</td></tr></table>"
+    )
+    value = proposal(parsed)
+    value["observations"][0].update(raw_value="3.3 ·", value=None)
+    result = facts(value, source, fetched, parsed)
+    observation = next(iter(result["quantitative_observations"].values()))
+    assert observation.raw_value == "3.3 ·" and observation.value is None
+
+
+def test_visible_whole_cell_with_markup_uncertainty_keeps_original_number():
+    fetched, parsed, source = table_original(
+        "<table><tr><th>Method</th><th>Accuracy (%)</th></tr><tr><td>A</td><td>95.0 <span>±</span> 0.2</td></tr></table>"
+    )
+    value = proposal(parsed)
+    value["observations"][0].update(raw_value="95.0 ± 0.2", value="95.0", uncertainty="0.2")
+    found = facts(value, source, fetched, parsed)
+    observation = next(iter(found["quantitative_observations"].values()))
+    assert observation.value == "95.0" and observation.uncertainty == "0.2"
 
 
 def test_zero_table_context_and_ids_are_original_bound():

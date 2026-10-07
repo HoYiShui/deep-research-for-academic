@@ -6,6 +6,7 @@ import asyncio
 import json
 from datetime import UTC, datetime, timedelta
 
+from application.errors import AppError
 from application.phase_executor import ExecutionContext, PhaseExecutor
 from application.phase_units import plan_units
 from application.phase_workers import plan_worker, research_worker
@@ -13,6 +14,7 @@ from application.records import DEVELOPMENT_USER_ID
 from cli import output
 from cli.phase_state import load_phase_state, read_json, state_delta
 from cli.phase_tools import DebugTools
+from domain.ports import AdapterError
 from domain.research.phase_contracts import PhaseInput, merge_phase_result
 
 
@@ -30,9 +32,12 @@ async def run(args) -> int:
         return False
 
     deadline = datetime.now(UTC) + timedelta(seconds=config.limits.deadline_s)
+    failure = None
+    active_unit = None
     try:
         async with asyncio.timeout(config.limits.deadline_s):
             for unit in plan_units(state):
+                active_unit = unit.unit_id
                 value = PhaseInput.from_state(state)
                 tools.for_unit(unit)
                 context = ExecutionContext(
@@ -65,9 +70,18 @@ async def run(args) -> int:
                             **unit.parameters,
                         }
                     )
-        post_state = state.model_dump(mode="json")
+    except (AppError, AdapterError) as exc:
+        failure = (
+            output.EXIT_ENV if isinstance(exc, AdapterError) else output.EXIT_FAILURE,
+            exc.code,
+            exc.message,
+            exc.retryable,
+        )
+    except TimeoutError:
+        failure = (output.EXIT_FAILURE, "phase_timeout", "Debug phase deadline exceeded", True)
     finally:
         await tools.close()
+    post_state = state.model_dump(mode="json")
     result = {
         "phase": args.phase,
         "state": post_state,
@@ -76,6 +90,10 @@ async def run(args) -> int:
         "dependency_mode": "fake" if args.fake else "real",
         "debug_usage": tools.usage,
     }
+    if failure is not None:
+        # Last merged local state, not a persisted checkpoint or a completed unit.
+        result["failed_unit_id"] = active_unit
+        return output.emit_error(args, *failure, data=result)
     if args.json:
         output.emit_json("ok", result)
     else:

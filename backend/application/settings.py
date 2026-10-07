@@ -49,6 +49,7 @@ class Settings(BaseModel):
     embedding_revision: str = "unconfigured"
     reranker_revision: str = "unconfigured"
     parser_version: str = "unconfigured"
+    mineru_models_dir: str = ""
     chunker_version: str = "mono-v1"
     index_version: str = "dr4a_chunks_v1"
     cors_allow_origins: list[str] = Field(default_factory=list)

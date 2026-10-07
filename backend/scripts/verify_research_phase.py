@@ -15,6 +15,7 @@ from domain.documents import ParserConfig
 from domain.ports import AdapterError
 from domain.research.state import PipelineState
 from infrastructure.parser.html import HTML_PARSER_VERSION, HTMLDocumentParser
+from infrastructure.parser.pdf import MinerUDocumentParser
 from infrastructure.storage.content import MinioContentStore
 from scripts.verify_cli_plan import save_record
 
@@ -28,7 +29,14 @@ async def audit(state, artifact_scope):
         settings.minio_bucket,
         secure=settings.minio_secure,
     )
-    parser = HTMLDocumentParser(store)
+    version = state.run_metadata.config.versions.parser_version
+    parser = (
+        HTMLDocumentParser(store)
+        if version == HTML_PARSER_VERSION
+        else MinerUDocumentParser(
+            store, settings.mineru_models_dir, timeout_s=state.run_metadata.config.timeouts_s.parser
+        )
+    )
     verified, parsed_sources = [], {}
     try:
         for evidence in state.evidence.values():
@@ -49,7 +57,7 @@ async def audit(state, artifact_scope):
                 # Parser reads/hash-checks the stored original, not the search
                 # result or a trusted copy of the model's quote.
                 parsed_sources[source.source_id] = await parser.parse(
-                    reference, ParserConfig(parser_version=HTML_PARSER_VERSION)
+                    reference, ParserConfig(parser_version=version)
                 )
             parsed = parsed_sources[source.source_id]
             blocks = [block for block in parsed.blocks if block.location == evidence.location]

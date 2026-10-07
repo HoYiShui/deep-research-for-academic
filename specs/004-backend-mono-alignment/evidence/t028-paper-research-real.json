@@ -1,0 +1,19 @@
+{
+  "scope": "isolated_cli_research",
+  "dependency_mode": "real",
+  "persisted_run": false,
+  "result": {
+    "status": "env_error",
+    "error": {
+      "code": "all_search_sources_failed",
+      "message": "All selected search providers failed",
+      "details": null,
+      "retryable": true,
+      "request_id": "5fdac145-f718-4d3b-80f1-ae31f3c50f9f"
+    }
+  },
+  "verified_evidence": [],
+  "unmet_acceptance": [
+    "CLI research failed"
+  ]
+}

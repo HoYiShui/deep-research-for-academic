@@ -13,7 +13,7 @@ from pathlib import Path
 from uuid import uuid4
 
 from application.settings import Settings
-from domain.research.models import ResearchBrief
+from domain.research.models import ResearchBrief, SourceSelection
 from domain.research.state import PipelineState
 
 
@@ -26,13 +26,14 @@ async def verify(args):
     data = json.loads(Path(args.brief).read_text())
     brief = ResearchBrief.model_validate(data.get("brief", data))
     settings = Settings.load()
+    selection = SourceSelection(categories=args.sources.split(","))
     state = PipelineState.initial(
         session_id=uuid4(),
         run_id=uuid4(),
         brief_version=1,
         research_brief=brief,
-        source_selection={},
-        config=settings.run_config_snapshot(),
+        source_selection=selection,
+        config=settings.run_config_snapshot(categories=selection.categories),
     )
     with tempfile.TemporaryDirectory(prefix="dr4a-cli-plan-") as temporary:
         path = Path(temporary) / "state.json"
@@ -94,6 +95,9 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--brief", required=True)
     parser.add_argument("--real", action="store_true")
+    parser.add_argument(
+        "--sources", default="papers,web", help="frozen public categories: papers,web"
+    )
     parser.add_argument("--record", help="exclusive new public evidence JSON path")
     return asyncio.run(verify(parser.parse_args()))
 
