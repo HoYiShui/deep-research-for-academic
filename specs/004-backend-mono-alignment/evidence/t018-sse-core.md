@@ -25,3 +25,17 @@ done只能来自已提交终态；completed才提供报告URL。PG读取不可�
 T018仍未全完成：JWT截止传递、全套source_degraded/rework/后续阶段progress以及正式生产worker组合另行验收。当前开发运行器只注册plan/research；不因此声称完整研究或M2/M4完成。未修改Agent、Serializer或共享Schema。
 
 最终回归：`uv run --no-sync pytest -q`：906 passed in 156.38s；TUI `npm test`：12 passed，`npm run typecheck`通过。没有收费Research运行，测试模型/worker均按各测试自身明确的依赖模式，不将全量绿灯代替真实研究效果验收。
+
+## TUI活HTTP运行控制（2026-10-07）
+
+基线`1831606`；T060/T018外围交接部分。扩展现有`test_tui_live_http.py`，使用真实TypeScript ResearchSession/ResearchApiClient、独立TCP FastAPI进程、隔离真实PG与MinIO；复用既有受控Driver/worker和报告fixture，没有另建研究实现或修改Agent/共享Schema。
+
+- 运行中取消：TUI创建/回答/明确确认，等待research；先打开SSE再发cancel，202/cancelling后观察done.cancelled，GET确认resume_allowed=false。报告接口409、重复取消200。SQL核对Session/Run=cancelled、attempt=1、tool_call_attempts=1、reports=0，没有假done.completed。
+- 崩溃/显式恢复：独立服务器停在research，父进程只SIGKILL自己启动的server；测试仅把自己独有PG库中的该Run租约时间设过期，不伪造快照/失败/完成状态，也不等待生产90s。新manual服务的真实扫描提交failed/interrupted。TUI重新open读取resume_allowed与seq=3，再显式resume；manual保持ready/attempt=1，证明读取/恢复不偷偷执行。
+- 再启动受控执行器：同Run被领取，TUI经SSE看到query_completed和done.completed，再通过HTTP读报告。最终seq=20、attempt=2、仅1个Run/1份Report，tool_call_attempts仍1，已持久成功plan未重复调用。受控报告review_verdict=needs_more_work，不混同运行完成与研究质量。
+
+单跑`uv run --no-sync pytest -q tests/integration/test_tui_live_http.py --tb=short`：**3 passed in 17.72s**。`npm test` **12 passed**，`npm run typecheck`通过。
+
+扩大回归：`uv run --no-sync pytest -q tests/integration/test_tui_live_http.py tests/integration/test_mono_run_tcp.py tests/integration/test_mono_process_recovery.py tests/integration/test_mono_sse.py --tb=short`：**22 passed in 53.58s**。改动测试的Ruff/format与`git diff --check`通过；本批没有全量回归声明。
+
+此验证不涉及收费模型、真实论文或终端布局；T060整体业务/终端交接与T018其它事件仍未全部验收，保持未完成。资源仅fixture生成的`dr4a_test_<uuid>`数据库与`dr4a-test-<uuid>`bucket，结束清理仅这些确切资源；用户历史库、备份/恢复卷、.env和docs/implementation未修改。
