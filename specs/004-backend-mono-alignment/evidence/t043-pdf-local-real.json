@@ -1,0 +1,15 @@
+{
+  "scope": "cached_original_parser_only",
+  "dependency_mode": "real",
+  "parser_version": "dr4a-mineru-4.0.10-standard-v1",
+  "new_download": false,
+  "original": {
+    "key": "research-content/329afba9-7658-44fa-baa1-c19ea15a90bb/bdfaa68d8984f0dc02beaca527b76f207d99b666d31d1da728ee0728182df697",
+    "sha256": "bdfaa68d8984f0dc02beaca527b76f207d99b666d31d1da728ee0728182df697",
+    "size": 2215244,
+    "media_type": "application/pdf"
+  },
+  "status": "error",
+  "code": "parser_output_incomplete",
+  "message": "PDF text block lacks structured content"
+}

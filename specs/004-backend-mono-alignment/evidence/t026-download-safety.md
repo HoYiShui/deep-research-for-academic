@@ -129,3 +129,28 @@ uv run pytest -q --tb=short tests/unit/test_scout_extraction.py tests/unit/test_
 **尚未提供CLI正式research或真实供应商/公网论文证据。** KB请求明确未配置，受限追溯/补查、相关派生数据返工失效、MinerU、CLI默认/HTTP组合仍未完成。T023/T027继续不勾选；用户数据/配置不变。
 
 首次全量848通过/1失败：旧测试仍mock Architect已迁出的私有重试函数。迁到共享structured模块后定向19项通过，最终全量 **849 passed in 144.95s**；Ruff/format（10文件）及diff检查通过。无真实供应商付费调用、无用户数据改动或推送。
+
+## 2026-10-07：真实本地 MinerU PDF 解析（T043 部分）
+
+固定 MinerU 4.0.10 的可选 parser 依赖及 lock 已安装；安装后全量861项通过。显式准备脚本按两个公开仓库固定commit下载，生成文件size/hash清单，并使用MinerU自身的下载完成/ready检查，不手工伪造模型完成标记：
+
+- opendatalab/MinerU-4_models_torch：`2b3afb86f4d23fa623f6b2f4b2279ed4ef93a89d`
+- jinzhenj/MinerU2.5-Pro-2605-1.2B-GGUF：`9185688a0495e1577d521a757c7c0b62dd38ca48`
+- 本轮模型目录：`/Users/hoyishui/.cache/dr4a/mineru-4.0.10-20261007`。本地Torch+llama.cpp；模型不提交Git。
+
+本轮重新下载论文遇到TLS连接失败。未关闭证书/放宽SSRF；改用T028真实探针已保存的完整PDF，hash `bdfaa68d8984f0dc02beaca527b76f207d99b666d31d1da728ee0728182df697`，2,215,244 bytes。这只证明“真实已存原文→Parser”，不证明本轮重新下载或新的Source授权/研究Run。
+
+```bash
+uv run --no-sync python -m scripts.verify_pdf_parser \
+  --content-key research-content/329afba9-7658-44fa-baa1-c19ea15a90bb/bdfaa68d8984f0dc02beaca527b76f207d99b666d31d1da728ee0728182df697 \
+  --models /Users/hoyishui/.cache/dr4a/mineru-4.0.10-20261007 \
+  --json --record NEW_FILE
+```
+
+真实执行修正两项适配错误：使用SDK实际的header/footer/aside_text类型名；忽略空白文本块，但整份空内容与缺正文的表格/公式仍失败。macOS子进程剥离调用者凭据/配置、本地模型source、禁用外部LLM辅助并使用sandbox-exec禁止network访问；父进程读MinIO，子进程仅读临时原文/本地模型，关闭或超时终止所属进程组。Linux网络隔离与部署尚未完成，未配置时fail-closed。
+
+- [失败记录](t043-pdf-local-real.json)：空白text导致parser_output_incomplete，未伪造成功。
+- [成功真实记录](t043-pdf-local-text-real.json)：15页、132个文本块、5个公式、4张表；原始hash不变，原始page_idx转1-based页码，表格caption/完整HTML及公式保留。
+- 对原PDF第8页渲染图与Table 2逐行对照：BLEU的28.4/41.8等可对应，但最后两行合并FLOPs单元格被SDK拆列，`3.3 ·`与`10^18`分入相邻列。不能以成功ParsedDocument声称所有数值/列归属可信；保留原始输出，不人工改表伪造Parser精度。后续Observation完整cell/指数/缺失值约束与风险处理必须补齐。
+
+受控归一化/真实PDFium前置/真正子进程错误回收定向测试覆盖；全量869项通过（158.45s），这是最后空白文本修正前的全量结果；修正后的归一化/前置定向18项通过。Ruff与diff检查通过。未运行外部LLM或发布Report。本轮仍不勾选T043/T028：Linux部署、完整取消/资源故障验收、真实PDF→Research Source/Evidence/Observation与表格质量处理尚缺。

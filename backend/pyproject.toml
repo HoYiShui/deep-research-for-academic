@@ -28,6 +28,9 @@ dev = [
 embedding = [
     "sentence-transformers>=2.7",
 ]
+parser = [
+    "mineru==4.0.10; python_version < '3.15'",
+]
 
 [build-system]
 requires = ["setuptools>=68"]
