@@ -29,7 +29,7 @@ class EnvError(Exception):
 
 def log(message: str) -> None:
     """Write a timestamped log line to stderr."""
-    print(f"{time.strftime('%H:%M:%S')} {message}", file=sys.stderr)
+    print(f"{time.strftime('%H:%M:%S')} {message}", file=sys.stderr, flush=True)
 
 
 def emit_json(status: str, data: dict[str, Any] | None = None) -> None:

@@ -112,3 +112,15 @@ SIGINT/SIGTERM设置停止请求；在同一PG事务核对worker/owner/run/未�
 受控真实子进程中断验证：fake research完成第一query及其coverage后，在第三单元显式gate，父进程向自己启动的child发送SIGINT。结果仅section_1 coverage和2条单元events保留、RunMetadata/输入文件不改、llm_calls=0、无Traceback。配置不可用PG地址，验证该独立phase不依赖PG；这不是持久Run取消/恢复或真实研究验收。
 
 验证：`uv run --no-sync pytest -q tests/unit/test_cli_output.py tests/unit/test_cli_run.py tests/unit/test_cli_slice.py tests/unit/test_cli_doctor.py tests/integration/test_mono_cli_dump.py tests/integration/test_mono_cli_phase.py tests/integration/test_mono_cli_run.py`：56 passed in 22.12s；涉及改动Python文件的Ruff/format和git diff --check通过。未重跑全量，不把该目标集称全量或收费模型E2E。T021保持未完成。
+
+## 独立phase实时诊断（2026-10-07）
+
+基线 `3ebe75b`；T021部分。原单阶段CLI在研究执行中只积累events，直到返回结果才可观察；--verbose也没有单元进度。两条新增子进程反例先失败：没有开始/合并日志；受控worker已经等待但父进程仍未收到开始帧。
+
+`phase --verbose`现在在stderr实时输出`debug_unit`的started/merged/failed、阶段、可信plan_units生成的稳定ID、章节和计数。日志明确`persistence=local_only`，只表示局部State合并，不宣称PG提交或取得Evidence；不打印unit.parameters/query、prompt或任意worker诊断正文。共同log输出显式flush，避免等待退出才能观察。最终stdout仍仅单JSON、events及fake结果形状不变；无verbose时不新增日志。
+
+测试1将研究问题/anchors放入私密canary，fake执行10单元并核对20条开始/合并日志、0→10计数、日志没有canary。测试2在plan worker返回前受控gate，真实子进程管道先读到started，再读到worker等待标志，证明观察发生在执行中；随后发送单次SIGINT，退出1/phase_interrupted，仅failed无merged，State保持原样。这些是受控调试入口测试，不是收费模型或持久Run恢复验收。
+
+实现后首次扩大目标集31通过/1失败，原因是新测试误写稳定ID前缀unit_而实际约定为unit-；修正测试前缀，未改领域ID或放宽业务校验。T021完整workers/fake迁移仍未完成。
+
+最终验证（backend）：`uv run --no-sync pytest -q tests/integration/test_mono_cli_phase.py tests/integration/test_mono_cli_run.py tests/integration/test_mono_cli_dump.py tests/unit/test_cli_output.py tests/unit/test_cli_slice.py tests/unit/test_cli_verbose.py tests/unit/test_cli_doctor.py --tb=short`：**54 passed in 23.18s**；3个改动Python文件Ruff/format与`git diff --check`通过。本批未重跑全量；上批927通过不作为本批全量结果。未改Agent/共享Schema/.env/用户数据；docs/implementation保持未跟踪、未暂存。

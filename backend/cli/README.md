@@ -47,6 +47,12 @@ python -m cli dump <session-id> --json
 
 单次Ctrl+C中断`phase`时，正常收尾关闭本地工具，并以退出1/`phase_interrupted`返回最后已合并的本地state；未完成单元不合并。它不发送HTTP cancel、不修改输入文件，也不取消输入state对应的持久Run。若要停止TUI中的研究，使用TUI `/cancel`。重跑独立phase可能再次收费，不是持久Checkpoint恢复。
 
+运行中定位卡点可加`--verbose`：stderr实时输出`debug_unit`的`stage=started/merged/failed`、phase、unit_id、章节与已合并/总单元数；不输出query、prompt、供应商正文。`merged`只表示本地state已校验合并，明确标注`persistence=local_only`，不表示PG checkpoint或获得有效证据。开始帧在调用worker前输出，已分类失败/中断无伪造merged；最终stdout仍是一个JSON对象，原events格式不变。
+
+```bash
+uv run python -m cli phase research --state research-state.json --real --json --verbose > research-result.json
+```
+
 `phase plan` fake 使用明确受控计划经过同一个正式worker；`--real`使用配置的模型，并验证snapshot中的模型/prompt版本。仅执行/合并当前阶段，phase保持plan，不创建Session/Report、不连接PG或更新原Run。真实debug用量单列在 `debug_usage`，不伪装原Run的持久预算。私有来源/KB授权尚未接入时，real明确拒绝。
 
 使用冻结Brief生成完整输入并验证真正CLI子进程：

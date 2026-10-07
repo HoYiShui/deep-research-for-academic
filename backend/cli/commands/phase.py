@@ -34,9 +34,27 @@ async def run(args) -> int:
     deadline = datetime.now(UTC) + timedelta(seconds=config.limits.deadline_s)
     failure = None
     active_unit = None
+    active_scope = None
+    completed_units = 0
+    total_units = 0
+
+    def progress(stage):
+        if getattr(args, "verbose", False) and active_scope is not None:
+            # Trusted planner IDs/section enums only. Never dump parameters,
+            # worker diagnostics, queries, prompts or provider errors to logs.
+            output.log(
+                f"debug_unit phase={args.phase} stage={stage} unit_id={active_scope.unit_id} "
+                f"sections={','.join(active_scope.section_ids)} "
+                f"completed_units={completed_units} total_units={total_units} "
+                "persistence=local_only"
+            )
+
     try:
         async with asyncio.timeout(config.limits.deadline_s):
-            for unit in plan_units(state):
+            units = plan_units(state)
+            total_units = len(units)
+            for unit in units:
+                active_scope = unit
                 active_unit = unit.unit_id
                 value = PhaseInput.from_state(state)
                 tools.for_unit(unit)
@@ -53,6 +71,7 @@ async def run(args) -> int:
                     emit=events.append,
                     unit=unit,
                 )
+                progress("started")
                 changes = await PhaseExecutor(workers).execute_phase(value, context)
                 state = merge_phase_result(
                     state,
@@ -60,6 +79,8 @@ async def run(args) -> int:
                     target_sections=unit.section_ids,
                     target_requirements=unit.requirement_ids or None,
                 )
+                completed_units += 1
+                progress("merged")
                 if state.phase == "research":
                     events.append(
                         {
@@ -98,6 +119,7 @@ async def run(args) -> int:
         "debug_usage": tools.usage,
     }
     if failure is not None:
+        progress("failed")
         # Last merged local state, not a persisted checkpoint or a completed unit.
         result["failed_unit_id"] = active_unit
         return output.emit_error(args, *failure, data=result)

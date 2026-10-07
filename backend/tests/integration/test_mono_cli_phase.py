@@ -16,7 +16,7 @@ from domain.research.state import PipelineState
 from tests.unit.test_state import initial_state
 
 
-async def invoke(path, phase="plan", *, real=False, env=None):
+async def invoke(path, phase="plan", *, real=False, env=None, verbose=False):
     process = await asyncio.create_subprocess_exec(
         sys.executable,
         "-m",
@@ -29,6 +29,7 @@ async def invoke(path, phase="plan", *, real=False, env=None):
         "42",
         "--json",
         *(["--real"] if real else []),
+        *(["--verbose"] if verbose else []),
         cwd=Path(__file__).resolve().parents[2],
         env=dict(os.environ, DATABASE_URL="postgresql://invalid-no-db/debug", **(env or {})),
         stdout=asyncio.subprocess.PIPE,
@@ -80,6 +81,71 @@ async def test_fake_research_runs_all_units_and_preserves_empty_search_gaps_with
     assert body["state"]["run_metadata"] == data["run_metadata"]
     assert body["debug_usage"]["fetch_calls"] == body["debug_usage"]["search_calls"] == 0
     assert (code, body, "") == await invoke(path, "research")
+
+
+async def test_verbose_units_report_metadata_without_query_or_prompt(tmp_path):
+    state = initial_state()
+    plans = json.loads(DebugTools(state, fake=True, seed=42).fake_plan())["section_plans"]
+    plans[0]["sub_questions"] = ["private-query-canary"]
+    plans[0]["retrieval_anchors"] = ["private-anchor-canary"]
+    state = PipelineState.model_validate(
+        state.model_dump() | {"phase": "research", "section_plans": plans}
+    )
+    path = tmp_path / "state.json"
+    path.write_text(state.model_dump_json())
+    code, body, stderr = await invoke(path, "research", verbose=True)
+    assert code == 0 and body["status"] == "ok"
+    assert stderr.count("stage=started") == stderr.count("stage=merged") == 10
+    assert "completed_units=0 total_units=10" in stderr
+    assert "completed_units=10 total_units=10" in stderr
+    assert "persistence=local_only" in stderr
+    assert "canary" not in stderr
+    assert "unit_id=unit-" in stderr
+
+
+async def test_verbose_start_is_visible_before_worker_returns_and_interrupt_has_no_completion(
+    tmp_path,
+):
+    state = initial_state()
+    path = tmp_path / "state.json"
+    path.write_text(state.model_dump_json())
+    code = """
+import asyncio,sys
+from application.phase_executor import PhaseExecutor
+from cli.__main__ import main
+async def gated(self,value,context):
+    print('WORKER_WAITING',file=sys.stderr,flush=True)
+    await asyncio.Event().wait()
+PhaseExecutor.execute_phase=gated
+sys.exit(main(['phase','plan','--state',sys.argv[1],'--json','--verbose']))
+"""
+    process = await asyncio.create_subprocess_exec(
+        sys.executable,
+        "-c",
+        code,
+        str(path),
+        cwd=Path(__file__).resolve().parents[2],
+        env=dict(os.environ, DATABASE_URL="postgresql://invalid-no-db/debug"),
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
+    )
+    try:
+        first = (await asyncio.wait_for(process.stderr.readline(), timeout=10)).decode()
+        assert "stage=started" in first and "completed_units=0 total_units=1" in first
+        assert await asyncio.wait_for(process.stderr.readline(), timeout=5) == b"WORKER_WAITING\n"
+        assert process.returncode is None
+        process.send_signal(signal.SIGINT)
+        stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=10)
+    finally:
+        if process.returncode is None:
+            process.kill()
+            await process.wait()
+    assert process.returncode == 1
+    body = json.loads(stdout)
+    assert body["error"]["code"] == "phase_interrupted"
+    assert "stage=merged" not in first + stderr.decode()
+    assert "stage=failed" in stderr.decode()
+    assert body["state"] == state.model_dump(mode="json")
 
 
 async def test_sigint_keeps_local_commits_without_cancelling_a_persisted_run(tmp_path):
