@@ -85,3 +85,44 @@ console.log(JSON.stringify({session_id:id,brief_version:version,status:restored.
         assert await pool.fetchval("SELECT count(*) FROM sessions") == 1
         assert await pool.fetchval("SELECT count(*) FROM research_runs") == 1
         assert await pool.fetchval("SELECT count(*) FROM phase_snapshots") == 1
+        cancel_code = """
+import assert from 'node:assert/strict';
+import {ResearchApiClient} from './src/api-client.ts';
+import {ResearchSession} from './src/session.ts';
+const session=new ResearchSession(new ResearchApiClient(process.env.TEST_API_URL));
+await session.open(process.env.TEST_SESSION_ID);
+assert.equal(session.view.status,'ready');
+await session.cancel();
+assert.equal(session.view.status,'cancelling');
+const deadline=Date.now()+5000;
+while(session.view.status==='cancelling' && Date.now()<deadline) {
+ await new Promise(resolve=>setTimeout(resolve,25)); await session.refresh();
+}
+assert.equal(session.view.status,'cancelled');
+console.log(JSON.stringify({status:session.view.status}));
+"""
+        child = await asyncio.create_subprocess_exec(
+            "node",
+            "--import",
+            "tsx",
+            "--input-type=module",
+            "-e",
+            cancel_code,
+            cwd=tui,
+            env=os.environ | {"TEST_API_URL": url, "TEST_SESSION_ID": result["session_id"]},
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+        try:
+            body, errors = await asyncio.wait_for(child.communicate(), timeout=10)
+        finally:
+            if child.returncode is None:
+                child.kill()
+                await child.wait()
+        assert child.returncode == 0, errors.decode()
+        assert json.loads(body)["status"] == "cancelled"
+        assert await pool.fetchval("SELECT status FROM sessions") == "cancelled"
+        assert await pool.fetchval("SELECT status FROM research_runs") == "cancelled"
+        assert await pool.fetchval("SELECT attempt_count FROM research_runs") == 0
+        assert await pool.fetchval("SELECT count(*) FROM tool_calls") == 0
+        assert await pool.fetchval("SELECT count(*) FROM reports") == 0

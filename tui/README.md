@@ -10,7 +10,7 @@
 uv run python -m scripts.debug_backend
 ```
 
-读取 backend/.env，但连接同一 PostgreSQL 实例上的独立 `dr4a_debug` 数据库；不存在时创建，空库初始化 mono schema。**不修改 .env，不迁移/清空原数据库，不管理 Docker volumes。** PG 账号需有创建数据库权限。默认 manual：真实 Clarify/确认/状态/CLI dump 可用，确认后 Run 留在 ready，等待执行器，不能称研究已开始。
+读取 backend/.env，但连接同一 PostgreSQL 实例上的独立 `dr4a_debug` 数据库；不存在时创建，空库初始化 mono schema。**不修改 .env，不迁移/清空原数据库，不管理 Docker volumes。** PG 账号需有创建数据库权限。默认 manual：真实 Clarify/确认/状态/CLI dump 可用，确认后 Run 排 ready，等待执行器，不能称研究已开始。维护扫描仍处理取消、失租和排队超时；默认排队超过30分钟会 failed/queue_timeout，可按契约显式 resume，不自动执行研究。
 
 要由后端执行现有真实 plan/research，显式开启（会调用收费模型/搜索）：
 
@@ -43,7 +43,7 @@ npm run dev
 - `/sources papers` 或 `/sources papers,web`：创建前设置来源；先 `/new`，不更改已冻结来源。
 - `/open <session UUID>`：GET 恢复 ask/confirm/运行状态，不新建或恢复执行。
 - `/status`、`/watch`：读持久状态／重新订阅。SSE 断开后有限次 GET+重连，不发送启动/恢复请求。只按事件 ID 去重，同 seq 的不同 progress 保留。
-- `/cancel`：请求服务端取消。接受请求不等于已停止；观察状态。manual 模式无扫描执行器时 ready 的取消可能停留 cancelling，启动执行器后处理，不伪造终态。
+- `/cancel`：请求服务端取消。接受请求不等于已停止；观察状态。manual 模式也运行维护扫描器，可完成无有效执行租约的取消，但不领取研究任务或调用 Agent；若其他进程仍持有有效租约，等待其安全停止或租约过期。
 - `/resume`：先读取最新状态，仅失败且允许恢复时发送最新 checkpoint_seq。
 - `/retry`：显式重发上次网络/可重试故障请求，保留原 body/version/幂等键；不自动重试变更。409 会刷新状态，不偷偷同意新 Brief。
 - `/report`：只读报告 Markdown；failed/cancelled 不自动取报告。`/session` 显示 CLI 提示。
@@ -73,4 +73,4 @@ phase 也接受 dump/phase 的 JSON 结果外壳，可直接 `--state dump.json`
 
 ## 验证范围
 
-`npm test`、`npm run typecheck` 验证客户端控制逻辑。后端 `tests/integration/test_tui_live_http.py` 使用真实 TCP FastAPI/PG 与 TypeScript 客户端验证多轮/退回/确认/SSE/CLI dump，但模型受控；不是报告或 Research 质量验收。
+`npm test`、`npm run typecheck` 验证客户端控制逻辑。后端 `tests/integration/test_tui_live_http.py` 使用真实 TCP FastAPI/PG 与 TypeScript 客户端验证多轮/退回/确认/SSE/CLI dump/取消终态，但模型受控；不是报告或 Research 质量验收。

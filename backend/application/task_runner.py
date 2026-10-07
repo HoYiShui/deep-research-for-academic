@@ -1,6 +1,7 @@
 """One local worker; PostgreSQL is the cross-process ownership/capacity truth.
 
-An executor is mandatory and explicitly supplied by the composition root.
+Execution requires an explicit executor. Maintenance-only mode scans durable
+cancellation/expired leases/timeouts but never claims ready Runs or calls tools.
 This module does not fabricate phase results or silently fall back to a fake.
 """
 
@@ -25,17 +26,21 @@ class TaskRunner:
         self,
         *,
         store,
-        execute: Executor,
+        execute: Executor | None,
         settings: Settings,
+        claim_ready: bool = True,
         worker_id=None,
         owner=None,
         run_id=None,
     ):
-        if not callable(execute):
+        if type(claim_ready) is not bool:
+            raise TypeError("Run claiming mode must be an explicit bool")
+        if (claim_ready or execute is not None) and not callable(execute):
             raise TypeError("A real or explicitly controlled executor is required")
         if settings.heartbeat_s >= settings.lease_s:
             raise ValueError("Heartbeat interval must be shorter than the execution lease")
         self.store, self.execute, self.settings = store, execute, settings
+        self.claim_ready = claim_ready
         if (owner is None) != (run_id is None):
             raise ValueError("A scoped CLI runner requires both owner and Run UUID")
         if owner is not None and (not isinstance(owner, UUID) or not isinstance(run_id, UUID)):
@@ -81,7 +86,7 @@ class TaskRunner:
                 await self.store.research.scan_interrupted(
                     tx, queue_timeout_s=self.settings.queue_timeout_s, **self.scope
                 )
-            if self.active is not None:
+            if not self.claim_ready or self.active is not None:
                 return
             async with self.store.transaction() as tx:
                 claimed = await self.store.research.claim_run(

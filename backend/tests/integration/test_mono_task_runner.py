@@ -8,7 +8,7 @@ import pytest
 from application.errors import AppError
 from application.settings import Settings
 from application.task_runner import TaskRunner
-from tests.integration.test_mono_run_lifecycle import cancel, ready
+from tests.integration.test_mono_run_lifecycle import cancel, ready, resume
 from tests.integration.test_mono_transactions import setup_store
 
 
@@ -88,6 +88,72 @@ async def test_scoped_cli_runner_still_obeys_owner_capacity(pg_database):
 async def test_cli_scope_requires_owner_and_run(scope):
     with pytest.raises(ValueError, match="both owner"):
         runner(None, lambda *_: None, **scope)
+
+
+async def test_maintenance_only_finishes_unleased_cancel_without_claiming_ready(pg_database):
+    pool, store, user = await setup_store(pg_database)
+    pending = await ready(store, user.user_id)
+    cancelled = await ready(store, user.user_id)
+    async with store.transaction() as tx:
+        await store.research.request_cancel(user.user_id, cancelled.session.session_id, tx)
+    worker = runner(store, None, claim_ready=False)
+    try:
+        await worker.tick()
+        assert worker.active is None
+        assert (await store.research.get_run(user.user_id, pending.run.run_id)).status == "ready"
+        assert (
+            await store.research.get_run(user.user_id, cancelled.run.run_id)
+        ).status == "cancelled"
+        assert await pool.fetchval("SELECT sum(attempt_count) FROM research_runs") == 0
+        assert await pool.fetchval("SELECT count(*) FROM tool_calls") == 0
+        assert await pool.fetchval("SELECT count(*) FROM reports") == 0
+    finally:
+        await worker.aclose()
+
+
+async def test_maintenance_only_does_not_stop_another_workers_live_lease(pg_database):
+    _, store, user = await setup_store(pg_database)
+    commit = await ready(store, user.user_id)
+    async with store.transaction() as tx:
+        claimed = await store.research.claim_run("external-worker", tx, lease_s=90)
+        await store.research.request_cancel(user.user_id, commit.session.session_id, tx)
+    worker = runner(store, None, claim_ready=False)
+    try:
+        await worker.tick()
+        current = await store.research.get_run(user.user_id, commit.run.run_id)
+        assert current.status == "cancelling" and current.lease_token == claimed.run.lease_token
+        assert current.lease_owner == "external-worker"
+    finally:
+        await worker.aclose()
+
+
+async def test_missing_executor_still_rejected_when_claiming_is_enabled():
+    with pytest.raises(TypeError, match="executor"):
+        runner(None, None)
+
+
+async def test_maintenance_marks_dead_lease_failed_but_never_reexecutes(pg_database):
+    pool, store, user = await setup_store(pg_database)
+    commit = await ready(store, user.user_id)
+    async with store.transaction() as tx:
+        await store.research.claim_run("dead-worker", tx)
+    await pool.execute(
+        "UPDATE research_runs SET lease_expires_at=clock_timestamp()-interval '1 second'"
+    )
+    worker = runner(store, None, claim_ready=False)
+    try:
+        await worker.tick()
+        failed = await store.research.get_run(user.user_id, commit.run.run_id)
+        assert failed.status == "failed" and failed.failure.code == "interrupted"
+        assert failed.resume_allowed and failed.attempt_count == 1
+        await resume(store, user.user_id, commit, 1)
+        await worker.tick()
+        pending = await store.research.get_run(user.user_id, commit.run.run_id)
+        assert pending.status == "ready" and pending.attempt_count == 1
+        assert worker.active is None
+        assert await pool.fetchval("SELECT count(*) FROM tool_calls") == 0
+    finally:
+        await worker.aclose()
 
 
 async def test_runner_claims_once_renews_and_stops_cancelled_execution(pg_database):

@@ -223,21 +223,21 @@ class HttpRuntime:
             poll_s=self.settings.scan_s,
             heartbeat_s=self.settings.sse_heartbeat_s,
         )
-        # Only start a scanner when its executor has been explicitly composed.
-        # Missing business workers must not claim paid Runs and invent results.
+        # Always maintain durable cancellation/expired leases. Claiming paid
+        # work remains disabled unless an executor is explicitly composed.
         if self.run_executor_factory is None and self.settings.dr4a_debug_runner:
             from application.debug_runtime import DebugExecution
 
             self.debug_execution = DebugExecution(self)
             self.run_executor_factory = lambda runtime: self.debug_execution.execute
-        if self.run_executor_factory is not None:
-            self.runner = TaskRunner(
-                store=store,
-                execute=self.run_executor_factory(self),
-                settings=self.settings,
-            )
-            self.research.wake = self.runner.wake
-            await self.runner.start()
+        self.runner = TaskRunner(
+            store=store,
+            execute=self.run_executor_factory(self) if self.run_executor_factory else None,
+            settings=self.settings,
+            claim_ready=self.run_executor_factory is not None,
+        )
+        self.research.wake = self.runner.wake
+        await self.runner.start()
 
     @property
     def knowledge_base(self):

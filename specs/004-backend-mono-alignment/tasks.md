@@ -78,6 +78,7 @@
   - 第二批补取消/失败终态、失租与排队超时扫描、保留原Run/预算的显式恢复、owner队列容量；真实PG验证并发恢复、取消优先、终态故障回滚、FK锁兼容和过期租约终态写入拦截。报告发布、Runner/HTTP/SSE仍待接入，不勾选。证据：[取消与恢复](evidence/t015-cancel-recovery.md)。
   - 第三批补Report+done Checkpoint+Run/Session完成态四事实原子发布，真实PG覆盖四处写入故障回滚、取消/发布竞争、旧token/租约/seq拒绝，审核正文不允许偷改。最初7项加入后全量334通过，后补4项报告反例也通过；质量门、Runner/HTTP/SSE尚未全接入。证据：[Report事务](evidence/t015-report-transaction.md)。
 - [ ] T016 [US2] 新增 `backend/application/task_runner.py` 并更新 `backend/application/bootstrap.py`、`backend/interface/main.py`：单worker扫描ready、强引用与异常观察、90s租约/20s续租/5s扫描、排队超时、graceful shutdown；服务器与CLI共同遵PG容量，进程死亡研究不自动付费重跑。
+  - 2026-10-07外围手动调试：默认HttpRuntime也启动维护扫描，但未显式配置executor时禁止领取ready或调用工具。无有效租约的取消可完成、过期running转failed等待显式resume；其他进程有效租约不受干扰。TUI经独立TCP验证ready→取消→PG cancelled且attempt/工具/报告均为0；完整业务组合仍未完成，不勾选。证据：[手动维护模式](evidence/t016-http-runner.md#手动调试维护模式2026-10-07)。
   - 调度核心与显式受控executor经过6项真实PG验证，全量349通过；默认HttpRuntime尚不启动，待T017正式执行器后组合，不勾选。证据：[Runner核心](evidence/t016-runner-core.md)。
   - HttpRuntime已接受显式executor factory，准备服务后启动Runner、确认提交后wake；关闭时先停止/持久化Run中断再关模型/PG。新增HTTP确认→正式Driver五阶段→原子发布→报告/迟到SSE读取受控闭环，未再复制阶段fixture。默认缺完整业务workers时不自动领取，不暗退fake；CLI run与生产组合仍待完成，不勾选。证据：[HTTP Runner组合](evidence/t016-http-runner.md)。
 - [ ] T017 [US2] 更新 `backend/application/orchestrator.py`：execute_phase输入切片/白名单PhaseResult、单元验证合并、unit_manifest、完整seq快照、Machine转换；禁止空计划成功、禁止全局State交给Agent修改，终态先提交再发事件。

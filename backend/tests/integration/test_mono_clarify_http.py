@@ -123,7 +123,18 @@ async def test_http_cancel_ready_reports_accepted_not_stopped(live):
     await http.post(path + "/confirm", json={"accepted": True, "brief_version": 1}, headers=key())
     result = await http.post(path + "/cancel", json={}, headers=key())
     assert result.status_code == 202 and result.json()["status"] == "cancelling"
-    assert (await http.get(path)).json()["status"] == "cancelling"
+    # 202 acknowledges the request; maintenance may already have stopped this
+    # unleased Run before the next GET. The response is not a temporal lock.
+    async with asyncio.timeout(5):
+        while True:
+            status = (await http.get(path)).json()["status"]
+            assert status in {"cancelling", "cancelled"}
+            if status == "cancelled":
+                break
+            await asyncio.sleep(0.025)
+    assert await pool.fetchval("SELECT status FROM research_runs") == "cancelled"
+    assert await pool.fetchval("SELECT attempt_count FROM research_runs") == 0
+    assert await pool.fetchval("SELECT count(*) FROM tool_calls") == 0
     assert (await http.get(path + "/report")).status_code == 409
     assert await pool.fetchval("SELECT count(*) FROM reports") == 0
 
