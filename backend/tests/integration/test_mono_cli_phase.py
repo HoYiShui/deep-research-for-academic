@@ -211,6 +211,81 @@ sys.exit(main(['phase','research','--state',sys.argv[1],'--json']))
     assert path.read_bytes() == original
 
 
+@pytest.mark.parametrize("failure_kind", ["merge", "worker"])
+async def test_merge_rejection_retains_last_local_state_without_exposing_conflict(
+    tmp_path, failure_kind
+):
+    from tests.unit.test_scout_originals import original as original_fact
+
+    state = initial_state()
+    plans = json.loads(DebugTools(state, fake=True, seed=42).fake_plan())["section_plans"]
+    source = original_fact()[3]
+    state = PipelineState.model_validate(
+        state.model_dump()
+        | {
+            "phase": "research",
+            "section_plans": plans,
+            "sources": {source.source_id: source},
+        }
+    )
+    path = tmp_path / "state.json"
+    path.write_text(state.model_dump_json())
+    before = path.read_bytes()
+    code = """
+import sys
+from application.phase_executor import PhaseExecutor
+from cli.__main__ import main
+from domain.research.phase_contracts import PhaseResult
+original=PhaseExecutor.execute_phase
+count=0
+async def controlled(self,value,context):
+    global count
+    count+=1
+    if count==3:
+        if sys.argv[2]=='worker':
+            raise ValueError('private-worker-canary')
+        source=next(iter(value.values['sources'].values()))
+        return PhaseResult(phase=value.phase,unit_id=context.unit_id,input_hash=value.semantic_hash,
+            changes={'sources':{source.source_id:source.model_copy(update={'title':'private-conflict-canary'})}},
+            degradations=[],failures=[])
+    return await original(self,value,context)
+PhaseExecutor.execute_phase=controlled
+sys.exit(main(['phase','research','--state',sys.argv[1],'--json','--verbose']))
+"""
+    process = await asyncio.create_subprocess_exec(
+        sys.executable,
+        "-c",
+        code,
+        str(path),
+        failure_kind,
+        cwd=Path(__file__).resolve().parents[2],
+        env=dict(os.environ, DATABASE_URL="postgresql://invalid-no-db/debug"),
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
+    )
+    try:
+        stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=15)
+    finally:
+        if process.returncode is None:
+            process.kill()
+            await process.wait()
+    body = json.loads(stdout)
+    assert process.returncode == 1
+    assert b"canary" not in stdout + stderr and b"Traceback" not in stderr
+    assert path.read_bytes() == before
+    if failure_kind == "worker":
+        assert body["error"]["code"] == "execution_failed" and "state" not in body
+        return  # Unclassified worker bugs must not be relabeled as merge validation.
+    assert body["error"]["code"] == "invalid_state"
+    assert body["state"]["sources"] == state.model_dump(mode="json")["sources"]
+    assert set(body["state"]["section_coverage"]) == {"section_1"}
+    assert body["state"]["run_metadata"] == state.run_metadata.model_dump(mode="json")
+    assert set(body["state_delta"]) == {"section_coverage"}
+    assert len(body["events"]) == 2 and body["failed_unit_id"]
+    assert body["debug_usage"]["llm_calls"] == 0
+    assert stderr.count(b"stage=merged") == 2 and stderr.count(b"stage=failed") == 1
+
+
 async def test_real_sdk_plan_against_controlled_http_not_a_real_model_claim(tmp_path):
     state = initial_state()
     path = tmp_path / "state.json"

@@ -73,12 +73,20 @@ async def run(args) -> int:
                 )
                 progress("started")
                 changes = await PhaseExecutor(workers).execute_phase(value, context)
-                state = merge_phase_result(
-                    state,
-                    changes,
-                    target_sections=unit.section_ids,
-                    target_requirements=unit.requirement_ids or None,
-                )
+                try:
+                    state = merge_phase_result(
+                        state,
+                        changes,
+                        target_sections=unit.section_ids,
+                        target_requirements=unit.requirement_ids or None,
+                    )
+                except ValueError:
+                    # This narrow boundary classifies contract/immutable-fact
+                    # rejection, not arbitrary worker bugs. Keep the previous
+                    # state; exception text can contain source/quote content.
+                    raise AppError(
+                        "invalid_state", "Phase result failed canonical state merge validation"
+                    ) from None
                 completed_units += 1
                 progress("merged")
                 if state.phase == "research":

@@ -168,3 +168,11 @@ CLI ResearchDebugTools接收输入State的Sources只读副本；当前query授�
 随后同步verify_research_phase探针：仅接受本次随机目录，或调用者提供的输入Sources中同ID/key/hash公开原文，仍实际读原文并重解析核对Evidence。MinIO测试额外证明默认拒绝旧范围、明确输入引用才允许、伪换其他key仍拒绝。
 
 后端全量`uv run --no-sync pytest -q --tb=short`：**945 passed in 188.07s**。探针最后调整发生在全量进程运行期间，不能把该次已加载模块结果当作最终探针回归；最终代码重新运行上述定向集：**49 passed in 9.38s**，其中包括实际MinIO探针测试。5个改动Python文件Ruff/format与diff检查通过。未调用收费供应商、未改用户历史库/Agent分支/.env/docs/implementation；只读旧原文不意味着持久恢复验收完成。
+
+## 独立phase合并拒绝诊断（2026-10-08）
+
+基线335ea6f。原CLI仅捕获已分类业务/适配器错误，正式merge_phase_result的ValueError会逃逸到main通用execution_failed，丢失先前已合并本地state/events/usage与失败unit。真实CLI子进程受控反例先正常执行两个research单元，再返回同ID但title冲突的Source；实现前得到execution_failed且无state，反例失败。另一反例让worker自身抛带canary的ValueError，原行为是安全通用错误。
+
+仅在CLI调用正式merge_phase_result的边界将ValueError归为AppError invalid_state，固定安全消息，不打印冲突事实。不改变merge规则、不接受失败单元、不推进持久Run；现有收尾返回最后本地State/delta/events/usage/failed_unit_id，verbose只出现两个merged和一个failed。worker自身未分类ValueError仍execution_failed，不借此宽泛捕获业务代码缺陷。
+
+两条受控CLI子进程验证输入文件/RunMetadata不变、保留第一章coverage与两个events、Source保持旧值、无canary/stack泄漏、退出1；无模型/PG依赖。最终定向回归 `uv run --no-sync pytest -q tests/integration/test_mono_cli_phase.py tests/unit/test_phase_contracts.py tests/unit/test_cli_output.py tests/unit/test_cli_research_originals.py tests/integration/test_mono_cli_originals.py`：**63 passed in 9.83s**，最后一项仍使用真实fixture-owned MinIO bucket。两文件Ruff/format与diff检查通过。本批未重跑全量，不沿用上批945作为本批全量结论；T021仍不勾选，未修改Agent/Schema/用户数据或受保护文档。

@@ -53,7 +53,7 @@ PDF模式用`PARSER_VERSION=dr4a-mineru-4.0.10-standard-v1`，另需已准备的
 
 成功时，`phase --json` 输出完整 post-state、events，以及顶层 `state_delta`。缺少前置或状态阶段不匹配会以退出码 2 退出，并在 stderr 指出原因。
 
-执行中发生已分类的业务/依赖错误或 timeout 时，非零退出仍返回最后成功合并的 `state`、`state_delta`、events、`debug_usage` 和 `failed_unit_id`；失败单元的未合并结果不计入 state。这只是本地调试状态，不是 PG checkpoint，也不表示该阶段完成。预检拒绝或未分类异常不保证有 state；未分类 SDK 异常正文仍隐藏。`debug_usage.search_outcomes` 记录检索源、尝试次数、状态及安全错误码，不输出供应商异常正文或凭据。
+执行中发生已分类的业务/依赖错误或 timeout 时，非零退出仍返回最后成功合并的 `state`、`state_delta`、events、`debug_usage` 和 `failed_unit_id`；失败单元的未合并结果不计入 state。正式 state 合并校验拒绝（例如同 ID 的不可变事实冲突）也以退出1/`invalid_state`保留上述诊断，不回显冲突的原文。这只是本地调试状态，不是 PG checkpoint，也不表示该阶段完成。预检拒绝或未分类异常不保证有 state；未分类 SDK 异常正文仍隐藏。`debug_usage.search_outcomes` 记录检索源、尝试次数、状态及安全错误码，不输出供应商异常正文或凭据。
 
 单次Ctrl+C中断`phase`时，正常收尾关闭本地工具，并以退出1/`phase_interrupted`返回最后已合并的本地state；未完成单元不合并。它不发送HTTP cancel、不修改输入文件，也不取消输入state对应的持久Run。若要停止TUI中的研究，使用TUI `/cancel`。重跑独立phase可能再次收费，不是持久Checkpoint恢复。
 
