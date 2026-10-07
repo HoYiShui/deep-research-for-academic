@@ -25,3 +25,15 @@
 仅更新 `.env.example`，没有改用户 `.env`。依赖python-dotenv显式写入pyproject并同步uv.lock；无业务数据库写入。
 
 T002完成；T003及后续未完成。生产完整API认证/CSRF、typed Pipeline Schema与真正沙箱等不在本任务通过声明中。
+
+## 2026-10-07：最低研究调试诊断（T056部分）
+
+`cli doctor`现在通过Settings读取配置，不把`.env`复制到进程环境；支持`--scope research`跳过当前暂缓的KB基础设施，`--debug-db`只选择已存在的匿名开发数据库。默认all保留Milvus连接与本地模型文件探测；Hub名称/空目录不算已准备模型，不下载或推理。匿名开发配置不要求JWT，认证profile要求JWT。
+
+PG连接探针使用5s连接/命令超时、readonly事务并关闭连接，明确区分连接与Schema。Schema对照当前仓库SQL迁移集合，拒绝缺失/未知版本，核对必要Run/调用账本/快照表；不执行任何DDL或迁移。这里仅检查迁移标记/表，不声称全部约束/权限验证。MinIO使用配置的TLS设置及凭据探测已存在bucket，短连接/读取超时、关闭SDK transport，不建bucket/对象。Milvus同步SDK探针移到线程并关闭client，拒绝Lite路径。
+
+JSON保留逐项checks，附scope与limitations；失败提供标准service_not_ready error、request_id及非零退出码。limitations明确模型推理、Parser、写权限、完整Pipeline/报告质量未通过；当前注册worker范围只是实现说明，不是远程服务能力探测。
+
+反例先失败：旧实现接受空白环境变量、Hub名称模型，以及没有分scope/Schema诊断。实施后的`test_cli_doctor.py test_cli_output.py test_mono_cli_dump.py`：21 passed in 5.32s。实际隔离PG覆盖空库/0001/当前完整迁移/未知版本且探针不建表/用户/会话；真实唯一MinIO bucket覆盖存在/不存在且探针后零对象。修复既有dotenv单测直接修改os.environ造成的测试顺序污染，未修改项目`.env`。
+
+真实CLI：`uv run --no-sync python -m cli doctor --scope research --debug-db --json`退出0，env/postgres/postgres_schema/minio_bucket均true。相同命令去掉debug-db，连接恢复业务库成功但postgres_schema=false，退出3；不迁移或写入恢复库。没有收费模型/搜索调用。Ruff与diff检查通过；本批不称全量回归或完整T056完成。

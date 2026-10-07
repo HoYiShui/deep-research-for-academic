@@ -188,6 +188,7 @@
 - [ ] T054 [US6] 在 `backend/application/settings.py`、Research/KB服务、Fetch/LLM Adapter落实隐私边界/速率限流/日志脱敏/prompt隔离；新增 `backend/tests/integration/test_mono_privacy.py`、`test_mono_security.py`：private摘录及派生query不外发、无本地LLM提前409、SSRF/DNS重绑定防护、跨owner检索/附件拒绝、生产匿名配置启动失败。
 - [ ] T055 [US6] 扩展 `backend/application/task_runner.py` 与PG/清理Service：SIGKILL后扫描、Run过期failed显式resume、Job有界自动恢复、creating/deleting恢复、孤儿TTL/引用校验；扩大 `backend/tests/integration/test_mono_process_recovery.py` 到运行/入库/清理各断点及heartbeat失租，不把graceful测试代替崩溃测试。
 - [ ] T056 [US6] 更新 `backend/interface/main.py`、CLI doctor、结构化日志与指标：liveness/readiness区分、真实schema/内容/索引/模型/Parser/执行器能力、可选源degraded/必需功能503、queue/phase/query/预算/取消延迟；补 `backend/tests/integration/test_mono_readiness.py`，诊断不得收费调用或泄露凭据。
+  - 2026-10-07最低调试诊断：doctor改用Settings，新增scope=research与debug-db；只读核对当前迁移集合/Run表、认证访问MinIO bucket，拒绝空配置/未准备Hub模型/空权重目录，明确未验证能力且不收费/写入。实测独立debug库通过、恢复旧库仅Schema失败；真实隔离PG/MinIO及CLI定向21项通过。完整HTTP readiness/模型Parser执行/索引/指标仍暂缓，不勾选。证据：[doctor边界](evidence/t002-settings.md#2026-10-07最低研究调试诊断t056部分)。
 - [ ] T057 [US6] 更新 `backend/Dockerfile`、`docker-compose.prod.yml`、`backend/.env.example` 与执行Adapter：生产无Docker socket、提供有相同安全限制的隔离Worker、模型两套固定权重挂载/依赖锁/单ASGI worker/迁移；新增 `backend/scripts/verify_deployment.py`，从清洁部署验证readiness及真实沙箱，不以Compose注释当实现。
 - [ ] T058 [US6] 新增 `backend/scripts/verify_backup_restore.py`：以测试资源验证PG+MinIO一致边界备份、hash/引用检查、Milvus从manifest重建、恢复后研究读取；记录步骤与实测到 `evidence/us6.md`，不得试验覆盖现有用户库。
 

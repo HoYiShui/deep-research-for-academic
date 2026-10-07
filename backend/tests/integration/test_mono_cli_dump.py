@@ -9,6 +9,7 @@ from urllib.parse import urlsplit
 from uuid import uuid4
 
 from application.settings import Settings
+from cli.commands.doctor import _check_bucket, _postgres_checks
 from infrastructure.storage.migrations import run_migrations
 from tests.integration.test_mono_run_lifecycle import checkpoint, claim, ready
 from tests.integration.test_mono_transactions import candidate, setup_store
@@ -99,3 +100,33 @@ async def test_dump_legacy_schema_is_not_migrated_or_read_as_mono(pg_database):
     assert body["error"]["retryable"] is False
     assert await pool.fetchval("SELECT count(*) FROM schema_migrations") == 1
     assert await pool.fetchval("SELECT to_regclass('research_runs')") is None
+
+
+async def test_doctor_schema_probe_is_readonly_and_distinguishes_legacy(pg_database):
+    pool, database = pg_database
+    settings = Settings.load()
+    dsn = urlsplit(settings.database_url.get_secret_value())._replace(path="/" + database).geturl()
+    settings = settings.model_copy(update={"database_url": type(settings.database_url)(dsn)})
+    assert await _postgres_checks(settings) == (True, False)
+    assert await pool.fetchval("SELECT count(*) FROM pg_tables WHERE schemaname='public'") == 0
+    await run_migrations(pool, through_version="0001_init")
+    assert await _postgres_checks(settings) == (True, False)
+    assert await pool.fetchval("SELECT count(*) FROM schema_migrations") == 1
+    await run_migrations(pool)
+    assert await _postgres_checks(settings) == (True, True)
+    assert await pool.fetchval("SELECT count(*) FROM sessions") == 0
+    assert await pool.fetchval("SELECT count(*) FROM users") == 0
+    await pool.execute("INSERT INTO schema_migrations(version) VALUES('9999_unknown')")
+    assert await _postgres_checks(settings) == (True, False)
+
+
+async def test_doctor_bucket_probe_does_not_write_or_create(object_cache):
+    settings = Settings.load().model_copy(update={"minio_bucket": object_cache.bucket})
+    assert await _check_bucket(settings)
+    assert not await _check_bucket(
+        settings.model_copy(update={"minio_bucket": object_cache.bucket + "-absent"})
+    )
+    assert (
+        await object_cache._io(lambda: list(object_cache._client.list_objects(object_cache.bucket)))
+        == []
+    )

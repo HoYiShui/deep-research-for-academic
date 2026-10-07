@@ -27,6 +27,13 @@ def build_parser() -> argparse.ArgumentParser:
     sub = parser.add_subparsers(dest="command", required=True)
 
     p = sub.add_parser("doctor", help="environment check")
+    p.add_argument(
+        "--scope",
+        choices=["all", "research"],
+        default="all",
+        help="research skips deferred knowledge-base dependency probes",
+    )
+    p.add_argument("--debug-db", action="store_true", help="check the separate dr4a_debug database")
     _add_common(p)
     p.set_defaults(handler=doctor.run)
 

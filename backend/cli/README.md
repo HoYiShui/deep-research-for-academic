@@ -19,7 +19,7 @@ python -m cli dump <session-id> --json
 
 | 命令 | 用途 |
 |---|---|
-| `doctor` | 检查真实环境的 env、PostgreSQL、Milvus、MinIO 和模型权重。 |
+| `doctor` | 只读检查配置、PG连接/迁移标记、MinIO bucket；默认另查Milvus连接/本地模型文件，不能证明推理或完整Pipeline可用。 |
 | `run --brief FILE` | 跳过 Clarify 执行冻结 Brief；当前 real 仅装配 plan，不能产出完整报告。 |
 | `phase PHASE --state FILE` | 用快照状态只执行一个 phase。 |
 | `dump SESSION_ID` | 从 PostgreSQL 读取当前 Run 的最新 seq，不按阶段倒序。 |
@@ -85,6 +85,16 @@ Observation 的表格 `raw_value` 必须来自完整单元格，不能截取系�
 当前设计权威是 [mono CLI 契约](../../docs/mono/api-contract.md#5-cli-契约) 与 [mono 数据模型](../../docs/mono/data-model.md)。`specs/002-cli/` 和 `specs/001-deep-research-agent/` 是历史需求，冲突的实现设计不优先于 mono。
 
 ## 验证入口与历史脚本
+
+当前公开研究调试优先运行：
+
+```bash
+uv run python -m cli doctor --scope research --debug-db --json
+```
+
+`--debug-db`只读取已有`dr4a_debug`，不会创建/迁移数据库；仅限匿名development。普通后端库去掉该参数。`--scope research`跳过暂缓的Milvus/Embedding检查；默认`all`仍检查它们。PG能够连接但缺迁移、存在未知迁移或缺必要Run表时`postgres_schema=false`，退出3；不要为了让检查变绿自动迁移恢复旧库。
+
+`checks`是逐项bool，`scope`和`limitations`说明检查边界，失败有标准error。MinIO检查使用配置凭据读取bucket存在性，不建bucket、不试写对象；模型文件检查拒绝Hub名称和空目录，不自动下载。PASS只表示这些有限检查通过：模型/Parser实际运行、缓存写权限、Milvus schema/hybrid、完整执行器仍需另验。匿名开发不要求JWT_SECRET；需要鉴权时才检查它。
 
 `scripts.smoke_e2e` 与 `scripts.smoke_real` 已退役，执行只输出替代入口并以退出码 2 结束，不加载 `.env`、不请求模型、不写数据库。它们旧有的自动同意默认假设、直接调用旧 Service、硬编码数据库和“全真实 E2E”声明不能用于当前验收。
 
