@@ -1,10 +1,14 @@
 """Isolated public research debug I/O, no PG/Run authority or fake originals."""
 
+import hashlib
+from datetime import UTC, datetime
 from uuid import uuid4
 
 from application.errors import AppError
 from cli import output
-from domain.documents import ParserConfig
+from domain.documents import FetchedDocument, ParserConfig
+from domain.ports import AdapterError
+from domain.research.agents.originals import register_original
 from domain.research.ids import canonical_hash
 from domain.research.search import SearchBatch, SearchOutcome
 from infrastructure.fetch.document import HTTPDocumentFetch
@@ -14,12 +18,13 @@ from infrastructure.parser.pdf import MinerUDocumentParser
 from infrastructure.search.arxiv import ArxivSearch
 from infrastructure.search.bocha import BochaSearch
 from infrastructure.search.composite import CompositeSearch
-from infrastructure.storage.content import MinioContentStore
+from infrastructure.storage.content import MinioContentStore, content_key
 
 
 class ResearchDebugTools:
-    def __init__(self, settings, config, usage, *, fake):
+    def __init__(self, settings, config, usage, *, fake, sources=None):
         self.config, self.usage, self.fake = config, usage, fake
+        self.sources = dict(sources or {})
         self.scope, self.search, self.store, self.parser, self.fetch = None, None, None, None, None
         self.unit, self.candidates, self.results = None, {}, {}
         if fake:
@@ -131,10 +136,47 @@ class ResearchDebugTools:
             self.results[key] = await self.fetch.fetch(candidate)
         fetched = self.results[key]
         parsed = await self.fetch.read_parsed(fetched)
+        fetched = await self._retain_original_reference(candidate, fetched, parsed)
         return {
             "fetched": fetched.model_dump(mode="json"),
             "parsed": parsed.model_dump(mode="json"),
         }
+
+    async def _retain_original_reference(self, candidate, fetched, parsed):
+        """Read-only bridge for input facts, after fresh Fetch integrity checks.
+
+        This is not a Run cache hit: download/parser costs still belong to this
+        invocation. Never pass mixed-scope references back to HTTPDocumentFetch.
+        Its fresh-scope checks stay intact; only the verified worker handoff uses
+        the original immutable reference from the supplied public snapshot.
+        """
+        source = register_original(candidate, fetched, parsed, retrieved_at=datetime.now(UTC))
+        existing = self.sources.get(source.source_id)
+        if existing is None or existing.content_hash != fetched.hash:
+            return fetched
+        old_key = existing.content_object_key
+        if existing.data_classification != "public" or not old_key:
+            raise AppError("privacy_policy_conflict", "Debug original is not a public content fact")
+        content_key(old_key)
+        if not old_key.startswith("research-content/") or old_key.rsplit("/", 1)[1] != fetched.hash:
+            raise AppError("invalid_state", "Debug original reference differs from its byte hash")
+        digest, size = hashlib.sha256(), 0
+        async for chunk in await self.store.get(old_key):
+            size += len(chunk)
+            if size > fetched.content_ref.size:
+                break
+            digest.update(chunk)
+        if size != fetched.content_ref.size or digest.hexdigest() != fetched.hash:
+            raise AdapterError(
+                "fetch",
+                "content_hash_mismatch",
+                "Snapshot original failed integrity validation",
+                False,
+                "fetch",
+            )
+        data = fetched.model_dump()
+        data["content_ref"]["key"] = old_key
+        return FetchedDocument.model_validate(data)
 
     async def close(self):
         if self.search is not None:

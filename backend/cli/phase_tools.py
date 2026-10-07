@@ -84,7 +84,9 @@ class DebugTools:
                 max_tokens=self.output_limit,
             )
         if state.phase == "research":
-            self.research = ResearchDebugTools(settings, self.config, self.usage, fake=fake)
+            self.research = ResearchDebugTools(
+                settings, self.config, self.usage, fake=fake, sources=state.sources
+            )
 
     def for_unit(self, unit):
         if self.research is not None:

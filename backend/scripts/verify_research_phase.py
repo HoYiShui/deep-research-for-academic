@@ -16,11 +16,11 @@ from domain.ports import AdapterError
 from domain.research.state import PipelineState
 from infrastructure.parser.html import HTML_PARSER_VERSION, HTMLDocumentParser
 from infrastructure.parser.pdf import MinerUDocumentParser
-from infrastructure.storage.content import MinioContentStore
+from infrastructure.storage.content import MinioContentStore, content_key
 from scripts.verify_cli_plan import save_record
 
 
-async def audit(state, artifact_scope):
+async def audit(state, artifact_scope, *, input_sources=None):
     settings = Settings.load()
     store = MinioContentStore(
         settings.minio_endpoint,
@@ -41,12 +41,24 @@ async def audit(state, artifact_scope):
     try:
         for evidence in state.evidence.values():
             source = state.sources[evidence.source_id]
+            previous = (input_sources or {}).get(source.source_id)
+            retained = previous is not None and (
+                previous.data_classification == "public"
+                and previous.content_hash == source.content_hash
+                and previous.content_object_key == source.content_object_key
+            )
             if (
                 source.data_classification != "public"
                 or not source.content_object_key
-                or not source.content_object_key.startswith(f"research-content/{artifact_scope}/")
+                or not (
+                    source.content_object_key.startswith(f"research-content/{artifact_scope}/")
+                    or retained
+                )
             ):
                 raise ValueError("Probe cannot audit a different/private content scope")
+            content_key(source.content_object_key)
+            if not source.content_object_key.startswith("research-content/"):
+                raise ValueError("Probe requires a public research original")
             if source.source_id not in parsed_sources:
                 reference = await store.head(source.content_object_key)
                 if (
@@ -128,7 +140,9 @@ async def verify(args):
         assert post.research_brief == initial.research_brief and post.final_report is None
         if args.real:
             try:
-                verified = await audit(post, result["debug_usage"].get("artifact_scope"))
+                verified = await audit(
+                    post, result["debug_usage"].get("artifact_scope"), input_sources=initial.sources
+                )
             except AdapterError as exc:
                 unmet.append(f"Original content audit failed: {exc.code}")
             except ValueError:

@@ -83,7 +83,7 @@ uv run python -m scripts.verify_research_phase --state research-state.json --rea
 
 真实模式使用公开搜索、受限下载器和 MinIO。`config.versions.parser_version=dr4a-html-v1` 使用 HTML Parser；`dr4a-mineru-4.0.10-standard-v1` 使用本地 PDF Parser，需要安装可选 `parser` 依赖并通过 `MINERU_MODELS_DIR` 指定已显式准备的权重目录。需提前创建配置的 bucket；CLI 不自动建 bucket 或下载模型。PDF 模式目前只接收 PDF，macOS 子进程使用系统级禁止网络访问约束，Linux 隔离未接入时明确拒绝；KB 尚未接入。fake research 返回空搜索并保留 Gap，不制造原文或观察。
 
-此入口不写 PG、不领取租约、不修改原 Run 的预算或阶段。`debug_usage` 单列本次模型用量、搜索尝试和 Fetch 调用次数；Fetch 次数包含被安全检查拒绝的调用，不等同于成功下载。原文对象保存在独立随机 `artifact_scope` 下，不借用输入 Run 的命名空间，执行后保留以便审计。含既有事实的快照可能因原文对象范围不兼容而拒绝合并，不能据此宣称持久 Run 恢复通过。
+此入口不写 PG、不领取租约、不修改原 Run 的预算或阶段。`debug_usage` 单列本次模型用量、搜索尝试和 Fetch 调用次数；Fetch 次数包含被安全检查拒绝的调用，不等同于成功下载。新原文与解析对象保存在独立随机 `artifact_scope` 下，不借用输入 Run 的写入命名空间，执行后保留以便审计。若重新获取的公开来源与输入快照中的 Source ID、原文哈希相同，CLI 会只读核验旧原文的字节哈希和大小，保留旧原文引用，避免仅因存储目录不同而拒绝合并；新解析对象仍留在本次调试目录。旧原文缺失或损坏会失败，来源其他不可变字段冲突仍由正式合并校验拒绝。这里仍会重新下载、解析，不是持久 Run 的缓存命中或恢复，不复用其预算。
 
 探针从 MinIO 读取并重解析原文，核对 Evidence hash、位置与摘录范围。没有原文 Evidence 或没有真实论文来源时，真实验收非零退出；可保存失败/Gap 记录，不把搜索摘要视为原文。完整 T028 还要求真实 plan 输出、论文 PDF 及适用的数值观察。
 

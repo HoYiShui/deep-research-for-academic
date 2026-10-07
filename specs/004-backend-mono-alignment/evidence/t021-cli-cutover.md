@@ -154,3 +154,17 @@ SQL/结果：一个Frozen Brief/一个Run、五章计划；10次search实际受�
 首轮CLI与debug guard **9 passed in 12.83s**；补parser预检与HTTP生产wrapper反例后扩大验证：`uv run --no-sync pytest -q tests/integration/test_mono_cli_run.py tests/integration/test_mono_runtime_runner.py tests/integration/test_tui_live_http.py tests/unit/test_debug_backend.py tests/integration/test_mono_phase_tools.py tests/integration/test_mono_search_tools.py tests/integration/test_mono_fetch_tools.py --tb=short`：**41 passed in 43.78s**。Ruff与diff检查通过。T021完整fake迁移、后续worker与真实业务验收仍未完成。
 
 最终后端全量`uv run --no-sync pytest -q --tb=short`：**935 passed in 178.30s**，4个改动Python文件format检查通过。未修改用户Agent分支/.env/历史库或docs/implementation，不推送，不将受控结果当实际研究质量证据。
+
+## 独立phase既有原文引用（2026-10-07）
+
+基线76a9272。输入快照带有既有Source时，即使重新取得同一原文，独立phase使用随机目录导致content_object_key不同，正式不可变Source合并拒绝。单测直接构造这一反例，证明未经桥接的Source不能合并。
+
+CLI ResearchDebugTools接收输入State的Sources只读副本；当前query授权的candidate仍必须经过原Fetch下载、解析、完整性与独立目录校验。根据正式register_original计算Source ID后，只有同ID、同hash的公开来源才只读核验输入原文对象（限定research-content UUID/hash key、实际字节hash和size），保留旧raw引用；新parsed引用和所有新写入仍在随机调试目录。未修改共享Fetch的范围规则、Source不可变合并、Agent或Schema。原文缺失/损坏不降级成新引用；其他不可变字段变化仍会被正式合并拒绝。下载与解析成本仍属本次debug_usage，不是持久Run恢复/cache hit，不写PG/预算。
+
+7项单测覆盖原失败与桥接后的正式合并、输入/RunMetadata不变、新/变化内容不读旧对象、损坏/截短/超长字节、private/非法路径拒绝。实际MinIO隔离bucket测试使用受控HTTP原文字节和正式HTML Parser，通过invoke当前query授权路径验证新旧两目录、重复Fetch计数、旧对象删除后的content_missing；共享Fetch对混合目录引用仍content_scope_mismatch。只清理fixture自己创建的bucket，未操作用户业务对象。
+
+定向验证：`uv run --no-sync pytest -q tests/unit/test_cli_research_originals.py tests/unit/test_phase_contracts.py tests/integration/test_mono_cli_phase.py tests/integration/test_mono_cli_originals.py tests/integration/test_mono_fetch_tools.py`：**49 passed in 9.43s**。首次MinIO测试失败仅因断言错误消息写namespace而实际为content_scope_mismatch，纠正测试匹配；未放宽共享规则。T021完整workers/fake迁移与真实Research质量仍未完成。
+
+随后同步verify_research_phase探针：仅接受本次随机目录，或调用者提供的输入Sources中同ID/key/hash公开原文，仍实际读原文并重解析核对Evidence。MinIO测试额外证明默认拒绝旧范围、明确输入引用才允许、伪换其他key仍拒绝。
+
+后端全量`uv run --no-sync pytest -q --tb=short`：**945 passed in 188.07s**。探针最后调整发生在全量进程运行期间，不能把该次已加载模块结果当作最终探针回归；最终代码重新运行上述定向集：**49 passed in 9.38s**，其中包括实际MinIO探针测试。5个改动Python文件Ruff/format与diff检查通过。未调用收费供应商、未改用户历史库/Agent分支/.env/docs/implementation；只读旧原文不意味着持久恢复验收完成。
