@@ -1,6 +1,10 @@
+from types import SimpleNamespace
+
 import pytest
 from pydantic import ValidationError
 
+from application.debug_runtime import DebugExecution
+from application.errors import AppError
 from application.settings import Settings
 from infrastructure.parser.html import HTML_PARSER_VERSION
 from scripts.debug_backend import debug_settings
@@ -21,3 +25,9 @@ def test_debug_runner_is_not_a_production_fallback():
         Settings(dr4a_env="production", dr4a_debug_runner=True)
     with pytest.raises(ValueError, match="anonymous development"):
         debug_settings(Settings(dr4a_auth_required=True))
+
+
+def test_http_debug_wrapper_still_rejects_production_before_adapter_construction():
+    runtime = SimpleNamespace(settings=SimpleNamespace(dr4a_env="production"))
+    with pytest.raises(AppError, match="development"):
+        DebugExecution(runtime)

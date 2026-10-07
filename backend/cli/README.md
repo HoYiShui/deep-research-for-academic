@@ -2,7 +2,7 @@
 
 `python -m cli` 是给 Agent 和开发者的后端调试入口。它不是用户研究入口：Clarify 的多轮对话由 HTTP/API 或前端处理；CLI 只消费已经冻结的 ResearchBrief。
 
-当前正在迁移到 [mono CLI 契约](../../docs/mono/api-contract.md#5-cli-契约)。`dump` 已读取新的 owner-scoped Run Checkpoint；`phase` 已使用正式执行器/合并，注册 plan 和 research worker。`run --real`已使用正式冻结/账本/Driver/限定Runner，但入口仍仅装配 plan；缺少其他worker时明确failed并保留检查点，不能验收完整研究。默认fake run仍是旧链路，JSON标记legacy_fake；ingest/search也仍待迁移。
+当前正在迁移到 [mono CLI 契约](../../docs/mono/api-contract.md#5-cli-契约)。`dump` 已读取新的 owner-scoped Run Checkpoint；`phase` 已使用正式执行器/合并，注册 plan 和 research worker。`run --real`复用TUI的公开来源plan/research、冻结/账本/Driver/限定Runner；缺少analyze/write/review时明确failed并保留检查点，不能验收完整研究。默认fake run仍是旧链路，JSON标记legacy_fake；ingest/search也仍待迁移。
 
 在 `backend/` 目录中运行：
 
@@ -20,7 +20,7 @@ python -m cli dump <session-id> --json
 | 命令 | 用途 |
 |---|---|
 | `doctor` | 只读检查配置、PG连接/迁移标记、MinIO bucket；默认另查Milvus连接/本地模型文件，不能证明推理或完整Pipeline可用。 |
-| `run --brief FILE` | 跳过 Clarify 执行冻结 Brief；当前 real 仅装配 plan，不能产出完整报告。 |
+| `run --brief FILE` | 跳过 Clarify 执行冻结 Brief；当前 real 装配 plan/research，不能产出完整报告。 |
 | `phase PHASE --state FILE` | 用快照状态只执行一个 phase。 |
 | `dump SESSION_ID` | 从 PostgreSQL 读取当前 Run 的最新 seq，不按阶段倒序。 |
 | `ingest PDF` / `search QUERY` | 独立调试知识库入库与检索。 |
@@ -30,6 +30,14 @@ python -m cli dump <session-id> --json
 真实run支持`--owner UUID`（production必需）、`--sources papers,web`、重复`--kb UUID`；KB选择必须包含knowledge_base类别，当前未配置的KB授权明确拒绝。需提前显式迁移到mono schema并准备MinIO bucket；run不会自动迁移历史数据库或建bucket。SIGINT/SIGTERM只在同事务确认仍持有租约时请求取消，不取消别的worker已领取的Run。失败JSON仍给session_id/run_id/phase/checkpoint_seq，可接dump继续检查；--quiet省略events，--seed不影响real。
 
 CLI只启动限定owner+本Run的扫描/执行器，不启动HTTP全库维护器；即使进程环境设置了`DR4A_DEBUG_RUNNER=true`也不会附带开启全库HTTP执行。其它Run的ready排队、失租或取消由其服务器/维护进程处理，不由此次CLI命令收尾。
+
+real run必须显式配置已支持的parser版本；不沿用`unconfigured`或静默切换HTML/PDF。未知parser或未准备PDF权重时退出3，不冻结Brief/创建Run、不请求模型。HTML公开来源模式示例（会调用收费模型/搜索，需已有mono数据库与MinIO bucket）：
+
+```bash
+PARSER_VERSION=dr4a-html-v1 uv run python -m cli run --brief frozen-brief.json --real --json
+```
+
+PDF模式用`PARSER_VERSION=dr4a-mineru-4.0.10-standard-v1`，另需已准备的`MINERU_MODELS_DIR`；格式/平台限制同下文research原文探针。CLI结果events包含本进程query/section进度；HTTP只会轮询该Run持久phase/done，不共享CLI瞬态队列。失败后可dump已提交research事实，不能把未配置后续阶段当成功报告。
 
 ## phase 输入前置
 

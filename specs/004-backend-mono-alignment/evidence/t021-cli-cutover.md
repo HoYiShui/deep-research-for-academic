@@ -138,3 +138,19 @@ SIGINT/SIGTERM设置停止请求；在同一PG事务核对worker/owner/run/未�
 定向命令：`uv run --no-sync pytest -q tests/integration/test_mono_cli_run.py tests/integration/test_mono_runtime_runner.py tests/integration/test_mono_task_runner.py tests/integration/test_tui_live_http.py --tb=short`：**32 passed in 40.77s**；涉及改动的Python文件Ruff/format与`git diff --check`通过。
 
 随后后端全量`uv run --no-sync pytest -q --tb=short`：**933 passed in 178.01s**。不以全量通过代替真实研究质量/尚未完成的worker验收。用户分支与docs/implementation不暂存、不修改；未推送。
+
+## CLI公开research装配（2026-10-07）
+
+基线`7924c3f`。此前HTTP开发执行器注册plan/research，但real CLI只注册plan，没有Search/Fetch绑定，在research入口即failed。新增受控反例要求research全部10单元提交、seq=14/phase=analyze且在缺失analyze处明确失败；实现前两种plan输出（一次合法、一次修复）均仅到seq=3，反例失败。
+
+`application/debug_runtime.py`抽出共享`PublicResearchExecution`：已有plan/research worker、同一RunDriver/预算/cache/原文Search-Fetch-Parser绑定和资源关闭；CLI传自己的Checkpoint/diagnostic收集回调，用既有限定Runner，不启动HTTP全库执行或共享瞬态队列。HTTP的DebugExecution包装仍强制development，不能由重构开启production debug；CLI生产身份与配置校验不变，不新增生产就绪声明。没有修改Agent prompt/策略、共享Schema、Serializer或正式阶段实现。
+
+parser必须显式HTML或已准备的PDF模式；unknown/unconfigured在start_frozen前退出3/service_not_ready，sessions=0、research_runs=0、模型请求=0。原CLI可能先执行plan再发现后续能力缺失；现在缺parser不会先收费。缺analyze/write/review仍在真实阶段fail，没有空报告。
+
+测试依赖：CLI使用实际main/参数/Service/限定Runner/Driver，模型SDK访问本机受控HTTP，真实隔离PG/MinIO；子进程测试专门将ArxivSearch/BochaSearch.search替换为显式成功空结果，不访问收费或外部搜索。这不是真实论文/供应商Research验收，也没有production fake fallback。
+
+SQL/结果：一个Frozen Brief/一个Run、五章计划；10次search实际受控尝试进入tool_call_attempts与BudgetUsage；五章coverage保留Gap，零Evidence，没有把空检索当研究结论。plan一次或修复两次LLM物理请求都计费50 tokens/次，之后缺analyze，phase=analyze/seq=14，reports=0；真正dump子进程读回同一State。结果events保留本CLI query/section进度。原SIGINT/SIGTERM与无关过期Run隔离反例依然通过。
+
+首轮CLI与debug guard **9 passed in 12.83s**；补parser预检与HTTP生产wrapper反例后扩大验证：`uv run --no-sync pytest -q tests/integration/test_mono_cli_run.py tests/integration/test_mono_runtime_runner.py tests/integration/test_tui_live_http.py tests/unit/test_debug_backend.py tests/integration/test_mono_phase_tools.py tests/integration/test_mono_search_tools.py tests/integration/test_mono_fetch_tools.py --tb=short`：**41 passed in 43.78s**。Ruff与diff检查通过。T021完整fake迁移、后续worker与真实业务验收仍未完成。
+
+最终后端全量`uv run --no-sync pytest -q --tb=short`：**935 passed in 178.30s**，4个改动Python文件format检查通过。未修改用户Agent分支/.env/历史库或docs/implementation，不推送，不将受控结果当实际研究质量证据。

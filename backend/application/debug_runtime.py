@@ -1,4 +1,4 @@
-"""Opt-in development composition of existing workers; no new Agent behavior."""
+"""Shared public-source execution composition, with opt-in development HTTP use."""
 
 import asyncio
 from pathlib import Path
@@ -23,11 +23,13 @@ from infrastructure.storage.content import MinioContentStore
 from infrastructure.storage.content_cache import MinioResultCache
 
 
-class DebugExecution:
-    def __init__(self, runtime):
+class PublicResearchExecution:
+    def __init__(self, runtime, *, committed=None, diagnostic=None):
         config = runtime.settings
-        if config.dr4a_env != "development" or config.llm_local:
-            raise AppError("service_not_ready", "Debug executor requires development remote model")
+        if config.llm_local:
+            raise AppError(
+                "service_not_ready", "Public executor requires a configured remote model"
+            )
         version = config.parser_version
         if version not in {HTML_PARSER_VERSION, MINERU_PARSER_VERSION}:
             raise AppError("service_not_ready", "Explicit HTML/PDF parser version is required")
@@ -69,7 +71,7 @@ class DebugExecution:
                 raise AppError("config_unavailable", "Frozen parser differs from debug runtime")
             return HTTPDocumentFetch(self.content, self.parser, parser_config, run_id)
 
-        def committed(value):
+        def projected(value):
             point, run = value.checkpoint, value.claimed.run
             runtime.run_event_bus.emit(
                 RunEventStream._projection(
@@ -100,10 +102,10 @@ class DebugExecution:
             model_slots=asyncio.Semaphore(config.llm_concurrency),
             clock=runtime.clock,
             publish=ReportPublisher(runtime.repository_store, runtime.clock).publish,
-            unit_committed=committed,
-            phase_committed=committed,
+            unit_committed=committed if committed is not None else projected,
+            phase_committed=committed if committed is not None else projected,
             finished=lambda run: None,
-            diagnostic=runtime.run_event_bus.emit,
+            diagnostic=diagnostic if diagnostic is not None else runtime.run_event_bus.emit,
             search=SearchBinding(
                 self.search,
                 (
@@ -128,3 +130,10 @@ class DebugExecution:
                     await self.content.close()
                 finally:
                     await self.cache.close()
+
+
+class DebugExecution(PublicResearchExecution):
+    def __init__(self, runtime):
+        if runtime.settings.dr4a_env != "development":
+            raise AppError("service_not_ready", "Debug executor requires development remote model")
+        super().__init__(runtime)

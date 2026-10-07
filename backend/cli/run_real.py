@@ -7,20 +7,15 @@ from uuid import UUID, uuid4
 import asyncpg
 
 from application.bootstrap import HttpRuntime
+from application.debug_runtime import PublicResearchExecution
 from application.errors import AppError
-from application.phase_executor import PhaseExecutor
-from application.phase_tools import ModelBinding
-from application.phase_workers import plan_worker
 from application.records import DEVELOPMENT_USER_ID, ClaimedRun
-from application.report_serializer import ReportPublisher
-from application.run_driver import RunDriver
 from application.run_sse import RunEventStream
 from application.settings import Settings
 from application.task_runner import TaskRunner
 from cli import output
 from domain.ports import AdapterError
 from domain.research.models import ResearchBrief, SourceSelection
-from infrastructure.storage.content_cache import MinioResultCache
 from infrastructure.storage.research_postgres import PostgresResearchStore
 
 
@@ -64,7 +59,7 @@ async def run(args, raw_brief):
         raise output.EnvError("Local model CLI adapter is not configured")
     if not settings.anthropic_api_key.get_secret_value() and not settings.llm_local:
         raise output.EnvError("Model API key is not configured")
-    pool, runtime, cache, worker = None, None, None, None
+    pool, runtime, execution, worker = None, None, None, None
     installed = []
     stop = asyncio.Event()
     events = []
@@ -90,27 +85,13 @@ async def run(args, raw_brief):
         await runtime.prepare(start_runner=False)
         if await store.users.get_by_id(owner) is None:
             raise AppError("owner_not_found", "CLI owner does not exist")
-        cache = MinioResultCache(
-            settings.minio_endpoint,
-            settings.minio_access_key.get_secret_value(),
-            settings.minio_secret_key.get_secret_value(),
-            settings.minio_bucket,
-            secure=settings.minio_secure,
-        )
-        accepted = await runtime.research.start_frozen(owner, brief, selection, str(uuid4()))
-        session_id, run_id = UUID(accepted.body["session_id"]), UUID(accepted.body["run_id"])
-        accepted_identity = {
-            "session_id": str(session_id),
-            "run_id": str(run_id),
-            "dependency_mode": "real",
-        }
 
         def committed(value):
             point, run = value.checkpoint, value.claimed.run
             frame = RunEventStream._projection(
                 {
-                    "session_id": str(session_id),
-                    "run_id": str(run_id),
+                    "session_id": str(run.session_id),
+                    "run_id": str(run.run_id),
                     "checkpoint_seq": point.seq,
                     "phase": point.phase,
                     "status": run.status,
@@ -118,30 +99,25 @@ async def run(args, raw_brief):
             )
             events.append(frame.model_dump(mode="json"))
 
-        # Register only implemented workers. Missing stages fail explicitly and
-        # leave the last safe checkpoint; never substitute the legacy pipeline.
-        driver = RunDriver(
-            store=store,
-            cache=cache,
-            executor=PhaseExecutor({"plan": plan_worker}),
-            model=ModelBinding(
-                runtime.llm,
-                "anthropic_compatible",
-                settings.llm_model,
-                settings.llm_revision,
-                settings.run_tokens - settings.run_terminal_reserved_tokens,
-                output_token_limit=16384,
-            ),
-            model_slots=asyncio.Semaphore(settings.llm_concurrency),
-            clock=runtime.clock,
-            publish=ReportPublisher(store, runtime.clock).publish,
-            unit_committed=committed,
-            phase_committed=committed,
-            finished=lambda run: None,
-            diagnostic=lambda event: None,
-        )
+        try:
+            execution = PublicResearchExecution(
+                runtime,
+                committed=committed,
+                diagnostic=lambda event: events.append(event.model_dump(mode="json")),
+            )
+        except AppError as exc:
+            if exc.code == "service_not_ready":
+                raise output.EnvError(exc.message) from None
+            raise
+        accepted = await runtime.research.start_frozen(owner, brief, selection, str(uuid4()))
+        session_id, run_id = UUID(accepted.body["session_id"]), UUID(accepted.body["run_id"])
+        accepted_identity = {
+            "session_id": str(session_id),
+            "run_id": str(run_id),
+            "dependency_mode": "real",
+        }
         worker = TaskRunner(
-            store=store, execute=driver.execute, settings=settings, owner=owner, run_id=run_id
+            store=store, execute=execution.execute, settings=settings, owner=owner, run_id=run_id
         )
         loop = asyncio.get_running_loop()
         for name in (signal.SIGINT, signal.SIGTERM):
@@ -264,8 +240,8 @@ async def run(args, raw_brief):
                 await worker.aclose()
         finally:
             try:
-                if cache is not None:
-                    await cache.close()
+                if execution is not None:
+                    await execution.aclose()
             finally:
                 try:
                     if runtime is not None:
