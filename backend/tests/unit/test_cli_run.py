@@ -31,11 +31,7 @@ def test_run_fake_produces_report(tmp_path, capsys) -> None:
 
 
 def test_run_requires_brief() -> None:
-    import pytest
-
-    with pytest.raises(SystemExit) as exc:
-        main(["run", "--json"])
-    assert exc.value.code == 2
+    assert main(["run", "--json"]) == 2
 
 
 def test_run_rejects_non_frozen_brief(tmp_path) -> None:

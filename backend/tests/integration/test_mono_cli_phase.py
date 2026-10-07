@@ -3,6 +3,7 @@
 import asyncio
 import json
 import os
+import signal
 import sys
 from pathlib import Path
 from types import SimpleNamespace
@@ -79,6 +80,69 @@ async def test_fake_research_runs_all_units_and_preserves_empty_search_gaps_with
     assert body["state"]["run_metadata"] == data["run_metadata"]
     assert body["debug_usage"]["fetch_calls"] == body["debug_usage"]["search_calls"] == 0
     assert (code, body, "") == await invoke(path, "research")
+
+
+async def test_sigint_keeps_local_commits_without_cancelling_a_persisted_run(tmp_path):
+    state = initial_state()
+    plans = json.loads(DebugTools(state, fake=True, seed=42).fake_plan())["section_plans"]
+    state = PipelineState.model_validate(
+        state.model_dump()
+        | {
+            "phase": "research",
+            "section_plans": plans,
+        }
+    )
+    path = tmp_path / "state.json"
+    path.write_text(state.model_dump_json())
+    original = path.read_bytes()
+    # Controlled child-only gate on unit 3: one query and its section coverage
+    # have merged. No live model/SDK or persisted Run is involved in this test.
+    code = """
+import asyncio,sys
+from application.phase_executor import PhaseExecutor
+from cli.__main__ import main
+original=PhaseExecutor.execute_phase
+count=0
+async def gated(self,value,context):
+    global count
+    count+=1
+    if count==3:
+        print('READY_FOR_SIGINT',file=sys.stderr,flush=True)
+        await asyncio.Event().wait()
+    return await original(self,value,context)
+PhaseExecutor.execute_phase=gated
+sys.exit(main(['phase','research','--state',sys.argv[1],'--json']))
+"""
+    process = await asyncio.create_subprocess_exec(
+        sys.executable,
+        "-c",
+        code,
+        str(path),
+        cwd=Path(__file__).resolve().parents[2],
+        env=dict(os.environ, DATABASE_URL="postgresql://invalid-no-db/debug"),
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
+    )
+    try:
+        assert (
+            await asyncio.wait_for(process.stderr.readline(), timeout=10) == b"READY_FOR_SIGINT\n"
+        )
+        process.send_signal(signal.SIGINT)
+        stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=10)
+    finally:
+        if process.returncode is None:
+            process.kill()
+            await process.wait()
+    assert process.returncode == 1
+    body = json.loads(stdout)
+    assert body["error"]["code"] == "phase_interrupted"
+    assert "persisted Run" in body["error"]["message"]
+    assert body["failed_unit_id"] and len(body["events"]) == 2
+    assert set(body["state"]["section_coverage"]) == {"section_1"}
+    assert body["state"]["run_metadata"] == state.run_metadata.model_dump(mode="json")
+    assert body["debug_usage"]["llm_calls"] == 0
+    assert "Traceback" not in stderr.decode()
+    assert path.read_bytes() == original
 
 
 async def test_real_sdk_plan_against_controlled_http_not_a_real_model_claim(tmp_path):

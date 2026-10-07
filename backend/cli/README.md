@@ -45,6 +45,8 @@ python -m cli dump <session-id> --json
 
 执行中发生已分类的业务/依赖错误或 timeout 时，非零退出仍返回最后成功合并的 `state`、`state_delta`、events、`debug_usage` 和 `failed_unit_id`；失败单元的未合并结果不计入 state。这只是本地调试状态，不是 PG checkpoint，也不表示该阶段完成。预检拒绝或未分类异常不保证有 state；未分类 SDK 异常正文仍隐藏。`debug_usage.search_outcomes` 记录检索源、尝试次数、状态及安全错误码，不输出供应商异常正文或凭据。
 
+单次Ctrl+C中断`phase`时，正常收尾关闭本地工具，并以退出1/`phase_interrupted`返回最后已合并的本地state；未完成单元不合并。它不发送HTTP cancel、不修改输入文件，也不取消输入state对应的持久Run。若要停止TUI中的研究，使用TUI `/cancel`。重跑独立phase可能再次收费，不是持久Checkpoint恢复。
+
 `phase plan` fake 使用明确受控计划经过同一个正式worker；`--real`使用配置的模型，并验证snapshot中的模型/prompt版本。仅执行/合并当前阶段，phase保持plan，不创建Session/Report、不连接PG或更新原Run。真实debug用量单列在 `debug_usage`，不伪装原Run的持久预算。私有来源/KB授权尚未接入时，real明确拒绝。
 
 使用冻结Brief生成完整输入并验证真正CLI子进程：
@@ -78,6 +80,7 @@ Observation 的表格 `raw_value` 必须来自完整单元格，不能截取系�
 ## 输出与退出码
 
 - `--json`：stdout 为一个可解析的 JSON 对象；日志和错误走 stderr。
+- 参数解析失败（缺必需参数、未知命令/phase/选项等）也返回退出2的标准JSON error，不回显可能含私密内容的原参数；`--help`仍是普通帮助文本、退出0，不执行命令。`--`之后的字面`--json`不是格式开关。
 - `--verbose`：操作元信息走 stderr，不打印 prompt/response 正文。
 - `--quiet`：`run` 时省略事件。
 - 退出码：`0` 成功、`1` 运行失败、`2` 用法/调试输入错误、`3` 环境错误。

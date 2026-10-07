@@ -14,6 +14,13 @@ from cli.commands import doctor, dump, ingest, phase, run, search
 from domain.ports import AdapterError
 
 
+class ArgumentParser(argparse.ArgumentParser):
+    def error(self, message):
+        # argparse's text can echo arbitrary queries, filenames or invalid
+        # values. Use a safe notice; handler-level field validation is separate.
+        raise output.UsageError("Invalid CLI arguments; use --help for command syntax")
+
+
 def _add_common(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--json", action="store_true", help="emit a single JSON object")
     parser.add_argument(
@@ -23,7 +30,7 @@ def _add_common(parser: argparse.ArgumentParser) -> None:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="cli", description="deep-research-agent debug CLI")
+    parser = ArgumentParser(prog="cli", description="deep-research-agent debug CLI")
     sub = parser.add_subparsers(dest="command", required=True)
 
     p = sub.add_parser("doctor", help="environment check")
@@ -89,8 +96,13 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
-    args = parser.parse_args(argv)
+    values = list(sys.argv[1:] if argv is None else argv)
+    flags = values[: values.index("--")] if "--" in values else values
+    # Parsing may fail before a Namespace exists. Still honor a requested JSON
+    # flag, but not a positional value following the end-of-options delimiter.
+    args = argparse.Namespace(json="--json" in flags)
     try:
+        args = parser.parse_args(values)
         return asyncio.run(args.handler(args))
     except output.UsageError as exc:
         return output.emit_error(args, output.EXIT_USAGE, "validation_error", str(exc))
@@ -104,6 +116,10 @@ def main(argv: list[str] | None = None) -> int:
         return output.emit_error(args, output.EXIT_FAILURE, exc.code, exc.message, exc.retryable)
     except AdapterError as exc:
         return output.emit_error(args, output.EXIT_ENV, exc.code, exc.message, exc.retryable)
+    except KeyboardInterrupt:
+        return output.emit_error(
+            args, output.EXIT_FAILURE, "interrupted", "CLI command interrupted"
+        )
     except Exception:  # noqa: BLE001 -- provider/SDK exception text may contain credentials
         return output.emit_error(args, output.EXIT_FAILURE, "execution_failed", "Command failed")
 

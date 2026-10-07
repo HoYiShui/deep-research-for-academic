@@ -79,6 +79,13 @@ async def run(args) -> int:
         )
     except TimeoutError:
         failure = (output.EXIT_FAILURE, "phase_timeout", "Debug phase deadline exceeded", True)
+    except asyncio.CancelledError:
+        failure = (
+            output.EXIT_FAILURE,
+            "phase_interrupted",
+            "Local debug phase interrupted; no persisted Run was cancelled",
+            False,
+        )
     finally:
         await tools.close()
     post_state = state.model_dump(mode="json")

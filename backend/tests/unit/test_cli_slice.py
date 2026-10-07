@@ -29,11 +29,7 @@ def test_phase_rejects_legacy_partial_review_instead_of_approving(tmp_path, caps
 
 
 def test_phase_rejects_unknown_phase() -> None:
-    import pytest
-
-    with pytest.raises(SystemExit) as exc:
-        main(["phase", "bogus", "--state", "x.json", "--json"])
-    assert exc.value.code == 2
+    assert main(["phase", "bogus", "--state", "x.json", "--json"]) == 2
 
 
 def test_phase_rejects_missing_prerequisites(tmp_path) -> None:

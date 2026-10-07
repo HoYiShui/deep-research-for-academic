@@ -102,3 +102,13 @@ SIGINT/SIGTERM设置停止请求；在同一PG事务核对worker/owner/run/未�
 扩大回归：`uv run --no-sync pytest -q tests/unit/test_retired_smoke.py tests/unit/test_debug_backend.py tests/unit/test_cli_doctor.py tests/unit/test_cli_output.py tests/unit/test_verify_run_http.py tests/integration/test_mono_cli_phase.py`：34 passed in 6.34s；涉及变动Python文件的Ruff与`git diff --check`通过。没有运行全量或真实业务E2E，不以该目标集宣称它们通过。
 
 边界：T059仍未完成；T021完整workers/fake迁移与T056完整能力诊断仍未完成。本次不修改任务全量完成定义。
+
+## CLI输入错误与独立phase中断（2026-10-07）
+
+范围：T021的输入/输出及局部运行控制，不更改Agent或共享Schema。原argparse错误在JSON模式退出前只写stderr文本；新的入口捕获safe UsageError，统一返回单个stdout JSON、标准Error、退出2。原参数值不回显，避免未知命令/选项/非法枚举带入私密query/路径。help仍退出0，正常帮助不包JSON；`--`后的字面`--json`不认作开关。缺必需参数、未知phase、未知scope/选项及缺命令5项反例先失败后通过，真正CLI子进程验证退出2/单JSON/无stack或canary泄漏。
+
+独立phase收到单次SIGINT时，在协程取消后关闭本地工具、输出最后已合并state/delta/events/本次usage及失败unit_id，退出1/phase_interrupted。没有PG/HTTP cancel，不写输入文件、不改变原Run预算，不声称未完成单元已提交。双次强制中断或异常收尾不保证完整本地state输出；主入口仍对KeyboardInterrupt给安全错误，不发假成功。
+
+受控真实子进程中断验证：fake research完成第一query及其coverage后，在第三单元显式gate，父进程向自己启动的child发送SIGINT。结果仅section_1 coverage和2条单元events保留、RunMetadata/输入文件不改、llm_calls=0、无Traceback。配置不可用PG地址，验证该独立phase不依赖PG；这不是持久Run取消/恢复或真实研究验收。
+
+验证：`uv run --no-sync pytest -q tests/unit/test_cli_output.py tests/unit/test_cli_run.py tests/unit/test_cli_slice.py tests/unit/test_cli_doctor.py tests/integration/test_mono_cli_dump.py tests/integration/test_mono_cli_phase.py tests/integration/test_mono_cli_run.py`：56 passed in 22.12s；涉及改动Python文件的Ruff/format和git diff --check通过。未重跑全量，不把该目标集称全量或收费模型E2E。T021保持未完成。
