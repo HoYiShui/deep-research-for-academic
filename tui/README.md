@@ -51,6 +51,8 @@ npm run dev
 
 ## TUI → CLI 阶段调试
 
+开发执行器运行research时，事件时间线会显示`query_started`、`query_completed`和`section_completed`，可按unit_id/section_id定位当前工作。完成指该单元Checkpoint已提交，不保证获得Evidence或研究结论成立；进度计数包含query与coverage单元。已提交单元恢复后不会伪装成新查询，断线重连也不会补播历史progress。
+
 在 backend 中，用 TUI 的 session UUID：
 
 ```bash

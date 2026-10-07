@@ -103,7 +103,7 @@ class DebugExecution:
             unit_committed=committed,
             phase_committed=committed,
             finished=lambda run: None,
-            diagnostic=lambda event: None,
+            diagnostic=runtime.run_event_bus.emit,
             search=SearchBinding(
                 self.search,
                 (

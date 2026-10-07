@@ -12,6 +12,7 @@ from application.phase_workers import plan_worker
 from application.report_serializer import ReportPublisher
 from application.run_driver import RunDriver
 from domain.research.phase_contracts import PhaseResult
+from domain.research.run_events import ProgressFrame
 from infrastructure.clock import SystemClock
 from tests.integration.test_mono_phase_tools import setup
 from tests.integration.test_mono_run_lifecycle import cancel, claim, resume
@@ -85,6 +86,96 @@ def controlled_worker(visits, *, rework=False, before_worker=None):
         )
 
     return controlled
+
+
+async def test_query_progress_is_scoped_and_completion_follows_checkpoint(
+    pg_database, object_cache
+):
+    _, store, user, commit, claimed, _, _, _, _, _, driver = await world(pg_database, object_cache)
+    events = []
+    execution = driver()
+    execution.diagnostic = events.append
+    await execution.execute(claimed, asyncio.Event())
+    assert events and all(isinstance(event, ProgressFrame) for event in events)
+    starts = [event for event in events if event.stage == "query_started"]
+    ends = [event for event in events if event.stage == "query_completed"]
+    sections = [event for event in events if event.stage == "section_completed"]
+    assert len(starts) == len(ends) == len(sections) == 5
+    assert len({event.event_id for event in events}) == len(events)
+    for start, end in zip(starts, ends, strict=True):
+        assert start.unit_id == end.unit_id
+        assert start.session_id == end.session_id == commit.run.session_id
+        assert start.run_id == end.run_id == commit.run.run_id
+        assert start.phase == end.phase == "research"
+        assert end.checkpoint_seq > start.checkpoint_seq
+        checkpoint = await store.research.load_checkpoint(
+            user.user_id, commit.run.run_id, end.checkpoint_seq
+        )
+        assert end.unit_id in checkpoint.state.run_metadata.unit_manifest
+        assert start.completed_units + 1 == end.completed_units
+        assert start.total_units == end.total_units == 10
+        assert start.results is None and start.chart is None
+
+
+async def test_failed_query_emits_start_but_not_completed(pg_database, object_cache):
+    async def fail(value, context, *_):
+        if value.phase == "research" and context.unit.parameters["kind"] == "query":
+            raise AppError("dependency_unavailable", "controlled query failure")
+
+    _, _, _, _, claimed, _, _, _, _, _, driver = await world(
+        pg_database, object_cache, before_worker=fail
+    )
+    events = []
+    execution = driver()
+    execution.diagnostic = events.append
+    with pytest.raises(AppError, match="controlled query failure"):
+        await execution.execute(claimed, asyncio.Event())
+    assert [event.stage for event in events] == ["query_started"]
+
+
+async def test_progress_observer_failure_does_not_change_execution(pg_database, object_cache):
+    _, store, user, commit, claimed, _, _, _, _, _, driver = await world(pg_database, object_cache)
+    execution = driver()
+
+    def broken(event):
+        raise RuntimeError("private-observer-error")
+
+    execution.diagnostic = broken
+    await execution.execute(claimed, asyncio.Event())
+    latest = await store.research.load_latest_checkpoint(user.user_id, commit.run.run_id)
+    assert latest.phase == "done"
+
+
+async def test_resume_does_not_advertise_cached_query_as_new_execution(pg_database, object_cache):
+    stop = asyncio.Event()
+
+    async def interrupt(value, context, *_):
+        if value.phase == "research" and context.unit.parameters["kind"] == "query":
+            stop.set()
+
+    pool, store, user, commit, claimed, _, _, _, _, visits, driver = await world(
+        pg_database, object_cache, before_worker=interrupt
+    )
+    with pytest.raises(asyncio.CancelledError):
+        await driver().execute(claimed, stop)
+    latest = await store.research.load_latest_checkpoint(user.user_id, commit.run.run_id)
+    completed_query = visits[-1][1]
+    assert latest.phase == "research" and completed_query in latest.state.run_metadata.unit_manifest
+    await pool.execute(
+        "UPDATE research_runs SET lease_expires_at=clock_timestamp()-interval '1 second'"
+    )
+    async with store.transaction() as tx:
+        await store.research.scan_interrupted(tx)
+    await resume(store, user.user_id, commit, latest.seq)
+    newer = await claim(store, str(uuid4()))
+    events = []
+    execution = driver()
+    execution.diagnostic = events.append
+    visits.clear()
+    await execution.execute(newer, asyncio.Event())
+    assert completed_query not in [event.unit_id for event in events]
+    assert completed_query not in [unit_id for _, unit_id in visits]
+    assert len([event for event in events if event.stage == "query_completed"]) == 4
 
 
 async def world(

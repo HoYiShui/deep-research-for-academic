@@ -71,7 +71,7 @@ async def test_confirm_live_driver_report_and_reconnect_after_process_restart(
 ):
     pool, database = pg_database
     async with (
-        server(database, run_bucket=object_cache.bucket) as url,
+        server(database, run_bucket=object_cache.bucket, pause="progress") as url,
         httpx.AsyncClient(base_url=url, timeout=15) as http,
     ):
         result = await verify(http, query="Design a public controlled evaluation")
@@ -90,16 +90,30 @@ async def test_confirm_live_driver_report_and_reconnect_after_process_restart(
         async with asyncio.timeout(15), http.stream("GET", path + "/events") as response:
             assert response.status_code == 200
             assert response.headers["content-type"].startswith("text/event-stream")
-            event, done = None, None
+            event, done, progress = None, None, []
             async for line in response.aiter_lines():
                 if line.startswith("event: "):
                     event = line.removeprefix("event: ")
+                if line.startswith("data: ") and event == "progress":
+                    progress.append(json.loads(line.removeprefix("data: ")))
                 if line.startswith("data: ") and event == "done":
                     done = json.loads(line.removeprefix("data: "))
                     break
             assert done is not None and done["status"] == "completed"
             assert done["checkpoint_seq"] == 20
             assert done["review_verdict"] == "needs_more_work"
+            completed = [item for item in progress if item["stage"] == "query_completed"]
+            assert completed and any(item["stage"] == "section_completed" for item in progress)
+            for item in completed:
+                assert item["session_id"] == session and item["phase"] == "research"
+                state = json.loads(
+                    await pool.fetchval(
+                        "SELECT state FROM phase_snapshots WHERE run_id=$1::uuid AND seq=$2",
+                        item["run_id"],
+                        item["checkpoint_seq"],
+                    )
+                )
+                assert item["unit_id"] in state["run_metadata"]["unit_manifest"]
         report = (await http.get(path + "/report")).json()
         assert await pool.fetchval("SELECT count(*) FROM reports") == 1
         assert await pool.fetchval("SELECT count(*) FROM tool_call_attempts") == 1

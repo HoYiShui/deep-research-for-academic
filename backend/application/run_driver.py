@@ -9,6 +9,7 @@ import asyncio
 import logging
 from collections.abc import Awaitable, Callable
 from datetime import timedelta
+from uuid import uuid4
 
 from application.errors import AppError
 from application.fetch_tools import FetchBinding
@@ -23,6 +24,7 @@ from domain.content import ResultCachePort
 from domain.ports import ClockPort
 from domain.research.machine import TERMINAL_REASONS
 from domain.research.models import ResearchRun
+from domain.research.run_events import ProgressFrame
 from domain.research.state import Checkpoint
 
 Publisher = Callable[[ClaimedRun, Checkpoint], Awaitable[None]]
@@ -66,6 +68,37 @@ class RunDriver:
             self.finished(run)
         except Exception:  # noqa: BLE001 -- PG terminal facts cannot be undone by projection
             logger.warning("run_projection_failed")
+
+    def _progress(self, claimed, point, unit, stage, completed, total):
+        """Ephemeral diagnostics use coordinator identity, never raw query text.
+
+        Completion is called only after the unit checkpoint transaction. Losing
+        a subscriber or an observer cannot undo committed research work.
+        """
+        try:
+            self.diagnostic(
+                ProgressFrame(
+                    event_id=uuid4(),
+                    session_id=claimed.run.session_id,
+                    run_id=claimed.run.run_id,
+                    timestamp=self.clock.now_utc(),
+                    checkpoint_seq=point.seq,
+                    event="progress",
+                    phase=point.phase,
+                    section_id=unit.section_ids[0] if len(unit.section_ids) == 1 else None,
+                    stage=stage,
+                    unit_id=unit.unit_id,
+                    completed_units=completed,
+                    total_units=total,
+                    message={
+                        "query_started": "Research query unit started; result is not committed",
+                        "query_completed": "Research query unit checkpoint committed",
+                        "section_completed": "Section coverage checkpoint committed",
+                    }[stage],
+                )
+            )
+        except Exception:  # noqa: BLE001 -- diagnostics are not a control/fact channel
+            logger.warning("run_progress_projection_failed")
 
     async def _stop_if_requested(self, claimed, stop):
         if stop.is_set():
@@ -188,9 +221,15 @@ class RunDriver:
             if await self._stop_if_requested(claimed, stop):
                 return
             claimed, point = await coordinator.load_owned(claimed)
-            for unit in plan_units(point.state):
+            units = plan_units(point.state)
+            for index, unit in enumerate(units):
                 if await self._stop_if_requested(claimed, stop):
                     return
+                if (
+                    unit.parameters.get("kind") == "query"
+                    and unit.unit_id not in point.state.run_metadata.unit_manifest
+                ):
+                    self._progress(claimed, point, unit, "query_started", index, len(units))
                 try:
                     committed = await coordinator.execute_unit(claimed, unit, context)
                 except AppError as exc:
@@ -200,6 +239,17 @@ class RunDriver:
                         return
                     raise
                 claimed, point = committed.claimed, committed.checkpoint
+                if not committed.skipped and unit.phase == "research":
+                    kind = unit.parameters.get("kind")
+                    if kind in {"query", "coverage"}:
+                        self._progress(
+                            claimed,
+                            point,
+                            unit,
+                            "query_completed" if kind == "query" else "section_completed",
+                            index + 1,
+                            len(units),
+                        )
             if await self._stop_if_requested(claimed, stop):
                 return
             try:

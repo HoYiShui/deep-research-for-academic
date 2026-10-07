@@ -98,6 +98,12 @@ def create_run_test_app():
             if pause == "research" and value.phase == "research":
                 while not await context.cancel_check():
                     await asyncio.sleep(0.02)
+            if pause == "progress" and value.phase == "research":
+                # Explicit test gate: register the real HTTP subscriber before
+                # allowing the controlled unit to complete. No timing guesses.
+                async with asyncio.timeout(10):
+                    while runtime.run_event_bus.subscriber_count == 0:
+                        await asyncio.sleep(0.01)
 
         driver = RunDriver(
             store=runtime.repository_store,
@@ -125,7 +131,7 @@ def create_run_test_app():
             unit_committed=lambda event: None,
             phase_committed=lambda event: None,
             finished=lambda event: None,
-            diagnostic=lambda event: None,
+            diagnostic=runtime.run_event_bus.emit,
         )
         return driver.execute
 
