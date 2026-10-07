@@ -50,6 +50,20 @@ async def confirm(http):
     return path, response.json()
 
 
+async def test_cli_preparation_skips_http_runner_even_when_debug_execution_is_enabled(pg_database):
+    def forbidden_factory(runtime):
+        pytest.fail("CLI service preparation must not compose an HTTP executor")
+
+    _, runtime, _ = await configured(pg_database, forbidden_factory)
+    runtime.settings = runtime.settings.model_copy(update={"dr4a_debug_runner": True})
+    try:
+        await runtime.prepare(start_runner=False)
+        assert runtime.runner is None and runtime.debug_execution is None
+        assert runtime.research and runtime.research_queries and runtime.run_events
+    finally:
+        await runtime.aclose()
+
+
 async def test_http_confirmation_wakes_owned_runner_and_exception_is_persisted(pg_database):
     calls = []
 

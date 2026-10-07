@@ -189,7 +189,9 @@ class HttpRuntime:
         self.clock = SystemClock()
         self.auth = _PendingAuth()
 
-    async def prepare(self):
+    async def prepare(self, *, start_runner: bool = True):
+        if type(start_runner) is not bool:
+            raise TypeError("Runner startup mode must be an explicit bool")
         if self.repository_store is None:
             self.pool = await asyncpg.create_pool(
                 self.settings.database_url.get_secret_value(), min_size=1, max_size=10
@@ -223,6 +225,11 @@ class HttpRuntime:
             poll_s=self.settings.scan_s,
             heartbeat_s=self.settings.sse_heartbeat_s,
         )
+        # A CLI composes its own owner/Run-scoped runner. Preparing shared
+        # services must not also scan or execute unrelated HTTP Runs, even if
+        # the caller inherits the development HTTP execution setting.
+        if not start_runner:
+            return
         # Always maintain durable cancellation/expired leases. Claiming paid
         # work remains disabled unless an executor is explicitly composed.
         if self.run_executor_factory is None and self.settings.dr4a_debug_runner:

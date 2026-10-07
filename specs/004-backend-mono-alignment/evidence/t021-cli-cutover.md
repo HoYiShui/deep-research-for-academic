@@ -124,3 +124,17 @@ SIGINT/SIGTERM设置停止请求；在同一PG事务核对worker/owner/run/未�
 实现后首次扩大目标集31通过/1失败，原因是新测试误写稳定ID前缀unit_而实际约定为unit-；修正测试前缀，未改领域ID或放宽业务校验。T021完整workers/fake迁移仍未完成。
 
 最终验证（backend）：`uv run --no-sync pytest -q tests/integration/test_mono_cli_phase.py tests/integration/test_mono_cli_run.py tests/integration/test_mono_cli_dump.py tests/unit/test_cli_output.py tests/unit/test_cli_slice.py tests/unit/test_cli_verbose.py tests/unit/test_cli_doctor.py --tb=short`：**54 passed in 23.18s**；3个改动Python文件Ruff/format与`git diff --check`通过。本批未重跑全量；上批927通过不作为本批全量结果。未改Agent/共享Schema/.env/用户数据；docs/implementation保持未跟踪、未暂存。
+
+## CLI与HTTP维护扫描隔离（2026-10-07）
+
+基线`cafea0c`。审计real CLI与HTTP装配差分时发现：CLI复用HttpRuntime.prepare，在默认HTTP维护组合新增后也会启动全库scan_interrupted；即使本CLI TaskRunner有限定scope，共用prepare创建的第二个Runner仍可能改无关Run的失租/排队/取消状态。继承DR4A_DEBUG_RUNNER还可能附带HTTP执行器。此前单独验证TaskRunner scope不覆盖这个组合根风险。
+
+真实CLI子进程反例：隔离PG内先创建无关持租Run并使其租约过期，再启动CLI自己的受控plan模型HTTP等待；运行中检查无关Run完整记录未变。实现前记录被全库维护改为failed，测试失败；测试初稿的变量落点错误先修正，再以正确业务反例验证。另一条prepare反例要求即使HTTP debug开启/传入executor factory，CLI服务准备也不调用该factory、不建HTTP Runner。
+
+修改：内部HttpRuntime.prepare新增显式start_runner=false模式，仅准备原有Service/查询/EventBus，不进行全库维护或自动组合debug executor；real CLI使用该模式，继续自己已有owner+Run限定TaskRunner。HTTP默认prepare仍启动维护或显式执行器，不削弱HTTP取消/恢复；没有新增状态机或持久事实源。
+
+实现前CLI隔离反例失败，prepare反例因不支持该参数失败。验证使用真实PG/MinIO和受控模型HTTP（无收费供应商），结束仅清理本轮fixture资源。没有Agent/共享Schema/Settings/.env修改；research worker尚未加入CLI，完整T021继续未完成。
+
+定向命令：`uv run --no-sync pytest -q tests/integration/test_mono_cli_run.py tests/integration/test_mono_runtime_runner.py tests/integration/test_mono_task_runner.py tests/integration/test_tui_live_http.py --tb=short`：**32 passed in 40.77s**；涉及改动的Python文件Ruff/format与`git diff --check`通过。
+
+随后后端全量`uv run --no-sync pytest -q --tb=short`：**933 passed in 178.01s**。不以全量通过代替真实研究质量/尚未完成的worker验收。用户分支与docs/implementation不暂存、不修改；未推送。

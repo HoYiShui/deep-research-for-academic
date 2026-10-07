@@ -87,7 +87,7 @@ async def run(args, raw_brief):
         if explicit_owner is not None and await store.users.get_by_id(owner) is None:
             raise AppError("owner_not_found", "CLI owner does not exist")
         runtime = HttpRuntime(settings=settings, research_store=store)
-        await runtime.prepare()
+        await runtime.prepare(start_runner=False)
         if await store.users.get_by_id(owner) is None:
             raise AppError("owner_not_found", "CLI owner does not exist")
         cache = MinioResultCache(

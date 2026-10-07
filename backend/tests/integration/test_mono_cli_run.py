@@ -155,6 +155,31 @@ async def test_signal_cannot_cancel_other_or_expired_worker(pg_database):
     assert (await store.research.get_run(user.user_id, commit.run.run_id)).status == "running"
 
 
+async def test_real_cli_never_maintains_another_runs_expired_lease(
+    pg_database, object_cache, tmp_path
+):
+    pool, store, user, foreign, claimed = await started(pg_database)
+    database = pg_database[1]
+    await pool.execute(
+        "UPDATE research_runs SET lease_expires_at=clock_timestamp()-interval '1 second' WHERE run_id=$1",
+        foreign.run.run_id,
+    )
+    before = await store.research.get_run(user.user_id, foreign.run.run_id)
+    path = tmp_path / "brief.json"
+    path.write_text(initial_state().research_brief.model_dump_json())
+    async with model_server(Settings.load().llm_model, "unused", hold=True) as (url, _, entered):
+        process = await command(path, database, object_cache.bucket, url)
+        try:
+            await asyncio.wait_for(entered.wait(), timeout=10)
+            assert await store.research.get_run(user.user_id, foreign.run.run_id) == before
+            assert before.status == "running" and before.lease_token == claimed.run.lease_token
+        finally:
+            if process.returncode is None:
+                process.send_signal(signal.SIGINT)
+            await collect(process)
+    assert await store.research.get_run(user.user_id, foreign.run.run_id) == before
+
+
 async def test_real_run_does_not_migrate_legacy_database(pg_database, object_cache, tmp_path):
     pool, database = pg_database
     path = tmp_path / "brief.json"

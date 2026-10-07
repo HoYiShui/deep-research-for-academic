@@ -29,6 +29,8 @@ python -m cli dump <session-id> --json
 
 真实run支持`--owner UUID`（production必需）、`--sources papers,web`、重复`--kb UUID`；KB选择必须包含knowledge_base类别，当前未配置的KB授权明确拒绝。需提前显式迁移到mono schema并准备MinIO bucket；run不会自动迁移历史数据库或建bucket。SIGINT/SIGTERM只在同事务确认仍持有租约时请求取消，不取消别的worker已领取的Run。失败JSON仍给session_id/run_id/phase/checkpoint_seq，可接dump继续检查；--quiet省略events，--seed不影响real。
 
+CLI只启动限定owner+本Run的扫描/执行器，不启动HTTP全库维护器；即使进程环境设置了`DR4A_DEBUG_RUNNER=true`也不会附带开启全库HTTP执行。其它Run的ready排队、失租或取消由其服务器/维护进程处理，不由此次CLI命令收尾。
+
 ## phase 输入前置
 
 `phase` 要求严格完整 mono PipelineState（schema_version=1），包括全部空输出字段；不接受旧版局部dict。`state.phase` 必须与命令相同，来源/config/Brief hash与事实回链必须有效。阶段前置复用正式 PhaseInput；当前 plan 和 research 可执行。
