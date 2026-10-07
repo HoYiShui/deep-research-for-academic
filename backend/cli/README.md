@@ -71,6 +71,8 @@ uv run python -m scripts.verify_research_phase --state research-state.json --rea
 
 `verify_cli_plan --sources papers` 可冻结仅论文来源，默认仍为 `papers,web`；`PARSER_VERSION` 在生成输入时进入冻结配置，后续 phase 不静默切换 parser。用 plan 结果中的完整 state 作为下一阶段输入，仅按正式阶段前置将 phase 标记改为 research，保留 Brief/config/计划和事实。独立 phase 不推进持久 Run。
 
+research 优先使用该章去重后的 `retrieval_anchors` 建 query 单元，无 anchors 时兼容 sub_questions；纯建议章没有子问题时不启动背景检索。明确 arXiv 编号采用标准 `id_list` 定位，版本号保留。普通关键词仍走搜索；这不等于已经解决所有查询生成、相关性排序或受限追溯。
+
 Observation 的表格 `raw_value` 必须来自完整单元格，不能截取系数、指数或不确定性。表格 HTML 的上标用 `^`、下标用 `_` 表示；含糊科学计数法保留原文并保持数值 null，不自动修补 OCR 拆列，也不据此声称行列归属/比较条件均已验证。
 
 ## 输出与退出码
@@ -83,6 +85,8 @@ Observation 的表格 `raw_value` 必须来自完整单元格，不能截取系�
 正式契约见 [`specs/002-cli/contracts/cli.md`](../../specs/002-cli/contracts/cli.md)；冻结 Brief 与报告约定见 `specs/001-deep-research-agent/`。
 
 ## mono 状态读取
+
+TUI 开发启动/操作见 [TUI README](../../tui/README.md)。使用 `scripts.debug_backend` 的独立数据库时，dump 加 `--debug-db`；默认仍读取 Settings 指定的数据库。dump/phase 不自动迁移或写回会话。
 
 ```bash
 uv run python -m cli dump SESSION_UUID --json

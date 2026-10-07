@@ -65,6 +65,10 @@ def load_phase_state(data: Any, phase: str) -> PipelineState:
     """
     if not isinstance(data, dict):
         raise output.UsageError("--state must contain a JSON object")
+    # CLI dump/phase envelopes are convenient debug inputs; only the inner
+    # canonical state is authoritative, never envelope status or metadata.
+    if data.get("status") in {"ok", "failed", "env_error"} and isinstance(data.get("state"), dict):
+        data = data["state"]
     try:
         state = PipelineState.model_validate(data)
     except ValidationError as exc:

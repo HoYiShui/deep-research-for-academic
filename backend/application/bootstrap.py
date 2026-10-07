@@ -163,6 +163,7 @@ class HttpRuntime:
             raise TypeError("Run executor factory must be explicitly callable")
         self.run_executor_factory = run_executor_factory
         self.runner = None
+        self.debug_execution = None
         self.pool = None
         self.backup_dir = (
             Path(backup_dir)
@@ -224,6 +225,11 @@ class HttpRuntime:
         )
         # Only start a scanner when its executor has been explicitly composed.
         # Missing business workers must not claim paid Runs and invent results.
+        if self.run_executor_factory is None and self.settings.dr4a_debug_runner:
+            from application.debug_runtime import DebugExecution
+
+            self.debug_execution = DebugExecution(self)
+            self.run_executor_factory = lambda runtime: self.debug_execution.execute
         if self.run_executor_factory is not None:
             self.runner = TaskRunner(
                 store=store,
@@ -249,9 +255,13 @@ class HttpRuntime:
                 if self.runner is not None:
                     await self.runner.aclose()
             finally:
-                close = getattr(self.llm, "aclose", None)
-                if close is not None:
-                    await close()
+                try:
+                    if self.debug_execution is not None:
+                        await self.debug_execution.aclose()
+                finally:
+                    close = getattr(self.llm, "aclose", None)
+                    if close is not None:
+                        await close()
         finally:
             if self.pool is not None:
                 pool, self.pool = self.pool, None

@@ -60,6 +60,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     p = sub.add_parser("dump", help="read a session's latest snapshot state")
     p.add_argument("session_id")
+    p.add_argument("--debug-db", action="store_true", help="read the separate dr4a_debug database")
     p.add_argument("--owner", help="existing owner UUID (required in production)")
     _add_common(p)
     p.set_defaults(handler=dump.run)

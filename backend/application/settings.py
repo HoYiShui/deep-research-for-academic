@@ -30,6 +30,7 @@ class Settings(BaseModel):
 
     dr4a_env: Literal["development", "production"] = "development"
     dr4a_auth_required: bool = False
+    dr4a_debug_runner: bool = False
     database_url: SecretStr = SecretStr("")
     jwt_secret: SecretStr = SecretStr("")
     anthropic_api_key: SecretStr = SecretStr("")
@@ -198,6 +199,8 @@ class Settings(BaseModel):
         if self.heartbeat_s >= self.lease_s or self.scan_s >= self.lease_s:
             raise ValueError("heartbeat and scan intervals must be shorter than the lease")
         if self.dr4a_env == "production":
+            if self.dr4a_debug_runner:
+                raise ValueError("debug runner is development-only")
             if not self.dr4a_auth_required:
                 raise ValueError("production requires authentication")
             required = (

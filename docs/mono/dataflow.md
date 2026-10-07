@@ -162,6 +162,8 @@ flowchart LR
 
 papers/web 同查询并发、有源独立 timeout；local 只在明确选择 KB 时调用，不访问 default 隐式库。候选摘要不进入关键引用链；只获取高价值全文。摘录提取失败、原文不可达 → Gap，不编造页码。搜索失败和真正空结果区分记录；追溯默认深度 2，每 ClaimSpec 最多 2 次补查，无新增证据或重复 query 停止。
 
+初始研究单元优先使用该章 `retrieval_anchors` 的去重检索表达；无 anchors 时兼容使用 `sub_questions`。没有研究子问题的纯建议章只更新 coverage，不因背景 anchors 自动发起搜索。子问题解释研究需求，ClaimSpec 仍是覆盖判断单位；anchor 不是证据。明确 arXiv 编号可由该来源 Adapter 转成标准 `id_list` 定位，不能把页码/hash 等操作性问题当作全文检索目标。单元 ID、工具授权和账本使用实际检索表达；Adapter 不自行增添模型调用或未授权检索。
+
 本地命中先登记 DocumentVersion 级 SourceRecord，再按 chunk Location 建 Evidence；chunk_id 不能冒充未登记 source_id。gap_fill/citation_trace 的结果必须重新建 ClaimEvidenceLink/Observation、更新目标 coverage，不能只追加全局资料就认为补齐。
 
 ### 3.4 Analyze、Write 与 Review

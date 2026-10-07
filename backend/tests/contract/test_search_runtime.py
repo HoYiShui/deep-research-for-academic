@@ -10,7 +10,7 @@ from pydantic import ValidationError
 
 from domain.ports import AdapterError, SearchResult
 from domain.research.search import SearchBatch, SearchOutcome
-from infrastructure.search.arxiv import ArxivSearch
+from infrastructure.search.arxiv import ArxivSearch, _query_params
 from infrastructure.search.arxiv import _parse as parse_arxiv
 from infrastructure.search.bocha import BochaSearch
 from infrastructure.search.bocha import _parse as parse_bocha
@@ -185,6 +185,52 @@ async def test_arxiv_exact_request_single_attempt():
         assert len(await adapter.search("transformer")) == 1
     assert len(calls) == 1
     assert dict(calls[0].url.params) == {"search_query": "all:transformer", "max_results": "10"}
+
+
+@pytest.mark.parametrize(
+    "query,identifier",
+    [
+        ("arXiv:1706.03762v7 Attention Is All You Need PDF", "1706.03762v7"),
+        ("如何校验 arXiv:1706.03762v7 Table 2 hash？", "1706.03762v7"),
+        ("arxiv 1706.03762v7 hash", "1706.03762v7"),
+        ("https://arxiv.org/abs/1706.03762v7", "1706.03762v7"),
+        ("1706.03762v7", "1706.03762v7"),
+        ("arXiv:hep-th/9901001v2", "hep-th/9901001v2"),
+    ],
+)
+async def test_arxiv_explicit_identifier_is_lookup_not_unrelated_prose_search(query, identifier):
+    calls = []
+
+    def handler(request):
+        calls.append(request)
+        return httpx.Response(200, text=ATOM)
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+        await ArxivSearch(client=client, spacing=RequestSpacing(0)).search(query)
+    assert len(calls) == 1
+    assert dict(calls[0].url.params) == {"id_list": identifier, "max_results": "10"}
+
+
+@pytest.mark.parametrize(
+    "query",
+    [
+        "Transformer 2017 Table 2",
+        "arxiv:1713.03762",
+        "arxiv:1706.03762v7extra",
+        "notarxiv:1706.03762",
+    ],
+)
+def test_arxiv_does_not_guess_identifiers_from_dates_or_partial_tokens(query):
+    assert _query_params(query) == {"search_query": f"all:{query}", "max_results": 10}
+
+
+def test_arxiv_identifier_lookup_deduplicates_and_refuses_unbounded_ids():
+    assert _query_params("arxiv:1706.03762v7 arxiv:1706.03762v7 arxiv:2207.03987v3")["id_list"] == (
+        "1706.03762v7,2207.03987v3"
+    )
+    with pytest.raises(AdapterError) as failure:
+        _query_params(" ".join(f"arxiv:1706.{index:05d}" for index in range(11)))
+    assert failure.value.code == "search_query_invalid"
 
 
 @pytest.mark.asyncio

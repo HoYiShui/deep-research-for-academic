@@ -13,9 +13,10 @@ async function fixture(handler: RequestListener): Promise<{ baseUrl: string; clo
 test("anonymous research requests preserve the public path and body", async () => {
   const server = await fixture((request, response) => {
     assert.equal(request.url, "/research"); assert.equal(request.method, "POST"); assert.equal(request.headers.authorization, undefined); assert.equal(request.headers.cookie, undefined);
-    let body = ""; request.on("data", (chunk) => body += chunk); request.on("end", () => { assert.deepEqual(JSON.parse(body), { query: "compare methods" }); response.setHeader("content-type", "application/json"); response.end(JSON.stringify({ session_id: "s1", status: "ask" })); });
+    assert.equal(typeof request.headers["idempotency-key"], "string");
+    let body = ""; request.on("data", (chunk) => body += chunk); request.on("end", () => { assert.deepEqual(JSON.parse(body), { query: "compare methods", sources: ["papers", "web"], knowledge_base_ids: [] }); response.setHeader("content-type", "application/json"); response.end(JSON.stringify({ session_id: "s1", status: "ask", brief_version: 1 })); });
   });
-  try { assert.deepEqual(await new ResearchApiClient(server.baseUrl).createResearch("compare methods"), { session_id: "s1", status: "ask" }); } finally { await server.close(); }
+  try { assert.deepEqual(await new ResearchApiClient(server.baseUrl).createResearch("compare methods", { categories: ["papers", "web"], knowledge_base_ids: [] }), { session_id: "s1", status: "ask", brief_version: 1 }); } finally { await server.close(); }
 });
 
 test("SSE frames preserve their event order", async () => {
@@ -25,5 +26,27 @@ test("SSE frames preserve their event order", async () => {
 
 test("structured failures become ApiError", async () => {
   const server = await fixture((_, response) => { response.writeHead(401, { "content-type": "application/json" }); response.end(JSON.stringify({ error: { code: "unauthenticated", message: "No auth" } })); });
-  try { await assert.rejects(() => new ResearchApiClient(server.baseUrl).createResearch("q"), (error: unknown) => error instanceof ApiError && error.statusCode === 401 && error.code === "unauthenticated"); } finally { await server.close(); }
+  try { await assert.rejects(() => new ResearchApiClient(server.baseUrl).createResearch("q", { categories: ["papers"], knowledge_base_ids: [] }), (error: unknown) => error instanceof ApiError && error.statusCode === 401 && error.code === "unauthenticated"); } finally { await server.close(); }
+});
+
+test("SSE handles CRLF split across chunks and retains JSON unicode", async () => {
+  const server = await fixture((_, response) => {
+    response.writeHead(200, { "content-type": "text/event-stream" });
+    response.write('event: progress\r');
+    setImmediate(() => response.end('\ndata: {"message":"研究进度"}\r\n\r\n'));
+  });
+  try {
+    const result = [];
+    for await (const event of new ResearchApiClient(server.baseUrl).events("/events")) result.push(event);
+    assert.deepEqual(result, [{ event: "progress", id: undefined, data: { message: "研究进度" } }]);
+  } finally { await server.close(); }
+});
+
+test("SSE rejects non-SSE response and foreign-origin URLs before I/O", async () => {
+  const server = await fixture((_, response) => response.end("{}"));
+  const api = new ResearchApiClient(server.baseUrl);
+  try {
+    await assert.rejects(async () => { for await (const _ of api.events("/events")) {} }, e => e instanceof ApiError && e.code === "contract_error");
+    await assert.rejects(async () => { for await (const _ of api.events("https://foreign.invalid/events")) {} }, e => e instanceof ApiError && e.code === "contract_error");
+  } finally { await server.close(); }
 });

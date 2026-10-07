@@ -112,7 +112,13 @@ def plan_units(state: PipelineState) -> list[UnitScope]:
         for plan in state.section_plans:
             if plan.section_id not in sections:
                 continue
-            questions = dict.fromkeys(question.strip() for question in plan.sub_questions)
+            # Questions describe the research obligation; anchors are the plan's
+            # explicit retrieval expressions. Advice-only sections do not acquire
+            # search authority merely by carrying background anchors.
+            expressions = []
+            if plan.sub_questions:
+                expressions = plan.retrieval_anchors or plan.sub_questions
+            questions = dict.fromkeys(question.strip() for question in expressions)
             units.extend(
                 unit([plan.section_id], {"kind": "query", "query": question})
                 for question in questions

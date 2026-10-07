@@ -13,6 +13,26 @@ from domain.ports import SearchResult
 from infrastructure.search.http import RequestSpacing, SearchHTTP, error, query_text
 
 _ATOM = "{http://www.w3.org/2005/Atom}"
+_ID = r"(?:[0-9]{2}(?:0[1-9]|1[0-2])\.[0-9]{4,5}|[a-z][a-z.-]*/[0-9]{7})(?:v[1-9][0-9]*)?"
+_EXPLICIT_ID = re.compile(
+    rf"(?<![A-Za-z0-9_.-])(?:arxiv(?:\s*:\s*|\s+)|https?://arxiv\.org/(?:abs|pdf)/)"
+    rf"({_ID})(?![A-Za-z0-9./])",
+    re.IGNORECASE,
+)
+
+
+def _query_params(query):
+    identifiers = list(dict.fromkeys(match.group(1) for match in _EXPLICIT_ID.finditer(query)))
+    if not identifiers and re.fullmatch(_ID, query, re.IGNORECASE):
+        identifiers = [query]
+    if len(identifiers) > 10:
+        raise error("arxiv", "search_query_invalid")
+    # Exact identifiers are metadata lookup, not terms in a prose all: query.
+    return (
+        {"id_list": ",".join(identifiers), "max_results": 10}
+        if identifiers
+        else {"search_query": f"all:{query}", "max_results": 10}
+    )
 
 
 class ArxivSearch:
@@ -28,11 +48,12 @@ class ArxivSearch:
 
     async def search(self, query: str) -> list[SearchResult]:
         query = query_text(query)
+        params = _query_params(query)
         await self._spacing.wait()
         body = await self._http.request(
             "GET",
             "https://export.arxiv.org/api/query",
-            params={"search_query": f"all:{query}", "max_results": 10},
+            params=params,
         )
         return _parse(body)
 

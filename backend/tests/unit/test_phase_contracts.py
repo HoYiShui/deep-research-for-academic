@@ -31,6 +31,27 @@ def plans():
     ]
 
 
+def test_research_units_prefer_deduplicated_anchors_but_preserve_question_obligations():
+    from application.phase_units import plan_units
+
+    data = initial_state().model_dump(mode="json") | {"phase": "research", "section_plans": plans()}
+    section = data["section_plans"][0]
+    section["retrieval_anchors"] = ["arXiv:1706.03762v7", "arXiv:1706.03762v7", "Transformer BLEU"]
+    data["section_plans"][1]["sub_questions"] = []
+    data["section_plans"][1]["retrieval_anchors"] = ["Advice background only"]
+    state = PipelineState.model_validate(data)
+    units = plan_units(state)
+    queries = [unit for unit in units if unit.parameters["kind"] == "query"]
+    assert [unit.parameters["query"] for unit in queries[:2]] == [
+        "arXiv:1706.03762v7",
+        "Transformer BLEU",
+    ]
+    assert not any(unit.section_ids == ["section_2"] for unit in queries)
+    assert queries[2].parameters["query"] == plans()[2]["sub_questions"][0]
+    assert state.section_plans[0].sub_questions == section["sub_questions"]
+    assert units == plan_units(PipelineState.model_validate_json(state.model_dump_json()))
+
+
 def result(state, changes, **extra):
     value = PhaseInput.from_state(state)
     return PhaseResult(

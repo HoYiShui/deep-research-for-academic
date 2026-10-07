@@ -25,6 +25,10 @@ async def run(args) -> int:
         raise output.UsageError("Invalid session or owner UUID") from None
     try:
         settings = Settings.load()
+        if getattr(args, "debug_db", False):
+            from scripts.debug_backend import debug_settings
+
+            settings = debug_settings(settings)
     except ValidationError:
         raise output.EnvError("Invalid environment configuration") from None
     if explicit_owner is None and settings.dr4a_env == "production":
