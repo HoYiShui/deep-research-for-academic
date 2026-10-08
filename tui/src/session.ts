@@ -12,13 +12,28 @@ export class ResearchSession {
   stop(): void { this.stream?.abort(); this.stream = undefined; }
   async open(id: string): Promise<Session> {
     if (this.busy) throw new ApiError("请等待当前请求结束");
-    const value = await this.api.status(id); this.reset(); this.view = value; return value;
+    const value = await this.api.status(id);
+    if (value.session_id !== id) throw new ApiError("状态响应身份不符", undefined, "contract_error");
+    this.stop(); this.pending = undefined; return this.acceptStatus(id, value);
   }
   async refresh(): Promise<Session> {
     if (!this.view) throw new ApiError("没有活动会话");
     const id = this.view.session_id, value = await this.api.status(id);
-    if (this.view?.session_id === id) this.view = value;
-    return value;
+    if (this.view?.session_id !== id) throw new ApiError("活动会话已切换", undefined, "aborted");
+    return this.acceptStatus(id, value);
+  }
+  private acceptStatus(id: string, value: Session): Session {
+    if (value.session_id !== id) throw new ApiError("状态响应身份不符", undefined, "contract_error");
+    const current = this.view;
+    if (current?.session_id === id) {
+      if (value.brief_version < current.brief_version) return current;
+      if (typeof current.run_id === "string") {
+        if (value.run_id == null) return current; // A pre-freeze GET arrived late.
+        if (value.run_id !== current.run_id) throw new ApiError("会话 Run 身份变化", undefined, "contract_error");
+        if (Number(value.checkpoint_seq ?? 0) < Number(current.checkpoint_seq ?? 0)) return current;
+      }
+    }
+    this.view = value; return value;
   }
   async send(content: string, patch?: RecordValue): Promise<RecordValue> {
     const view = this.view, api = this.api, options = { key: randomUUID() };
@@ -76,9 +91,9 @@ export class ResearchSession {
     try {
       while (!controller.signal.aborted && this.view?.session_id === id) {
         try {
-          const view = await api.status(id);
+          const received = await api.status(id);
           if (controller.signal.aborted || this.view?.session_id !== id) return;
-          this.view = view; onState(view);
+          const view = this.acceptStatus(id, received); onState(view);
           if (["completed", "failed", "cancelled"].includes(view.status) || typeof view.sse_url !== "string") return;
           for await (const event of api.events(view.sse_url, controller.signal)) {
             if (controller.signal.aborted || this.view?.session_id !== id) return;
@@ -101,9 +116,9 @@ export class ResearchSession {
             if (event.event === "done" || (event.event === "error" && event.data.fatal === true)) break;
           }
           // EOF/fatal/done: only GET can establish the current persisted state.
-          const latest = await api.status(id);
+          const receivedLatest = await api.status(id);
           if (controller.signal.aborted || this.view?.session_id !== id) return;
-          this.view = latest; onState(latest);
+          const latest = this.acceptStatus(id, receivedLatest); onState(latest);
           if (["completed", "failed", "cancelled"].includes(latest.status)) return;
           throw new ApiError("SSE 已断开，将只读查询后重连", undefined, "network_error", true);
         } catch (error) {

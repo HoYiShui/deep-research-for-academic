@@ -69,3 +69,13 @@ T018仍未全完成：JWT截止传递、全套source_degraded/rework/后续阶�
 200与503两种正文中断测试均证明首次仅一次POST、尚无客户端SessionView；随后即使本地sources改动，显式/retry仍保持原body和Idempotency-Key，得到同一session响应，成功后pending清除。完整非法JSON仍contract_error/非retryable，既有结构化401/SSE/版本冲突测试不变。该TCP服务器显式模拟已接受请求，不能当作真实PG提交/业务研究验收；端到端活后端回归另行执行。
 
 TUI `npm test` **16 passed**、`npm run typecheck`通过；初次typecheck因assert将view缩窄为undefined导致测试代码never，改从retry返回值断言身份，未放宽产品类型。backend `uv run --no-sync pytest -q tests/integration/test_tui_live_http.py tests/integration/test_tui_terminal.py`：**5 passed in 27.33s**，使用真实TCP/PG/MinIO、受控模型/Report、实际PTY，覆盖原确认/取消/SIGKILL恢复/展示路径。diff检查通过；本批不宣称全后端或真实报告质量通过。未改Agent/Schema/.env/用户资源，只清fixture专属数据库/bucket/子进程。
+
+## TUI迟到状态读取（2026-10-08）
+
+基线cb573d5。代码审计发现refresh和observer的两处GET均直接覆盖view；并行GET/SSE时较早发出的响应可能迟到，覆盖较高seq或较新Brief。refresh在Session切换后虽不赋值，却仍返回旧响应，resume会依据这个旧响应发送变更。
+
+ResearchSession集中读取采用acceptStatus：仅同Session合法身份，保留更高brief_version；既有冻结Run不由迟到null Run回退，Run身份变化明确contract_error，同Run低seq不覆盖当前view且调用者收到已知较新view。refresh在会话切换后抛本地aborted，禁止resume继续针对旧会话。open先验Session身份，observer bootstrap/EOF后GET同样使用该读取规则。相同seq的状态仍按后端GET读取，不新建客户端状态优先级或终态机；SSE done只保留seq，终态仍须GET。
+
+6项显式受控Promise/事件单测：两个refresh的返回顺序逆序；observer bootstrap等待时手动refresh先得到seq5；旧Brief/null Run；done seq2后旧GET seq1不能擦掉seq或伪造完成，下一GET确立completed；错误Session/Run身份；Session切换时等待中的resume无POST。观察中只GET/订阅，不发新建/确认/自动恢复。此竞态证据是客户端受控测试，非真实网络延迟或研究质量验收。
+
+TUI `npm test` **22 passed**、typecheck通过（初次测试将assert.fail直接作为unknown回调导致类型不兼容，改显式回调，未放宽产品类型）；backend活TCP/PG/MinIO、真实PTY回归 `uv run --no-sync pytest -q tests/integration/test_tui_live_http.py tests/integration/test_tui_terminal.py`：**5 passed in 27.18s**。diff检查通过。本批未跑全后端，未修改Agent/契约/.env/用户历史库或docs/implementation，未推送。

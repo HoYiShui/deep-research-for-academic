@@ -72,3 +72,79 @@ test("unknown done state is contract failure, not success", async () => {
   await current.observe(() => assert.fail("invalid frame"), () => {}, e => errors.push(e));
   assert.ok(errors[0] instanceof ApiError); assert.equal(errors[0].code, "contract_error");
 });
+
+test("late GET cannot replace a newer checkpoint or return stale state to its caller", async () => {
+  const api = new ResearchApiClient("http://localhost:8000");
+  let release!: (value: Session) => void; let calls = 0;
+  api.status = async () => ++calls === 1 ? new Promise<Session>(resolve => release = resolve) : { ...view("running"), checkpoint_seq: 5 };
+  const current = new ResearchSession(api); current.view = view("running");
+  const old = current.refresh();
+  assert.equal((await current.refresh()).checkpoint_seq, 5);
+  release({ ...view("running"), checkpoint_seq: 2 });
+  assert.equal((await old).checkpoint_seq, 5); assert.equal(current.view.checkpoint_seq, 5);
+});
+
+test("late observer bootstrap preserves the checkpoint obtained by manual status", async () => {
+  const api = new ResearchApiClient("http://localhost:8000");
+  let release!: (value: Session) => void; let calls = 0;
+  api.status = async () => {
+    if (++calls === 1) return new Promise<Session>(resolve => release = resolve);
+    return { ...view(calls === 2 ? "running" : "completed"), checkpoint_seq: calls === 2 ? 5 : 6 };
+  };
+  api.events = async function* () {
+    yield { event: "done", data: { session_id: "session", run_id: "run", checkpoint_seq: 6, status: "completed" } };
+  };
+  const current = new ResearchSession(api); current.view = view("running");
+  const sequences: unknown[] = [];
+  const observing = current.observe(() => {}, state => sequences.push(state.checkpoint_seq), error => assert.fail(String(error)));
+  await current.refresh(); release({ ...view("running"), checkpoint_seq: 2 });
+  await observing;
+  assert.deepEqual(sequences, [5, 6]); assert.equal(current.view.status, "completed");
+});
+
+test("late status cannot revert Brief version or remove a frozen Run", async () => {
+  const api = new ResearchApiClient("http://localhost:8000");
+  const current = new ResearchSession(api); current.view = view("running", 3);
+  api.status = async () => view("ask", 2);
+  assert.equal((await current.refresh()).brief_version, 3);
+  api.status = async () => ({ ...view("confirm", 3), run_id: null, checkpoint_seq: null });
+  assert.equal((await current.refresh()).status, "running");
+});
+
+test("stale GET after done cannot erase its seq or establish an older terminal state", async () => {
+  const api = new ResearchApiClient("http://localhost:8000"); let calls = 0;
+  api.status = async () => ++calls < 3 ? view("running") : { ...view("completed"), checkpoint_seq: 2 };
+  api.events = async function* () {
+    yield { event: "done", data: { session_id: "session", run_id: "run", checkpoint_seq: 2, status: "completed" } };
+  };
+  const current = new ResearchSession(api); current.view = view("running");
+  const sequences: unknown[] = [], errors: unknown[] = [];
+  await current.observe(() => {}, state => sequences.push(state.checkpoint_seq), error => errors.push(error), 1);
+  assert.deepEqual(sequences, [1, 2, 2]); assert.equal(current.view.status, "completed");
+  assert.equal(calls, 3); assert.equal(errors.length, 1);
+});
+
+test("status identity mismatches do not replace the current Session or Run", async () => {
+  const api = new ResearchApiClient("http://localhost:8000");
+  const current = new ResearchSession(api); current.view = view("running");
+  for (const update of [{ session_id: "other" }, { run_id: "other-run" }]) {
+    api.status = async () => ({ ...view("running"), ...update });
+    await assert.rejects(() => current.refresh(), e => e instanceof ApiError && e.code === "contract_error");
+    assert.equal(current.view.run_id, "run"); assert.equal(current.view.session_id, "session");
+  }
+  await assert.rejects(() => current.open("other"));
+  assert.equal(current.view.session_id, "session");
+});
+
+test("a refresh completing after session switch is abandoned, not used by resume", async () => {
+  const api = new ResearchApiClient("http://localhost:8000");
+  let release!: (value: Session) => void; let mutations = 0;
+  api.status = async () => new Promise<Session>(resolve => release = resolve);
+  api.resume = async () => { mutations++; return view("ready"); };
+  const current = new ResearchSession(api); current.view = view("failed");
+  const resuming = current.resume();
+  current.reset(); current.view = { ...view("ask"), session_id: "other" };
+  release({ ...view("failed"), resume_allowed: true });
+  await assert.rejects(() => resuming, e => e instanceof ApiError && e.code === "aborted");
+  assert.equal(mutations, 0); assert.equal(current.view.session_id, "other");
+});
