@@ -27,6 +27,20 @@ def test_debug_runner_is_not_a_production_fallback():
         debug_settings(Settings(dr4a_auth_required=True))
 
 
+def test_database_only_debug_profile_preserves_explicit_parser_and_connection_options():
+    source = Settings(
+        database_url="postgresql://owner:secret@127.0.0.1:5432/original?sslmode=require",
+        parser_version="explicit-parser-version",
+    )
+    debug = debug_settings(source, parser=None)
+    assert debug.database_url.get_secret_value() == (
+        "postgresql://owner:secret@127.0.0.1:5432/dr4a_debug?sslmode=require"
+    )
+    assert debug.parser_version == source.parser_version
+    assert debug_settings(debug, parser=None) == debug
+    assert source.database_url.get_secret_value().endswith("/original?sslmode=require")
+
+
 def test_http_debug_wrapper_still_rejects_production_before_adapter_construction():
     runtime = SimpleNamespace(settings=SimpleNamespace(dr4a_env="production"))
     with pytest.raises(AppError, match="development"):

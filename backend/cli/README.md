@@ -31,6 +31,13 @@ python -m cli dump <session-id> --json
 
 CLI只启动限定owner+本Run的扫描/执行器，不启动HTTP全库维护器；即使进程环境设置了`DR4A_DEBUG_RUNNER=true`也不会附带开启全库HTTP执行。其它Run的ready排队、失租或取消由其服务器/维护进程处理，不由此次CLI命令收尾。
 
+与TUI调试后端使用同一独立数据库时，给real run加`--debug-db`：只将连接目标改为已有的`dr4a_debug`，保留显式Parser与其他运行配置，不创建数据库、不自动迁移。仅允许匿名development；fake模式不连接数据库，因此拒绝此选项。该命令仍会创建自己的Session/Run并调用付费模型/检索，不是只读检查；`doctor`和`dump`中的同名选项仍只读。示例：
+
+```bash
+PARSER_VERSION=dr4a-html-v1 uv run python -m cli run --brief frozen-brief.json --real --debug-db --json
+uv run python -m cli dump <session-id> --debug-db --json
+```
+
 real run必须显式配置已支持的parser版本；不沿用`unconfigured`或静默切换HTML/PDF。未知parser或未准备PDF权重时退出3，不冻结Brief/创建Run、不请求模型。HTML公开来源模式示例（会调用收费模型/搜索，需已有mono数据库与MinIO bucket）：
 
 ```bash

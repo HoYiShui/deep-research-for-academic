@@ -176,3 +176,11 @@ CLI ResearchDebugTools接收输入State的Sources只读副本；当前query授�
 仅在CLI调用正式merge_phase_result的边界将ValueError归为AppError invalid_state，固定安全消息，不打印冲突事实。不改变merge规则、不接受失败单元、不推进持久Run；现有收尾返回最后本地State/delta/events/usage/failed_unit_id，verbose只出现两个merged和一个failed。worker自身未分类ValueError仍execution_failed，不借此宽泛捕获业务代码缺陷。
 
 两条受控CLI子进程验证输入文件/RunMetadata不变、保留第一章coverage与两个events、Source保持旧值、无canary/stack泄漏、退出1；无模型/PG依赖。最终定向回归 `uv run --no-sync pytest -q tests/integration/test_mono_cli_phase.py tests/unit/test_phase_contracts.py tests/unit/test_cli_output.py tests/unit/test_cli_research_originals.py tests/integration/test_mono_cli_originals.py`：**63 passed in 9.83s**，最后一项仍使用真实fixture-owned MinIO bucket。两文件Ruff/format与diff检查通过。本批未重跑全量，不沿用上批945作为本批全量结论；T021仍不勾选，未修改Agent/Schema/用户数据或受保护文档。
+
+## real run显式调试库选择（2026-10-08）
+
+基线07494c7。TUI的scripts.debug_backend使用独立dr4a_debug，doctor/dump已有同名选择，但real run仍连接.env原数据库；新增run --real --debug-db复用debug_settings的数据库选择，新增parser=None只选库、不覆盖显式Parser。HTTP helper默认html/pdf行为不变；CLI prepare仍不启动HTTP维护/执行器。选项仅允许anonymous development；fake在读取Brief/装配旧链前拒绝，production或已启用auth在PG连接前拒绝。不创建数据库、不运行迁移或建bucket，连接原有mono库后的Session/Run/付费执行语义不变。
+
+4种真正CLI子进程反例采用显式create_pool拦截，不连接任何用户数据库：anonymous验证目标/dr4a_debug、原credential和sslmode保持、Parser不变/HTTP runner关闭后模拟不可用，安全退出3；authenticated/production/fake提前退出2、连接调用0次。异常正文带password canary，stdout单JSON且stdout/stderr无canary或stack。profile单测另验证输入Settings不变、幂等、默认HTML行为保留。这是路由/guard证据，不声称已向实际dr4a_debug收费运行。
+
+验证 `uv run --no-sync pytest -q tests/unit/test_cli_debug_database.py tests/unit/test_debug_backend.py tests/integration/test_mono_cli_run.py tests/unit/test_cli_output.py`：**30 passed in 17.49s**。既有real run测试使用真实fixture-owned PG/MinIO、本机受控模型HTTP和显式空搜索，检查预算/取消/外部Run隔离等；不访问付费模型。6个Python文件Ruff/format与diff检查通过。本批未运行全量；任务完整fake/后续worker与真实研究验收仍未完成，T021不勾选。用户.env/Agent分支/历史库及docs/implementation均不修改。

@@ -43,6 +43,16 @@ async def cancel_owned(worker, store, owner, run_id):
 async def run(args, raw_brief):
     brief = ResearchBrief.model_validate(raw_brief)
     settings = Settings.load()
+    if getattr(args, "debug_db", False):
+        from scripts.debug_backend import debug_settings
+
+        try:
+            # Database selection must not silently switch the frozen parser.
+            settings = debug_settings(settings, parser=None)
+        except ValueError:
+            raise output.UsageError(
+                "--debug-db requires anonymous development configuration"
+            ) from None
     try:
         explicit_owner = getattr(args, "owner", None)
         owner = UUID(explicit_owner) if explicit_owner else DEVELOPMENT_USER_ID

@@ -46,6 +46,9 @@ def build_parser() -> argparse.ArgumentParser:
 
     p = sub.add_parser("run", help="run the pipeline from a frozen ResearchBrief")
     p.add_argument("--brief", required=True, help="path to a frozen ResearchBrief JSON")
+    p.add_argument(
+        "--debug-db", action="store_true", help="use the existing dr4a_debug database (real only)"
+    )
     p.add_argument("--owner", help="existing owner UUID (required in production)")
     p.add_argument("--sources", default="papers,web", help="comma-separated source categories")
     p.add_argument("--kb", action="append", default=[], help="knowledge base UUID (repeatable)")

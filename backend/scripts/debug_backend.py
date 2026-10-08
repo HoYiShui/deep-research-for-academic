@@ -26,8 +26,11 @@ def debug_settings(settings, *, execute=False, parser="html"):
     values = settings.model_dump() | {
         "database_url": database_url,
         "dr4a_debug_runner": execute,
-        "parser_version": HTML_PARSER_VERSION if parser == "html" else MINERU_PARSER_VERSION,
     }
+    if parser is not None:
+        values["parser_version"] = (
+            HTML_PARSER_VERSION if parser == "html" else MINERU_PARSER_VERSION
+        )
     return Settings.model_validate(values)
 
 

@@ -11,6 +11,8 @@ from cli.phase_state import read_json, validate_brief
 
 
 async def run(args) -> int:
+    if getattr(args, "debug_db", False) and args.fake:
+        raise output.UsageError("--debug-db requires --real; fake does not use a database")
     raw_brief = read_json(args.brief, "--brief")
     if not args.fake:
         from cli.run_real import run as real_run
