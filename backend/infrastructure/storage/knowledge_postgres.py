@@ -12,9 +12,10 @@ from application.knowledge_models import (
     JobAttempt,
     KnowledgeBase,
 )
+from infrastructure.storage.knowledge_jobs import KnowledgeJobs
 
 
-class KnowledgeRepository:
+class KnowledgeRepository(KnowledgeJobs):
     def __init__(self, store):
         self.store = store
 
@@ -158,7 +159,7 @@ class KnowledgeRepository:
         )
         return version, job, False
 
-    async def _lock_job(self, owner, job_id, tx):
+    async def _lock_job(self, owner, job_id, tx, *, require_active=True):
         from infrastructure.storage.research_postgres import decode
 
         conn = self.store.connection(tx)
@@ -181,12 +182,12 @@ class KnowledgeRepository:
         )
         row = await conn.fetchrow("SELECT * FROM ingestion_jobs WHERE job_id=$1 FOR UPDATE", job_id)
         job = decode(IngestionJob, row, {"failure", "progress", "attempt_history"})
-        if kb.status != "active" or document.status != "active":
+        if require_active and (kb.status != "active" or document.status != "active"):
             raise AppError("resource_not_active", "Ingestion resource is not active")
         now = await conn.fetchval("SELECT clock_timestamp()")
         return conn, kb, document, job, now
 
-    async def _save_job(self, conn, job, *, expected_token=None):
+    async def _save_job(self, conn, job, *, expected_token=None, expected_status="processing"):
         from infrastructure.storage.research_postgres import encode
 
         data = encode(IngestionJob.model_validate(job), {"failure", "progress", "attempt_history"})
@@ -196,10 +197,14 @@ class KnowledgeRepository:
         guard = ""
         if expected_token is not None:
             values.append(expected_token)
+            token_parameter = len(values)
+            values.append(expected_status)
             guard = (
-                f" AND lease_token=${len(values)} AND status='processing'"
-                " AND cancel_requested_at IS NULL AND lease_expires_at>clock_timestamp()"
+                f" AND lease_token=${token_parameter} AND status=${len(values)}"
+                " AND lease_expires_at>clock_timestamp()"
             )
+            if expected_status == "processing":
+                guard += " AND cancel_requested_at IS NULL"
         changed = await conn.fetchval(
             f"UPDATE ingestion_jobs SET {assignments} WHERE job_id=$1{guard} RETURNING job_id",
             *values,
