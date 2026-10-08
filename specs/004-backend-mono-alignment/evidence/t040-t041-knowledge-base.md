@@ -75,3 +75,23 @@ KB active/creating进入deleting与Document active进入deleting原子保存revi
 T040/T041/T049继续未勾选：HTTP幂等管理/分页、creating/deleting共同清理租约、Worker调度、索引/对象删除、迟到写入及SIGKILL恢复仍须闭环。本批只建立必要的持久化屏障，不接受缺少清理Worker的公共删除请求。
 
 最终全量：`uv run --no-sync pytest -q --tb=short`，**1085 passed in 228.41s**。全量期间只更新任务/证据，没有改受验证代码；静态检查通过。本批不以其他测试的green结果替代完整删除验收。
+
+## 2026-10-08：清理租约与进程中断
+
+基线 `d7d0bbd`。新增Repository组合 `KnowledgeCleanup`：可信有界creating/deleting扫描（扫描不授租）、KB生命周期共用租约和Document独立清理租约、领取/同Worker重入/活租约排他/过期token递增、续租/释放、revision+token+SQL时钟校验的cursor提交、KB创建完成门。所有表名只来自内部固定分支，Document仍按KB→Document锁定；跨owner/父子不匹配拒绝。
+
+清理cursor记录**下一待处理步骤**：wait_jobs→index→objects→metadata；重复同点且当前revision/token有效时保持revision/updated_at，不能跳步或回退。短事务不执行外部I/O，各步由后续Service验证外部操作后提交。释放租约不清cursor；重启领取保留进度并递增token。SQL在最终UPDATE检查expires_at>clock_timestamp，不仅在事务入口以Python时钟判断。实际事务内pg_sleep使租约过期，进度/续租/释放均拒绝。
+
+creating转deleting保留现有租约，其他Worker不能提前抢占；原创建Worker即使提交partition_verified信号也不能把deleting复活。finish_kb_creation同时验证status/revision/token/未过期与Service成功信号，之后才active并释放租约。本批成功创建测试使用显式受控partition_verified，**没有真实ensure partition验收**，不能据此宣称KB创建端点可用。
+
+新增真正独立Python进程：只连接本轮dr4a_test_*数据库，提交lease+index cursor后保持存活；父测试明确SIGKILL（退出码-9），没有child finally/graceful清理。等待实际租约过期，可信扫描可发现资源，新Worker领取后仍为index、revision不丢、token递增；旧token提交objects拒绝，新token继续objects成功。这证明PG进程中断边界，不等同于外部清理断点或正式TaskRunner重启验收。首轮测试把fixture数据库名误当DSN，子进程在连接前失败；已改为Settings真实DSN+仅覆盖隔离database，未改变断言/降低隔离要求。
+
+目标：`uv run --no-sync pytest -q tests/integration/test_mono_knowledge_cleanup.py tests/integration/test_mono_knowledge_management.py tests/integration/test_mono_ingestion.py tests/integration/test_mono_ingestion_http.py tests/integration/test_mono_kb_lifecycle.py tests/unit/test_knowledge_models.py --tb=short`，**103 passed in 20.44s**，其中新增14项。3个改动Python文件Ruff/format与git diff --check通过；未修改Agent/.env/用户数据库/Compose PostgreSQL/docs/implementation。
+
+T040/T041/T049/T055仍未完成：未组合Management/TaskRunner，不接受没有真实清理能力的公共删除请求；等待旧Job停止、实际index/objects删除、最后PG墓碑事务、创建partition验证及deleted迟到写入巡检尚待实现。扫描和cursor内核不是全生命周期恢复完成的替代证据。
+
+中断恢复检查：先前全量进程handle已丢失且系统没有pytest进程，未假定它成功。重新执行默认配置发现受保护 `dr4a-rebuilt-pg-20261006` 反复重启，日志 `PANIC: replication checkpoint has wrong magic 0 instead of 307747550`；默认回归 **775 passed, 324 errors in 56.18s**，连接5432失败，不是通过。未停止/重建/修复该容器，不改任何原数据卷。
+
+为继续代码验证，用本机已有PG16镜像启动本轮独立 `dr4a-test-pg-cleanup-*`，PGDATA在512MiB tmpfs，无用户volume挂载，127.0.0.1动态端口；仅命令环境覆写DATABASE_URL，不改.env。临时实例设置max/min WAL为64/32MiB、checkpoint_timeout=30s避免tmpfs写满，测试仍按原fixture新建/删除dr4a_test_*数据库。上述目标集在临时真实PG及真实MinIO重新 **103 passed in 12.99s**。这不证明用户调试库已恢复；该库仍须另行数据恢复。
+
+临时实例全量最终 **1094 passed, 5 failed in 177.46s**；5项均在TUI子进程启动时 `FileNotFoundError: node`，没有进入业务断言。确认已安装fnm Node v24.13.1，显式将其installation/bin加到本轮命令PATH，并保持同一临时PG。原5项不改代码/断言补跑：`pytest -q tests/integration/test_tui_live_http.py tests/integration/test_tui_terminal.py --tb=short`，**5 passed in 24.15s**。这是全量加失败项补跑的组合证据，不能记成一次1099项全量通过。3个改动Python文件Ruff/format与git diff --check通过。临时PG仅作本goal隔离验证实例，未将.env或用户Runtime默认连接改向它；原恢复库仍不可用。
