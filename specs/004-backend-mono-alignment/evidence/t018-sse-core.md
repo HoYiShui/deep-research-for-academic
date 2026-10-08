@@ -59,3 +59,13 @@ T018仍未全完成：JWT截止传递、全套source_degraded/rework/后续阶�
 类型对齐后同一PTY/活HTTP目标集复跑 **5 passed in 26.15s**；本批未重跑整个后端，不将上批935通过冒充本批全量结果。
 
 这组证据满足T060客户端自身的脚本化活后端验收，不把mock客户端测试替代HTTP集成，也不把受控Report替代T039真实报告验收。无收费供应商调用、不变更Agent/共享Schema/.env或用户历史资源；只清测试专属PTY/子进程/数据库/bucket。T018未完成项仍不勾选。
+
+## TUI响应正文中断重试（2026-10-08）
+
+基线1b81be1。API client将response.json的所有异常都归为contract_error；若后端已提交且200 headers已收到、响应正文在传输中断开，ResearchSession会清除pending，/retry无法沿用原幂等键。这是消息传输的不确定窗口，不是服务端返回完整非法JSON。
+
+真实本机TCP测试先接收POST并记录body/key，再发送200 headers和部分JSON，声明较长Content-Length后主动断连接；实现前抛contract_error，network_error反例失败。新增responseJson仅对SyntaxError归为完整JSON契约错误，传输/中止读取则为retryable network_error；错误HTTP响应正文的传输中断同样处理，完整非JSON错误页仍保留原HTTP错误fallback。不自动重发、不调用resume/freeze，现有ResearchSession手动/retry复用pending。
+
+200与503两种正文中断测试均证明首次仅一次POST、尚无客户端SessionView；随后即使本地sources改动，显式/retry仍保持原body和Idempotency-Key，得到同一session响应，成功后pending清除。完整非法JSON仍contract_error/非retryable，既有结构化401/SSE/版本冲突测试不变。该TCP服务器显式模拟已接受请求，不能当作真实PG提交/业务研究验收；端到端活后端回归另行执行。
+
+TUI `npm test` **16 passed**、`npm run typecheck`通过；初次typecheck因assert将view缩窄为undefined导致测试代码never，改从retry返回值断言身份，未放宽产品类型。backend `uv run --no-sync pytest -q tests/integration/test_tui_live_http.py tests/integration/test_tui_terminal.py`：**5 passed in 27.33s**，使用真实TCP/PG/MinIO、受控模型/Report、实际PTY，覆盖原确认/取消/SIGKILL恢复/展示路径。diff检查通过；本批不宣称全后端或真实报告质量通过。未改Agent/Schema/.env/用户资源，只清fixture专属数据库/bucket/子进程。

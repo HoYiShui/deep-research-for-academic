@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { createServer, type RequestListener } from "node:http";
 import test from "node:test";
 import { ApiError, ResearchApiClient } from "../src/api-client.js";
+import { ResearchSession } from "../src/session.js";
 
 async function fixture(handler: RequestListener): Promise<{ baseUrl: string; close(): Promise<void> }> {
   const server = createServer(handler);
@@ -27,6 +28,46 @@ test("SSE frames preserve their event order", async () => {
 test("structured failures become ApiError", async () => {
   const server = await fixture((_, response) => { response.writeHead(401, { "content-type": "application/json" }); response.end(JSON.stringify({ error: { code: "unauthenticated", message: "No auth" } })); });
   try { await assert.rejects(() => new ResearchApiClient(server.baseUrl).createResearch("q", { categories: ["papers"], knowledge_base_ids: [] }), (error: unknown) => error instanceof ApiError && error.statusCode === 401 && error.code === "unauthenticated"); } finally { await server.close(); }
+});
+
+for (const statusCode of [200, 503]) test(`lost ${statusCode} response body preserves the mutation key for explicit retry`, async () => {
+  const calls: { key: unknown; body: unknown }[] = [];
+  const server = await fixture((request, response) => {
+    let body = "";
+    request.on("data", chunk => body += chunk);
+    request.on("end", () => {
+      calls.push({ key: request.headers["idempotency-key"], body: JSON.parse(body) });
+      if (calls.length === 1) {
+        // A mutation may have committed; the response body is not delivered.
+        response.writeHead(statusCode, { "content-type": "application/json", "content-length": "10000" });
+        response.flushHeaders(); response.write('{"session_id":');
+        setTimeout(() => response.destroy(), 10);
+      } else {
+        response.writeHead(200, { "content-type": "application/json" });
+        response.end(JSON.stringify({ session_id: "same-session", status: "ask", brief_version: 1 }));
+      }
+    });
+  });
+  const current = new ResearchSession(new ResearchApiClient(server.baseUrl));
+  try {
+    await assert.rejects(() => current.send("original query"), e => e instanceof ApiError && e.code === "network_error" && e.retryable);
+    assert.equal(calls.length, 1); assert.equal(current.view, undefined);
+    current.sources.categories = ["web"];
+    const replay = await current.retry();
+    assert.equal(calls.length, 2); assert.deepEqual(calls[0], calls[1]);
+    assert.equal(replay.session_id, "same-session");
+    await assert.rejects(() => current.retry());
+  } finally { await server.close(); }
+});
+
+test("complete malformed JSON is a contract error, not a retryable transport error", async () => {
+  const server = await fixture((_, response) => {
+    response.writeHead(200, { "content-type": "application/json" }); response.end("{invalid-json}");
+  });
+  try {
+    await assert.rejects(() => new ResearchApiClient(server.baseUrl).status("session"),
+      e => e instanceof ApiError && e.code === "contract_error" && !e.retryable);
+  } finally { await server.close(); }
 });
 
 test("typed source selection preserves knowledge-base scope without claiming backend support", async () => {

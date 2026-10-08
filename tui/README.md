@@ -45,7 +45,7 @@ npm run dev
 - `/status`、`/watch`：读持久状态／重新订阅。SSE 断开后有限次 GET+重连，不发送启动/恢复请求。只按事件 ID 去重，同 seq 的不同 progress 保留。
 - `/cancel`：请求服务端取消。接受请求不等于已停止；观察状态。manual 模式也运行维护扫描器，可完成无有效执行租约的取消，但不领取研究任务或调用 Agent；若其他进程仍持有有效租约，等待其安全停止或租约过期。
 - `/resume`：先读取最新状态，仅失败且允许恢复时发送最新 checkpoint_seq。
-- `/retry`：显式重发上次网络/可重试故障请求，保留原 body/version/幂等键；不自动重试变更。409 会刷新状态，不偷偷同意新 Brief。
+- `/retry`：显式重发上次网络/可重试故障请求，保留原 body/version/幂等键；不自动重试变更。收到 HTTP 响应头但正文传输中断也保留原请求，因为后端可能已经提交；完整响应里的非法 JSON 则是契约错误，不作为网络重试。409 会刷新状态，不偷偷同意新 Brief。
 - `/report`：只读报告 Markdown；failed/cancelled 不自动取报告。`/session` 显示 CLI 提示。
 - `/new`、`/connect <origin>`：关闭旧订阅/清本地上下文，不取消旧服务端任务。Ctrl+C 同样只退出本地。
 

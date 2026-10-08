@@ -86,15 +86,27 @@ export class ResearchApiClient {
         body: body ? JSON.stringify(body) : undefined });
     } catch { throw new ApiError("请求连接失败", undefined, options.signal?.aborted ? "aborted" : "network_error", true); }
     if (!response.ok) throw await this.error(response);
-    const value: unknown = await response.json().catch(() => { throw new ApiError("API 响应不是 JSON", response.status, "contract_error"); });
+    const value: unknown = await this.responseJson(response);
     if (!isRecord(value)) throw new ApiError("API 响应不是对象", response.status, "contract_error");
     return value;
   }
   private async error(response: Response): Promise<ApiError> {
-    const payload: unknown = await response.json().catch(() => null);
+    const payload: unknown = await this.responseJson(response, true);
     const error = isRecord(payload) && isRecord(payload.error) ? payload.error : {};
     return new ApiError(String(error.message ?? response.statusText), response.status, String(error.code ?? "http_error"),
       error.retryable === true, typeof error.request_id === "string" ? error.request_id : response.headers.get("x-request-id") ?? undefined);
+  }
+  private async responseJson(response: Response, allowMalformed = false): Promise<unknown> {
+    try { return await response.json(); }
+    catch (error) {
+      if (error instanceof SyntaxError) {
+        if (allowMalformed) return null;
+        throw new ApiError("API 响应不是 JSON", response.status, "contract_error");
+      }
+      // Receiving headers does not prove that a mutation response arrived.
+      // Keep transport loss retryable so /retry can reuse its original key.
+      throw new ApiError("响应正文传输中断", response.status, "network_error", true);
+    }
   }
   private resolve(path: string): string {
     const url = new URL(path, `${this.baseUrl}/`);
