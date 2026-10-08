@@ -104,6 +104,9 @@ services:
 
 volumes:
   postgres_data:
+    # A fresh development database; legacy/recovery volumes remain untouched.
+    # Override only when deliberately selecting another database volume.
+    name: ${POSTGRES_VOLUME_NAME:-deep-research_postgres_development}
   minio_data:
   etcd_data:
   milvus_minio_data:
