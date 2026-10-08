@@ -41,6 +41,14 @@ from domain.research.state import Checkpoint
 from domain.research.tool_calls import ToolCallIdentity
 
 
+class ArtifactStorePort(Protocol):
+    """App-generated immutable attachment keys; caller checks owner/manifest."""
+
+    async def put(self, key: str, body: bytes) -> None: ...
+
+    async def read(self, key: str) -> bytes: ...
+
+
 class ContentStorePort(Protocol):
     """Shared document/research blobs; ownership is checked by the calling Service."""
 

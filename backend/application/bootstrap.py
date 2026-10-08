@@ -17,6 +17,7 @@ from application.errors import AppError
 from application.identity import ensure_development_identity
 from application.knowledge_base_service import KnowledgeBaseService
 from application.orchestrator import Orchestrator
+from application.research_artifacts import ResearchArtifacts
 from application.research_queries import ResearchQueries
 from application.research_service import LegacyResearchService, ResearchService
 from application.run_sse import RunEventBus, RunEventStream
@@ -34,6 +35,7 @@ from infrastructure.sandbox.docker import DockerExecution
 from infrastructure.search.arxiv import ArxivSearch
 from infrastructure.search.bocha import BochaSearch
 from infrastructure.search.composite import CompositeSearch
+from infrastructure.storage.artifacts import MinioArtifactStore
 from infrastructure.storage.memory import InMemoryCancel, InMemoryDocumentStore, InMemoryUserStore
 from infrastructure.storage.migrations import run_migrations
 from infrastructure.storage.postgres import PostgresStateStore
@@ -165,6 +167,13 @@ class HttpRuntime:
         self.runner = None
         self.debug_execution = None
         self.pool = None
+        self.artifact_store = MinioArtifactStore(
+            settings.minio_endpoint,
+            settings.minio_access_key.get_secret_value(),
+            settings.minio_secret_key.get_secret_value(),
+            settings.minio_bucket,
+            secure=settings.minio_secure,
+        )
         self.backup_dir = (
             Path(backup_dir)
             if backup_dir is not None
@@ -218,6 +227,7 @@ class HttpRuntime:
             settings=self.settings,
         )
         self.research_queries = ResearchQueries(store, store.research)
+        self.research_artifacts = ResearchArtifacts(self.research_queries, self.artifact_store)
         self.run_event_bus = RunEventBus(queue_size=self.settings.sse_queue_size)
         self.run_events = RunEventStream(
             self.research_queries,
@@ -270,12 +280,15 @@ class HttpRuntime:
                     if close is not None:
                         await close()
         finally:
-            if self.pool is not None:
-                pool, self.pool = self.pool, None
-                try:
-                    await asyncio.wait_for(pool.close(), timeout=5)
-                except TimeoutError:
-                    pool.terminate()
+            try:
+                await self.artifact_store.close()
+            finally:
+                if self.pool is not None:
+                    pool, self.pool = self.pool, None
+                    try:
+                        await asyncio.wait_for(pool.close(), timeout=5)
+                    except TimeoutError:
+                        pool.terminate()
 
 
 _container: Container | None = None

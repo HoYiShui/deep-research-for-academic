@@ -170,6 +170,8 @@ Operation 闭集 = comparison_matrix/pairwise_delta/plot/statistic/aggregation�
 
 group_by 只能取同组已知 evaluation_context 字段；statistic 与 aggregation 的空数组表示整组。pairwise/statistic/plot 的 value 必须非空且单位一致；不满足操作前置生成 skipped Artifact 与具体 Gap，不用零填充。模板输出 JSON 必须通过上表校验，files 仅为执行器产生且检查通过的附件 basename；持久 object_keys 由 App 生成。未知参数或任意 Python 字符串不得交给沙箱。
 
+附件持久化键使用 `analysis/{run_id}/{artifact_id}/{sha256}/{basename}`；hash 来自实际字节，basename 在同一 Artifact 中唯一。文件名映射到 object_keys 的最后一段，不依赖数组顺序，也不让客户端提交存储键。下载只接受当前 Checkpoint 注册的 completed Artifact，读取时复验大小和 hash。该存储约定不增加 PipelineState 字段。
+
 **可比性属于 ComparisonSet，不属于孤立 Metric。** 这是对旧 schema 的明确修正：一个指标可对某组 compatible、对另一组 incompatible。required_context_fields 至少 task/dataset_and_version/split_or_protocol/metric_definition/unit；按主张追加 threshold_or_budget/label_rate/baseline/statistic 等。缺字段（两个 null 也算缺）不能 compatible；同名指标不同定义不能直接比较。CodeCrafter 只接受 compatible 集合；partial/incompatible 可写条件对照，但不得算优劣排名。
 
 ### 4.4 草稿、审阅与报告

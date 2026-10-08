@@ -6,7 +6,7 @@ from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Header, Request
-from fastapi.responses import JSONResponse, StreamingResponse
+from fastapi.responses import JSONResponse, Response, StreamingResponse
 from pydantic import TypeAdapter
 
 from application.bootstrap import get_container
@@ -111,6 +111,29 @@ async def stream_events(
 async def get_report(session_id: UUID, request: Request, user: str = Depends(require_user)) -> dict:
     """Authorize first; an unpublished report is a 409, never a fabricated report."""
     return await get_container(request).research_queries.report_view(UUID(user), session_id)
+
+
+@router.get("/research/{session_id}/artifacts/{artifact_id}/files/{file_name}")
+async def get_artifact(
+    session_id: UUID,
+    artifact_id: str,
+    file_name: str,
+    request: Request,
+    user: str = Depends(require_user),
+) -> Response:
+    service = getattr(get_container(request), "research_artifacts", None)
+    if service is None:
+        raise AppError("service_not_ready", "Attachment service is not ready", retryable=True)
+    body, media_type = await service.download(UUID(user), session_id, artifact_id, file_name)
+    return Response(
+        body,
+        media_type=media_type,
+        headers={
+            "Content-Disposition": f'attachment; filename="{file_name}"',
+            "X-Content-Type-Options": "nosniff",
+            "Cache-Control": "private, no-store",
+        },
+    )
 
 
 @router.get("/research/{session_id}")

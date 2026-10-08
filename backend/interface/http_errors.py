@@ -18,6 +18,7 @@ ERROR_STATUSES = {
     "unauthenticated": 401,
     "invalid_credentials": 401,
     "session_not_found": 404,
+    "artifact_not_found": 404,
     "knowledge_base_not_found": 404,
     "document_not_found": 404,
     "job_not_found": 404,

@@ -28,7 +28,7 @@ details 是安全的结构化诊断，可空，不含堆栈/密钥/数据库地�
 |---|---|
 | 400 | malformed_json（不能解析 JSON） |
 | 401 | unauthenticated、invalid_credentials |
-| 404 | session_not_found、knowledge_base_not_found、document_not_found、job_not_found（包含非 owner） |
+| 404 | session_not_found、artifact_not_found、knowledge_base_not_found、document_not_found、job_not_found（包含非 owner） |
 | 409 | invalid_session_state、stale_brief、stale_resource、report_not_ready、idempotency_conflict、request_in_progress、document_busy、content_identity_conflict、resource_not_active、resume_not_allowed、privacy_policy_conflict、email_already_registered、name_already_exists |
 | 413 / 415 | file_too_large / unsupported_media_type |
 | 422 | validation_error、unsupported_task_type、invalid_filter、invalid_brief、invalid_state |
@@ -163,6 +163,8 @@ ask 时附 questions/missing_fields/brief_draft，confirm 时附完整 research_
 200 {session_id,report_id,version,review_verdict,report:string,references:Reference[],risks:RiskItem[]}。report 是固定骨架 Markdown，JSON 解码后为真实换行，不是重复转义字符串。所有者不可见/不存在 404；没有发布报告（含失败、取消）409 report_not_ready。只读默认最新发布版本，V1 每 Run 一个。
 
 报告附件：GET /research/{session_id}/artifacts/{artifact_id}/files/{file_name}，只有当前 owner、存在于 Checkpoint/Report 的 Artifact 及其白名单 basename 可读；返回正确媒体类型与 Content-Disposition attachment。不存在/非法归属 404，内容暂不可读 503。拒绝任意 object_key/路径；无公开 MinIO URL 泄漏。
+
+V1 使用当前 Checkpoint 的 completed Artifact 白名单（已发布 Report 的 Artifact 与 done Checkpoint 同事务保存）。单文件最多 10MiB，媒体类型按白名单扩展名确定，返回 `X-Content-Type-Options: nosniff` 与 `Cache-Control: private, no-store`；读取并校验全部字节后才返回 200，损坏或缺失对象返回脱敏的 `content_unavailable`，不先发送成功响应头。存储键映射见 MODEL §4.3。
 
 ### 2.6 取消与恢复
 

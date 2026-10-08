@@ -157,7 +157,8 @@
 - [ ] T035 [US4] 更新 `backend/domain/research/agents/critic.py`、`machine.py`、`backend/application/orchestrator.py`：确定性引用校验+实际正文语义审核、旧issue复核、目标派生失效、最大3回流与终末收缩预算、approved/approved_with_risks/needs_more_work，不可安全交付则failed。
 - [x] T036 [US4] 新增 `backend/application/report_serializer.py` 并更新发布Repository：固定0–5+References、三任务第3节、真实引用编号/定位、风险/未闭环说明、HTML转义与白名单附件；Report/done Checkpoint/Run/Session同事务发布。新增 `backend/tests/contract/test_mono_report.py` 覆盖空引用说明、无效链接协议、悬空ID、错draft_version与故障回滚。
   - 纯装配与校验在`domain/research/reporting.py`，生产ReportPublisher已接显式Driver；Repository复查确定性内容，不能删风险/伪造书目/追加正文。51项报告contract、含真实PG/MinIO/独立SIGKILL与HTTP的119项目标集、全量607通过。三任务模型/取证仍为受控fixture，T034/T035/T037/T039保持未完成。证据：[确定性报告发布](evidence/t036-report-serializer.md)。
-- [ ] T037 [US4] 实现 `backend/interface/router/research.py` 附件端点：owner/Artifact/文件白名单校验、MinIO私有读、媒体类型与错误；补 `backend/tests/integration/test_mono_artifacts.py`，跨owner/路径穿越404，内容不可读503，不暴露storage key。
+- [x] T037 [US4] 实现 `backend/interface/router/research.py` 附件端点：owner/Artifact/文件白名单校验、MinIO私有读、媒体类型与错误；补 `backend/tests/integration/test_mono_artifacts.py`，跨owner/路径穿越404，内容不可读503，不暴露storage key。
+  - 2026-10-08：当前Checkpoint授权/白名单、Run/Artifact命名空间、不可变hash键、10MiB限额与私有HTTP下载已接入Runtime；真实PG/MinIO14项、全量996项通过。只证明附件交付边界，不代替T031模型分析或T039报告质量。证据：[私有附件下载](evidence/t037-artifacts.md)。
 - [ ] T038 [US4] 新增 `backend/tests/integration/test_mono_rework.py`，用可控事实/模型复现research/analyze/write三种返工和多问题合并、旧缓存派生失效、最后一次收缩；核对每次seq/draft_version/issue与输出，没有假approved。
 - [ ] T039 [US4] 新增 `backend/scripts/verify_reports_http.py`：为三个task各一份公开Brief，经活HTTP确认/执行/取报告，用真实模型、真实搜索/原文/PG/内容存储；与 `docs/cases/` 比组织结构与任务维度，人工抽查事实引用/比较条件；记录 `evidence/us4.md`。如需分析则用真实沙箱，不把fake完整链称all-real。
 
