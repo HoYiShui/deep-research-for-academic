@@ -234,6 +234,8 @@ Document 初始 active 但 active_version_id=null 时可管理不可检索。一
 
 MinIO 键使用 owner/KB/version 前缀，由服务生成；PG 存 Chunk 到 object_key 的映射。Milvus 使用 `dr4a_chunks_v1` collection、`kb_<uuid_without_hyphens>` partition；同一 index_version 的 schema 固定：chunk_id VARCHAR 主键 auto_id=false，kb_id/document_id/document_version_id/index_version、chunk_type、page_start/year（可空字段由 Adapter 明确编码），dense_vector float[1024]、sparse_vector sparse<int,float>。动态字段关闭；正文唯一副本在 MinIO。BM25 不属于该 profile。
 
+知识库不可变正文键为 `knowledge-content/{owner_id}/{kb_id}/{document_version_id}/{sha256}`，hash 来自实际字节。清理只接受指定 KB 或版本前缀，不接受整个 owner 前缀；服务先检查 PG 归属和生命周期。旧 `documents/{kb_id}/{version_id}/{sha256}` 仅为已有解析／取证内容 Adapter 的兼容命名空间，新 KB 不使用它作为 owner-scoped 正文键。
+
 ## 6. PostgreSQL 表与约束
 
 沿用单 public schema，避免旧文档多 schema 与现有 DDL 双轨。ID UUID（内部稳定 hash 为 text）；外键索引；metadata、完整 State 与正文结构用 JSONB；时间用 timestamptz。

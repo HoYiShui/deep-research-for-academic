@@ -36,6 +36,7 @@ def content_key(key: str) -> str:
     parts = key.split("/")
     if (
         (len(parts) == 4 and parts[0] == "documents" and _ids(parts[1:3]))
+        or (len(parts) == 5 and parts[0] == "knowledge-content" and _ids(parts[1:4]))
         or (len(parts) == 3 and parts[0] == "research-content" and _ids(parts[1:2]))
     ) and _HASH.fullmatch(parts[-1]):
         return key
@@ -46,8 +47,10 @@ def content_prefix(prefix: str) -> str:
     if not isinstance(prefix, str) or not prefix.endswith("/"):
         raise ValueError("A resource-scoped prefix ending in slash is required")
     parts = prefix[:-1].split("/")
-    if (parts[0] == "documents" and len(parts) in {2, 3} and _ids(parts[1:])) or (
-        parts[0] == "research-content" and len(parts) == 2 and _ids(parts[1:])
+    if (
+        (parts[0] == "documents" and len(parts) in {2, 3} and _ids(parts[1:]))
+        or (parts[0] == "knowledge-content" and len(parts) in {3, 4} and _ids(parts[1:]))
+        or (parts[0] == "research-content" and len(parts) == 2 and _ids(parts[1:]))
     ):
         return prefix
     raise ValueError("Broad or malformed content deletion prefix is forbidden")

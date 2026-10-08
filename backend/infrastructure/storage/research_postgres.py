@@ -82,6 +82,9 @@ class PostgresResearchStore:
         self.users = _Users(self)
         self.research = _Research(self)
         self.requests = _Requests(self)
+        from infrastructure.storage.knowledge_postgres import KnowledgeRepository
+
+        self.knowledge = KnowledgeRepository(self)
 
     @asynccontextmanager
     async def transaction(self):
@@ -98,11 +101,16 @@ class PostgresResearchStore:
                     "mono_message_sequence": "invalid_state",
                     "mono_messages_pk": "invalid_state",
                     "mono_users_email_unique": "email_already_registered",
+                    "mono_kb_owner_name": "name_already_exists",
+                    "mono_version_content": "content_identity_conflict",
+                    "mono_document_active_job": "document_busy",
                 }
                 raise AppError(
                     codes.get(exc.constraint_name, "invalid_state"),
                     "Transaction identity constraint failed",
                 ) from None
+            except (asyncpg.CheckViolationError, asyncpg.ForeignKeyViolationError):
+                raise AppError("invalid_state", "Transaction integrity constraint failed") from None
             except (asyncpg.PostgresError, asyncpg.InterfaceError, OSError, TimeoutError):
                 raise AdapterError(
                     "postgres",

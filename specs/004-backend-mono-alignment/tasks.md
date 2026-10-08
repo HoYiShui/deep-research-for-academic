@@ -171,7 +171,9 @@
 设计：ARCH §3–5；MODEL §5–7；FLOW §5–7；API §4/§7；OPS §4–6。验收 A7/A8/A11隐私部分。
 
 - [ ] T040 [US5] 新增 `backend/tests/integration/test_mono_kb_lifecycle.py`、`test_mono_ingestion.py`：先测creating/active/deleting、staging不可见、替换失败旧active保留、重复内容同身份、Document单活动Job、cancel/retry边界、删除后禁止检索。
-- [ ] T041 [US5] 扩展state或新增 `backend/application/knowledge_models.py`：KB/Document/Version/Job/Attempt/Chunk/Progress/RetrievalResult完整Schema；新增 `backend/infrastructure/storage/migrations/0003_mono_knowledge.sql` 和PG Repository，实现归属/内容去重/活动版本约束/清理租约/原子activate+Job完成；真实PG测试父子归属/竞争。依赖T005迁移体系。
+  - 2026-10-08：先完成真实PG归属、staging不可见、并发内容收敛、Document单活动Job、替换/失败原子性与租约/取消/删除屏障测试；完整Service/Worker、cancel/retry和外部删除仍待T042–T049，不勾选。
+- [ ] T041 [US5] 扩展state或新增 `backend/application/knowledge_models.py`：KB/Document/Version/Job/Attempt/Chunk/Progress/RetrievalResult完整Schema；新增 `backend/infrastructure/storage/migrations/0005_mono_knowledge.sql` 和PG Repository，实现归属/内容去重/活动版本约束/清理租约/原子activate+Job完成；真实PG测试父子归属/竞争。依赖T005迁移体系。0003/0004已用于工具调用迁移，使用下一追加序号，不重编号已应用迁移。
+  - 2026-10-08：完整实体/检索typed记录、五表/复合FK/内容与活动身份约束、owner查询、submit/claim/activate/fail及同事务发布已补；新的KB内容使用owner/KB/version/hash独立命名空间。模型/真实PG/MinIO目标集62项、最终全量1043项通过；清理租约、完整Job控制/恢复与应用组合仍未完成，保持未勾选。证据：[知识库事务底座](evidence/t040-t041-knowledge-base.md)。
 - [ ] T042 [US5] 将 `backend/application/knowledge_base_service.py` 拆分为Management/Ingestion/Retrieval三个Service（建议同目录 `knowledge_base_management.py`、`document_ingestion.py`、`knowledge_retrieval.py`），更新组合根与ports；不维护新旧两个可写事实源，移除生产内存Document/Job状态。
 - [ ] T043 [US5] 完成 `backend/infrastructure/parser/pdf.py` 与T026内容Adapter：真实MinerU结构化text/table/formula、页码/标题/脚注、完整原子块、流式50MiB/500页/10000chunks限制；补 `backend/tests/contract/test_parser.py`、真实公开PDF解析测试，空内容失败不完成。
   - 已核对MinerU 4.0.10实际wheel的Content List V1 renderer，并新增纯输出归一化边界与11项契约测试：原始page_idx转1-based页码、整表/公式与标题/脚注保留、空内容/图片-only原子块/非法或乱序页码/超限拒绝。Parser可选依赖已固定；本地权重准备、隔离实际推理、正式PDF Adapter及真实论文验收仍待完成，不勾选。纯输出测试不代表MinerU真实运行。
