@@ -1,14 +1,17 @@
-"""Milvus vector store adapter (hybrid search + insert, partition per KB)."""
+"""Standalone adapters: mono-v1 MilvusIndex and pre-mono MilvusStore."""
 
 from __future__ import annotations
 
 import os
 
 from domain.ports import Chunk, Embedding
+from infrastructure.vector.index import MilvusIndex
+
+__all__ = ["MilvusIndex", "MilvusStore"]
 
 
 class MilvusStore:
-    """VectorStorePort implementation backed by Milvus.
+    """Legacy VectorStorePort; not the mono-v1 hybrid index or authorization path.
 
     MILVUS_URI selects the Standalone service endpoint. Host-side development
     uses ``http://localhost:19530``; the production backend uses the Compose

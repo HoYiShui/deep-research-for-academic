@@ -6,6 +6,8 @@
 
 ## 1. 输入与执行约定
 
+> 最新执行优先级（2026-10-08）：按用户要求，暂缓“跑通研究工作流”的真实业务验证与 Agent Prompt 调优，优先其余知识库、运行支持、安全/部署、客户端和 CLI 任务。完整目标不缩减，暂缓项不勾选；此前公开 web 工作流优先的说明是历史安排。
+
 唯一设计输入是 [架构](../../docs/mono/architecture.md)、[数据模型](../../docs/mono/data-model.md)、[数据流](../../docs/mono/dataflow.md)、[API 契约](../../docs/mono/api-contract.md)、[运行语义](../../docs/mono/operations.md) 五份文档，简称 ARCH/MODEL/FLOW/API/OPS。验收编号 A1–A13 指 OPS §8。项目章程仍优先。
 
 按用户授权直接拆 tasks，不新增重复的 spec/plan/data-model/contracts。现有 Spec Kit 模板要求 spec.md/plan.md，因此本目录目前**不是完整的 Spec Kit feature 包**；不要声称已执行 `/speckit-tasks`。后续若使用要求这些文件的命令，再补引用型入口与迁移计划，不复制另一套 API。CodingAgent 可直接依本文件实施。
@@ -123,6 +125,8 @@
 
 ## 5. 阶段 3：US3 计划与真实原文取证
 
+以下优先级段落记录较早安排，已被本文开头的最新执行优先级替代；技术约束继续有效。
+
 2026-10-08 用户调整执行优先级：先接通 TUI 的公开 web 真实工作流（plan/research/analyze/write/review/报告读取），再扩展 KB、部署和安全验收。paper search 的 Adapter 和独立测试保留，但当前后端执行配置不注册该工具；不改 TUI 开关或来源契约。其他 Agent prompt 采用工作性质/判断依据与 few-shot，结构交给 Schema 校验，不不断追加针对失败样例的命令。先补 T029–T035 所需的最小真实阶段链和对应 HTTP/TUI 验证，再推进更完整业务验收；最小调试闭环不代表 T039 三报告质量或所有任务完成。
 
 目标：冻结Brief经plan/research产生有定位的证据链；先接公开来源，本地KB桥接在US5完成。
@@ -188,7 +192,8 @@
   - 真实已存论文PDF本地解析已通过：15页、132文本/5公式/4表，macOS系统禁止解析子进程network；空白文本与实际辅助类型适配修正。原页对照发现Table 2 FLOPs合并单元格拆列，不能当全部数值可信；Linux隔离、完整故障验证及Research回链接入仍缺。证据：[真实MinerU部分验收](evidence/t026-download-safety.md#2026-10-07真实本地-mineru-pdf-解析t043-部分)。
 - [ ] T044 [US5] 新增 `backend/application/document_ingestor.py`：结构切片、正文/anchor区别、manifest与稳定chunk ID、每批进度、幂等写入、取消检查、hash校验；依赖T041–T043，先保持staging，不能自行发布active。
 - [ ] T045 [US5] 更新 `backend/infrastructure/embedding/bge_m3.py`、`bge_reranker.py`、`backend/pyproject.toml`、`uv.lock`：锁真实FlagEmbedding模型/tokenizer revision与本地权重、有界推理/批量；dense1024+sparse非空真实样本、有限值与rerank形状契约测试，禁止通用encode冒充sparse。
-- [ ] T046 [US5] 更新 `backend/infrastructure/vector/milvus.py`：固定collection/per-KB partition、稳定主键、dense COSINE/sparse IP、双ANN+RRF60、授权版本过滤、strong可读校验/删除；用 `backend/tests/integration/test_mono_milvus.py` 真Standalone验证写读同映射、staging过滤及版本替换，不使用Lite。
+- [x] T046 [US5] 更新 `backend/infrastructure/vector/milvus.py`：固定collection/per-KB partition、稳定主键、dense COSINE/sparse IP、双ANN+RRF60、授权版本过滤、strong可读校验/删除；用 `backend/tests/integration/test_mono_milvus.py` 真Standalone验证写读同映射、staging过滤及版本替换，不使用Lite。
+  - 2026-10-08：typed App Port 与新 `vector/index.py` 完成固定映射、双路 rank/RRF、Strong 精确验证、scope 过滤、有界异步 SDK 和范围化幂等删除。使用已有 Compose，17 项模型/异步测试、10 项真实 Milvus/PG 测试及邻接共57项通过；PG 发布回滚不公开 staging 已有真实证据。仅完成索引 Adapter，真实 BGE/Service/Worker 仍属 T045/T042/T047/T048。证据：[Standalone 索引](evidence/t046-vector-index.md)。
 - [ ] T047 [US5] 完成IngestionService/TaskRunner：上传对象先落再accepted、claim/heartbeat/批次manifest、索引可读后PG原子activate、新active旧retired、同Job/version重试、attempt上限/历史、cancelling清理；实现 `backend/interface/router/knowledge_base.py` 与入库Job路由（新 `ingestion_jobs.py`）。依赖T044–T046，补T040真实故障点测试。
   - 2026-10-08：PG内核已补heartbeat/单调进度、取消清理租约与token接管、显式源/清理验证门、同Job/Version重试与尝试上限、过期processing失败记录/删除屏障转清理；本批14项真实PG测试、邻接目标61项与全量1057项通过。尚未组合Service/TaskRunner/HTTP及真实MinIO/Milvus清理，不勾选；证据：[Job控制与恢复](evidence/t040-t041-knowledge-base.md#2026-10-08job-控制与过期恢复的-pg-内核)。
 - [ ] T048 [US5] 完成KnowledgeRetrievalService与 `backend/infrastructure/retrieval/local.py`：PG可见版本/授权→双路召回→PG验证→MinIO正文→重排→删除屏障再检；typed filter/top_k/trace与显式rerank降级，依赖错误503不返回空。扩展 `backend/tests/integration/test_slice_kb_search.py` 的真实回链与错误测试。
@@ -259,4 +264,6 @@ Web执行顺序：T063 → T064 → T065 → T066 → T061–T062；T064依赖T0
 
 验收覆盖索引：A1=T008–T013；A2=T006/T008/T011/T053；A3=T006/T015/T036；A4=T027/T033–T038；A5=T029–T032；A6=T034–T039；A7=T043–T048/T050/T052；A8=T040–T041/T047/T049/T052；A9=T020/T022/T055；A10=T014/T018–T019/T022；A11=T007/T050/T053–T054；A12=T021/T051/T059；A13=T056–T058/T061。
 
-**当前下一步：先完成公开web的真实CLI/HTTP/TUI报告验证，继续T027/T029–T035/T038–T039；随后完成T016默认能力组合、T021 fake/legacy迁移与KB/安全/部署/Web余项。** T017与T033已按各自确定性/真实存储范围复核完成；五阶段canonical workers已注册，开发执行器显式开启，预算中途收缩已接入，但真实报告尚未发布成功。最新工作流证据见[US4](evidence/us4.md)，此前[Driver恢复](evidence/t017-phase-dispatch.md)、[报告发布](evidence/t036-report-serializer.md)与[US2](evidence/us2.md)保留各自边界。开发PG已换全新Compose管理卷，救援/损坏旧卷保留，测试只清理自己创建的隔离资源。T011的KB授权/版本/隐私等待T041/T050，当前KB请求仍明确404且零模型调用。历史阶段说明以最新证据为准；Web仍按T063–T066纳入最终交付，不将本次调试链当作整个goal完成。
+**当前下一步：优先知识库应用与入库/检索闭环 T042/T044–T049、CLI 管理 T051，以及安全/部署/Web 等外围任务；真实研究工作流与 Prompt 调优暂缓。** T046 已按索引 Adapter 的边界验收，不代替真实 BGE、入库或研究质量。完整目标及其余未完成任务保持不变。
+
+**先前安排（工作流推进现已暂缓）：先完成公开web的真实CLI/HTTP/TUI报告验证，继续T027/T029–T035/T038–T039；随后完成T016默认能力组合、T021 fake/legacy迁移与KB/安全/部署/Web余项。** T017与T033已按各自确定性/真实存储范围复核完成；五阶段canonical workers已注册，开发执行器显式开启，预算中途收缩已接入，但真实报告尚未发布成功。最新工作流证据见[US4](evidence/us4.md)，此前[Driver恢复](evidence/t017-phase-dispatch.md)、[报告发布](evidence/t036-report-serializer.md)与[US2](evidence/us2.md)保留各自边界。开发PG已换全新Compose管理卷，救援/损坏旧卷保留，测试只清理自己创建的隔离资源。T011的KB授权/版本/隐私等待T041/T050，当前KB请求仍明确404且零模型调用。历史阶段说明以最新证据为准；Web仍按T063–T066纳入最终交付，不将本次调试链当作整个goal完成。

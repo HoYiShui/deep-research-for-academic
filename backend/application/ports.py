@@ -11,7 +11,7 @@ from contextlib import AbstractAsyncContextManager
 from typing import Protocol
 from uuid import UUID
 
-from application.knowledge_models import IngestionJob, IngestionJobContext
+from application.knowledge_models import IngestionJob, IngestionJobContext, VectorHit
 from application.records import (
     ClaimedRun,
     DevelopmentUser,
@@ -24,6 +24,7 @@ from application.records import (
 )
 from application.tool_budget import ToolBudgetRequest
 from application.tool_records import ToolBudgetView, ToolReservation
+from application.vector_models import IndexEmbedding, IndexRow, VectorScope
 from domain.content import ContentRef
 from domain.documents import FetchedDocument, ParsedDocument, ParserConfig
 from domain.research.facts import FinalReport
@@ -73,6 +74,32 @@ class ContentStorePort(Protocol):
 
 class DocumentParserPort(Protocol):
     async def parse(self, reference: ContentRef, config: ParserConfig) -> ParsedDocument: ...
+
+
+class VectorIndexPort(Protocol):
+    """Fixed index mapping; the Service derives scope from authorized PG versions.
+
+    verify_rows checks actual metadata and both vectors using strong reads before
+    activation. Deletion is confined to a KB/version, never a collection reset.
+    """
+
+    async def ensure_schema(self, index_version: str) -> None: ...
+
+    async def ensure_partition(self, kb_id: UUID) -> None: ...
+
+    async def upsert(self, rows: list[IndexRow]) -> None: ...
+
+    async def verify_rows(self, rows: list[IndexRow]) -> bool: ...
+
+    async def hybrid_search(
+        self, embedding: IndexEmbedding, scope: VectorScope, candidate_k: int = 20
+    ) -> list[VectorHit]: ...
+
+    async def delete_version(self, kb_id: UUID, version_id: UUID) -> None: ...
+
+    async def drop_partition(self, kb_id: UUID) -> None: ...
+
+    async def close(self) -> None: ...
 
 
 class DocumentFetchPort(Protocol):

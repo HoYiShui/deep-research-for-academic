@@ -953,7 +953,7 @@ requires-dist = [
     { name = "minio", specifier = "==7.2.20" },
     { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.9" },
     { name = "pyjwt", specifier = ">=2.15.1" },
-    { name = "pymilvus", specifier = ">=2.4" },
+    { name = "pymilvus", specifier = "==3.0.2" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0" },
     { name = "pytest-asyncio", marker = "extra == 'dev'", specifier = ">=0.23" },
     { name = "python-dotenv", specifier = ">=1.0,<2" },
