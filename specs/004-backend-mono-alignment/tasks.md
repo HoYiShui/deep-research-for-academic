@@ -151,6 +151,7 @@
 - [ ] T030 [US4] 更新 `backend/domain/research/state.py` 与 `agents/data_analyst.py`：ComparableMetric/ComparisonSet/AnalysisSpec/Artifact模型、组级兼容政策、plan态Spec引用解析到指标、条件/单位归一有依据；partial/incompatible只做条件说明、不交给CodeCrafter。
 - [ ] T031 [US4] 更新 `backend/domain/research/agents/code_crafter.py`，新增 `backend/domain/research/analysis_templates.py`：实现五种闭集操作/parameters/output Schema、Decimal、模板版本/hash/回链、skipped/failed及Gap；不能执行模型自由Python。
 - [ ] T032 [US4] 更新 `backend/infrastructure/sandbox/docker.py` 与 `backend/tests/contract/test_execution.py`：正确挂脚本/输入、禁网/non-root/只读/资源限制、停止超时容器、附件路径/大小/hash；用 `backend/tests/integration/test_mono_sandbox.py` 真容器验证成功、超时、违规网络/路径拒绝，不只mock docker CLI。
+  - 2026-10-08：开发可信脚本内核补齐ro挂载、non-root/禁网/资源限制、限定tmpfs输出、附件bytes/hash与真实容器超时/取消清理；真实Docker9项及contract16项通过。不接管Agent，正式AnalysisSpec闭集模板边界仍待T031协调，保持未完成。证据：[真实Docker内核](evidence/t032-sandbox.md)。
 - [ ] T033 [US4] 更新 `backend/tests/unit/test_writer.py`、`test_critic.py`、`test_route.py`：覆盖未改章节Binding保留、section_3事实同样审核、审核实际同版文本、空Binding拒绝、critical/major完整路由、返工上限不直接approved。
 - [ ] T034 [US4] 更新 `backend/domain/research/agents/writer.py` 与state：Statements/Binding/TaskPayload严格结构、每实质段落/行定位、按章相关上下文、三个task专属模块、版本复制与超长材料有界处理；未登记正文不能绕审。
 - [ ] T035 [US4] 更新 `backend/domain/research/agents/critic.py`、`machine.py`、`backend/application/orchestrator.py`：确定性引用校验+实际正文语义审核、旧issue复核、目标派生失效、最大3回流与终末收缩预算、approved/approved_with_risks/needs_more_work，不可安全交付则failed。
