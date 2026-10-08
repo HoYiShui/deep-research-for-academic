@@ -16,7 +16,6 @@ from infrastructure.fetch.document import HTTPDocumentFetch
 from infrastructure.parser.html import HTML_PARSER_VERSION, HTMLDocumentParser
 from infrastructure.parser.mineru_output import MINERU_PARSER_VERSION
 from infrastructure.parser.pdf import MinerUDocumentParser
-from infrastructure.search.arxiv import ArxivSearch
 from infrastructure.search.bocha import BochaSearch
 from infrastructure.search.composite import CompositeSearch
 from infrastructure.storage.content import MinioContentStore
@@ -46,9 +45,10 @@ class PublicResearchExecution:
             "secure": config.minio_secure,
         }
         self.cache, self.content = MinioResultCache(**options), MinioContentStore(**options)
+        # The arXiv adapter remains independently tested, but is deliberately
+        # not registered in the current executable research profile.
         self.search = CompositeSearch(
             [
-                ("arxiv", ArxivSearch(timeout_s=config.search_timeout_s)),
                 (
                     "bocha",
                     BochaSearch(
@@ -109,7 +109,6 @@ class PublicResearchExecution:
             search=SearchBinding(
                 self.search,
                 (
-                    SearchProvider(name="arxiv", category="papers", revision="arxiv-id-lookup-v2"),
                     SearchProvider(name="bocha", category="web", revision="bocha-v1"),
                 ),
             ),

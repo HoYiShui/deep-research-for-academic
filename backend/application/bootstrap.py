@@ -33,7 +33,6 @@ from infrastructure.llm.deepseek import DeepSeekLLM
 from infrastructure.parser.pdf import MinerUParser
 from infrastructure.retrieval.local import LocalRetrieval
 from infrastructure.sandbox.docker import DockerExecution
-from infrastructure.search.arxiv import ArxivSearch
 from infrastructure.search.bocha import BochaSearch
 from infrastructure.search.composite import CompositeSearch
 from infrastructure.storage.artifacts import MinioArtifactStore
@@ -88,7 +87,6 @@ class Container:
         )
         self.search = search or CompositeSearch(
             [
-                ("arxiv", ArxivSearch(timeout_s=config.search_timeout_s)),
                 (
                     "bocha",
                     BochaSearch(

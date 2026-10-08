@@ -15,7 +15,6 @@ from infrastructure.fetch.document import HTTPDocumentFetch
 from infrastructure.parser.html import HTML_PARSER_VERSION, HTMLDocumentParser
 from infrastructure.parser.mineru_output import MINERU_PARSER_VERSION
 from infrastructure.parser.pdf import MinerUDocumentParser
-from infrastructure.search.arxiv import ArxivSearch
 from infrastructure.search.bocha import BochaSearch
 from infrastructure.search.composite import CompositeSearch
 from infrastructure.storage.content import MinioContentStore, content_key
@@ -36,7 +35,6 @@ class ResearchDebugTools:
         timeout = max(0.1, config.timeouts_s.search - 1)
         self.search = CompositeSearch(
             [
-                ("arxiv", ArxivSearch(timeout_s=timeout)),
                 (
                     "bocha",
                     BochaSearch(

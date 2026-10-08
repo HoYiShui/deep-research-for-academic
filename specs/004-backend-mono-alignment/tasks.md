@@ -122,6 +122,8 @@
 
 ## 5. 阶段 3：US3 计划与真实原文取证
 
+2026-10-08 用户调整执行优先级：先接通 TUI 的公开 web 真实工作流（plan/research/analyze/write/review/报告读取），再扩展 KB、部署和安全验收。paper search 的 Adapter 和独立测试保留，但当前后端执行配置不注册该工具；不改 TUI 开关或来源契约。其他 Agent prompt 采用工作性质/判断依据与 few-shot，结构交给 Schema 校验，不不断追加针对失败样例的命令。先补 T029–T035 所需的最小真实阶段链和对应 HTTP/TUI 验证，再推进更完整业务验收；最小调试闭环不代表 T039 三报告质量或所有任务完成。
+
 目标：冻结Brief经plan/research产生有定位的证据链；先接公开来源，本地KB桥接在US5完成。
 
 设计：MODEL §4.1–4.2；FLOW §3.2–3.3；API §6–7；OPS §1–2/§6。验收 A4部分、A6引用基础。

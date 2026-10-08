@@ -73,3 +73,11 @@ uv run pytest -q --tb=short tests/integration/test_mono_search_tools.py
 最终版本全量 **831 passed in 139.19s**；隔离PG/MinIO测试资源清理完成，用户原库/volumes及 `.env` 未变更。提交不包含用户的 `docs/implementation/`。
 
 本轮只读系统DNS复查（2026-10-06）：arxiv.org返回 `151.101.3.42`、`151.101.67.42`、`151.101.131.42`、`151.101.195.42`，`ipaddress.is_global`均true；旧Fake-IP记录不再是当前阻塞。此复查不证明arXiv搜索API、PDF Parser或完整research已经联网验收。
+
+## 2026-10-08：执行配置暂不注册 paper search
+
+用户调整优先级为 TUI 真实工作流。`PublicResearchExecution`（HTTP 与 real CLI 共用）、独立 CLI phase 工具和旧组合根均只构造 Bocha；不导入/构造/注册 arXiv。arXiv Adapter、明确编号查询、解析、超时及测试保留，后续可独立验证后重新装配。没有修改 TUI 开关、SourceSelection、来源授权或 HTTP 契约；papers+web 的授权范围现在只执行其中已装配的 web provider，papers-only 明确报无可用来源，不偷偷改成 web。KB 不注册、不访问。
+
+新增反例将 arXiv 构造器替换为立即失败，证明共享运行链路及独立 phase 均不构造它，且默认公开来源只产生一次 Bocha 调用；paper-only 零外部调用。CLI 隔离真实 PG/MinIO + 受控模型/搜索验证五个查询只入账五次 search，保持真实空结果 Gap、缺 analyze worker 明确失败和可 dump 的 seq=14，不声称完整业务已跑通。
+
+首次集成测试因执行沙箱禁止本机 TCP 而 setup 失败；获准在沙箱外重跑后，`test_mono_cli_run.py` **9 passed in 16.71s**。搜索契约与 runtime 单测首次 **65 passed**，新增独立 phase 注册反例后 **66 passed in 1.22s**；修改代码 Ruff 与 diff 检查通过。未进行本批公网 arXiv/Bocha 调用，不把受控 provider 测试称为真实搜索验收。旧论文失败证据保留，不改写为成功。

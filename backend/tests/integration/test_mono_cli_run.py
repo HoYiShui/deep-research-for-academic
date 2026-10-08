@@ -106,7 +106,7 @@ async def test_real_run_freezes_without_clarify_commits_plan_and_fails_missing_w
     )
     assert await pool.fetchval("SELECT count(*) FROM research_runs") == 1
     assert await pool.fetchval("SELECT count(*) FROM reports") == 0
-    assert await pool.fetchval("SELECT count(*) FROM tool_call_attempts") == expected_calls + 10
+    assert await pool.fetchval("SELECT count(*) FROM tool_call_attempts") == expected_calls + 5
     assert (
         await pool.fetchval("SELECT sum(tokens_used) FROM tool_call_attempts")
         == 50 * expected_calls
@@ -121,7 +121,7 @@ async def test_real_run_freezes_without_clarify_commits_plan_and_fails_missing_w
     assert "controlled-test-key" not in json.dumps(body) + stderr
     assert len(state["section_coverage"]) == 5 and not state["evidence"]
     assert all(coverage["gaps"] for coverage in state["section_coverage"].values())
-    assert state["run_metadata"]["budget_used"]["search_calls"] == 10
+    assert state["run_metadata"]["budget_used"]["search_calls"] == 5
     assert any(event["event"] == "progress" for event in body["events"])
     process = await command(path, database, object_cache.bucket, url, session=body["session_id"])
     dump_code, snapshot, _ = await collect(process)
