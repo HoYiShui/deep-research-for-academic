@@ -154,3 +154,38 @@ uv run --no-sync python -m scripts.verify_pdf_parser \
 - 对原PDF第8页渲染图与Table 2逐行对照：BLEU的28.4/41.8等可对应，但最后两行合并FLOPs单元格被SDK拆列，`3.3 ·`与`10^18`分入相邻列。不能以成功ParsedDocument声称所有数值/列归属可信；保留原始输出，不人工改表伪造Parser精度。后续Observation完整cell/指数/缺失值约束与风险处理必须补齐。
 
 受控归一化/真实PDFium前置/真正子进程错误回收定向测试覆盖；全量869项通过（158.45s），这是最后空白文本修正前的全量结果；修正后的归一化/前置定向18项通过。Ruff与diff检查通过。未运行外部LLM或发布Report。本轮仍不勾选T043/T028：Linux部署、完整取消/资源故障验收、真实PDF→Research Source/Evidence/Observation与表格质量处理尚缺。
+
+## 2026-10-08：redir-host 后原下载器复验
+
+用户报告已将 Ninja Desktop DNS 覆写增强模式由 `fake-ip` 改为 `redir-host`。本轮没有读取或修改 VPN 配置，而是通过系统 DNS 与未经修改的 `RestrictedDownloader` 核验实际效果。代码基点 `29e10f516d561baa913a462b5b646735ccf85b62`；工作区存在另批未提交的工作流/向量改动，本轮下载器、下载探针及其安全测试文件相对 HEAD 无差异。
+
+完整结果：[本轮下载与 DNS 记录](t026-download-redir-host-20261008.json)。这是一轮 **真实网络原始字节下载** 验证，不调用模型，不运行 Parser，不保存 MinIO 原文，不创建 Evidence、Session 或 Run。
+
+- GitHub、CSDN、博客园、OALib、arXiv 的本轮 DNS 答案均为公网地址，没有采样到 `198.18.x.x` Fake-IP。该结论限于本轮这些域名，不声称所有域名或以后每次解析都已通过。
+- CSDN HTML：302,081 bytes；博客园 HTML：14,138 bytes，1 次跳转；OALib HTML：33,062 bytes，2 次跳转（包含 HTTP→HTTPS）；均成功且重新计算字节 SHA-256 与下载结果一致。
+- arXiv 原 PDF：2,215,244 bytes，SHA-256 `bdfaa68d8984f0dc02beaca527b76f207d99b666d31d1da728ee0728182df697`，与此前真实原文一致；这不代表本轮经过 Parser 或研究引用验收。
+- GitHub **HTTP→HTTPS 跳转路径成功**：256,245 bytes，1 次跳转，最终 URL 为 `https://github.com/njnuzpy/TextCNN`。同一 HTTPS URL 的直接请求两次失败，随后独立原 CLI 探针再次返回 `fetch_unavailable`（0.228s）；DNS 已是公网，不是 `fetch_url_forbidden`。保留这一网络失败，不把所有下载路径写成稳定通过；未确定具体网络失败根因，也没有修改 TLS/SSRF 或持续重试。
+- localhost、127.0.0.1、10.0.0.1、192.168.1.1、metadata IP/内部域名，以及 `198.18.0.1`/`198.19.255.254` 共 **8 个负例均返回 `fetch_url_forbidden`**。禁止地址没有实际建立连接；没有放行 `198.18.0.0/15`。
+
+矩阵用原类与默认网络后端直接调用 `download(url)`，并发上限 3、每次 30 秒。仅 `fetch_unavailable`/`fetch_timeout` 在本轮探针外层允许一次显式追加尝试；生产下载器的重试、安全、TLS、重定向与大小限制均未改动。对应单目标复现入口与安全回归：
+
+```bash
+# backend 目录；替换 --url 可复验记录中的其它目标
+uv run --no-sync python -m scripts.verify_fetch_download --url https://arxiv.org/pdf/1706.03762v7 --json
+uv run --no-sync python -m scripts.verify_fetch_download --url http://github.com/njnuzpy/TextCNN --json
+uv run --no-sync python -m scripts.verify_fetch_download --url https://github.com/njnuzpy/TextCNN --json
+uv run --no-sync python -m scripts.verify_fetch_download --url http://198.18.0.1/ --json
+uv run --no-sync pytest tests/contract/test_fetch.py -q --tb=short
+```
+
+安全回归 **57 passed in 0.16s**，覆盖受控 socket 下的 DNS 重绑定/混合地址拒绝、数字 IP 固定、TLS hostname 与证书验证、私网重定向拒绝及资源限制。这些受控反例不替代公网下载；上面的真实下载也不替代完整业务 E2E。
+
+结论：此前采样域名的 **Fake-IP 阻挡已解除**，保留普通网络失败边界。之前真实 workflow 的失败记录仍然有效，不覆盖、不重新标记为成功；模型超时、下载预算耗尽后的中途收缩与 T028/T039 完整业务验收未在本轮重测。T026/T028/T039 状态不因这轮原始下载复验而勾选。未修改 Prompt、业务契约、`.env`、数据库或 Docker；无关工作区文件保持不动。
+
+### 同日确认复跑（2026-10-08 11:09:44 UTC）
+
+再次使用原下载器、默认网络后端和真实系统 DNS，并发上限 3、每次 30 秒，无生产重试或配置改动。结果追加在上述 JSON 的 `confirmation_probe`，保留前次记录而非覆盖。
+
+- 五个站点 DNS 仍全部为公网；GitHub HTTP→HTTPS、博客园 1 跳、OALib 2 跳及 arXiv PDF 均成功。PDF 大小与 SHA-256 不变。动态 HTML 的 hash 以本次实际字节为准，不要求跨请求相同。
+- GitHub 直接 HTTPS 仍为 `fetch_unavailable`；CSDN 初次为 `fetch_http_error`，经原 CLI 探针一次显式重试成功（301,743 bytes）。这些是保留的网络/HTTP 失败，不能改写为全部请求稳定通过，亦不再归因于 Fake-IP 拒绝。
+- 同样 8 个禁止目标全部 `fetch_url_forbidden`；安全回归再次 **57 passed in 0.18s**。下载器、探针和安全测试文件相对 HEAD 无差异。没有运行 Parser、模型、数据库或 Docker；本次仅补充两个验收证据文件。

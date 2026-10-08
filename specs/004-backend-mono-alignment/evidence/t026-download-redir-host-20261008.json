@@ -1,0 +1,356 @@
+{
+  "scope": "raw_download_only",
+  "parsed": false,
+  "stored": false,
+  "changed_security": false,
+  "results": [
+    {
+      "url": "https://github.com/njnuzpy/TextCNN",
+      "expected": "public_download",
+      "attempts": [
+        {
+          "attempt": 1,
+          "status": "failed",
+          "code": "fetch_unavailable",
+          "retryable": true
+        },
+        {
+          "attempt": 2,
+          "status": "failed",
+          "code": "fetch_unavailable",
+          "retryable": true
+        }
+      ],
+      "dns": [
+        "20.205.243.166"
+      ],
+      "dns_all_global": true,
+      "passed": false
+    },
+    {
+      "url": "https://blog.csdn.net/Haulyn5/article/details/123031971",
+      "expected": "public_download",
+      "attempts": [
+        {
+          "attempt": 1,
+          "status": "ok",
+          "final_url": "https://blog.csdn.net/Haulyn5/article/details/123031971",
+          "bytes": 302081,
+          "sha256": "84b8862550c5cf772f911e3c61639676568af2d48060fa11b99207cc8f9dde36",
+          "hash_verified": true,
+          "media_type": "text/html",
+          "redirects": []
+        }
+      ],
+      "dns": [
+        "220.185.184.217",
+        "220.185.184.87"
+      ],
+      "dns_all_global": true,
+      "passed": true
+    },
+    {
+      "url": "https://www.cnblogs.com/billdingdj/archive/2019/10/04.html",
+      "expected": "public_download",
+      "attempts": [
+        {
+          "attempt": 1,
+          "status": "ok",
+          "final_url": "https://www.cnblogs.com/billdingdj/p/archive/2019/10/04",
+          "bytes": 14138,
+          "sha256": "d17222fa6183044d344030e9d367cb1f4ed8a7fc6aa0822ae6cdabd9e2142b82",
+          "hash_verified": true,
+          "media_type": "text/html",
+          "redirects": [
+            "https://www.cnblogs.com/billdingdj/archive/2019/10/04.html"
+          ]
+        }
+      ],
+      "dns": [
+        "114.55.118.8",
+        "47.96.31.232"
+      ],
+      "dns_all_global": true,
+      "passed": true
+    },
+    {
+      "url": "http://www.oalib.com/paper/4068727",
+      "expected": "public_download",
+      "attempts": [
+        {
+          "attempt": 1,
+          "status": "ok",
+          "final_url": "https://www.oalib.com/research/4068727",
+          "bytes": 33062,
+          "sha256": "067f4cc270231eecefee6b7e955c2bec6e00f587551cd390141adc5fc14a6ddf",
+          "hash_verified": true,
+          "media_type": "text/html",
+          "redirects": [
+            "http://www.oalib.com/paper/4068727",
+            "https://www.oalib.com/paper/4068727"
+          ]
+        }
+      ],
+      "dns": [
+        "211.100.8.83",
+        "211.100.8.82",
+        "211.100.8.64",
+        "211.100.8.115"
+      ],
+      "dns_all_global": true,
+      "passed": true
+    },
+    {
+      "url": "https://arxiv.org/pdf/1706.03762v7",
+      "expected": "public_download",
+      "attempts": [
+        {
+          "attempt": 1,
+          "status": "ok",
+          "final_url": "https://arxiv.org/pdf/1706.03762v7",
+          "bytes": 2215244,
+          "sha256": "bdfaa68d8984f0dc02beaca527b76f207d99b666d31d1da728ee0728182df697",
+          "hash_verified": true,
+          "media_type": "application/pdf",
+          "redirects": []
+        }
+      ],
+      "dns": [
+        "151.101.195.42",
+        "151.101.67.42",
+        "151.101.131.42",
+        "151.101.3.42"
+      ],
+      "dns_all_global": true,
+      "passed": true
+    },
+    {
+      "url": "http://github.com/njnuzpy/TextCNN",
+      "expected": "public_download",
+      "attempts": [
+        {
+          "attempt": 1,
+          "status": "ok",
+          "final_url": "https://github.com/njnuzpy/TextCNN",
+          "bytes": 256245,
+          "sha256": "9e931820fcaafb92341e8897f2e99668e7a13c705f263b4c4113d2a2148f9ddf",
+          "hash_verified": true,
+          "media_type": "text/html",
+          "redirects": [
+            "http://github.com/njnuzpy/TextCNN"
+          ]
+        }
+      ],
+      "dns": [
+        "20.205.243.166"
+      ],
+      "dns_all_global": true,
+      "passed": true
+    },
+    {
+      "url": "http://localhost/",
+      "expected": "must_reject",
+      "attempts": [
+        {
+          "attempt": 1,
+          "status": "failed",
+          "code": "fetch_url_forbidden",
+          "retryable": false
+        }
+      ],
+      "passed": true
+    },
+    {
+      "url": "http://127.0.0.1/",
+      "expected": "must_reject",
+      "attempts": [
+        {
+          "attempt": 1,
+          "status": "failed",
+          "code": "fetch_url_forbidden",
+          "retryable": false
+        }
+      ],
+      "passed": true
+    },
+    {
+      "url": "http://10.0.0.1/",
+      "expected": "must_reject",
+      "attempts": [
+        {
+          "attempt": 1,
+          "status": "failed",
+          "code": "fetch_url_forbidden",
+          "retryable": false
+        }
+      ],
+      "passed": true
+    },
+    {
+      "url": "http://192.168.1.1/",
+      "expected": "must_reject",
+      "attempts": [
+        {
+          "attempt": 1,
+          "status": "failed",
+          "code": "fetch_url_forbidden",
+          "retryable": false
+        }
+      ],
+      "passed": true
+    },
+    {
+      "url": "http://169.254.169.254/latest/meta-data/",
+      "expected": "must_reject",
+      "attempts": [
+        {
+          "attempt": 1,
+          "status": "failed",
+          "code": "fetch_url_forbidden",
+          "retryable": false
+        }
+      ],
+      "passed": true
+    },
+    {
+      "url": "http://metadata.internal/",
+      "expected": "must_reject",
+      "attempts": [
+        {
+          "attempt": 1,
+          "status": "failed",
+          "code": "fetch_url_forbidden",
+          "retryable": false
+        }
+      ],
+      "passed": true
+    },
+    {
+      "url": "http://198.18.0.1/",
+      "expected": "must_reject",
+      "attempts": [
+        {
+          "attempt": 1,
+          "status": "failed",
+          "code": "fetch_url_forbidden",
+          "retryable": false
+        }
+      ],
+      "passed": true
+    },
+    {
+      "url": "http://198.19.255.254/",
+      "expected": "must_reject",
+      "attempts": [
+        {
+          "attempt": 1,
+          "status": "failed",
+          "code": "fetch_url_forbidden",
+          "retryable": false
+        }
+      ],
+      "passed": true
+    }
+  ],
+  "date": "2026-10-08",
+  "code_head": "29e10f516d561baa913a462b5b646735ccf85b62",
+  "environment_change": "User reports Ninja Desktop DNS enhanced-mode changed from fake-ip to redir-host; effective DNS verified through system resolver.",
+  "security_contract_regression": {
+    "command": "uv run --no-sync pytest tests/contract/test_fetch.py -q --tb=short",
+    "passed": 57,
+    "failed": 0,
+    "seconds": 0.16
+  },
+  "independent_github_https_probe": {
+    "command": "uv run --no-sync python -m scripts.verify_fetch_download --url https://github.com/njnuzpy/TextCNN --json",
+    "exit_code": 1,
+    "status": "failed",
+    "code": "fetch_unavailable",
+    "retryable": true,
+    "elapsed_seconds": 0.228
+  },
+  "boundary": "Raw downloads only: no parsing, Evidence, model, database, MinIO, Docker or complete-workflow verification. Production downloader and security configuration unchanged.",
+  "confirmation_probe": {
+    "recorded_at_utc": "2026-10-08T11:09:44Z",
+    "method": "Original RestrictedDownloader with default PublicNetwork and system getaddrinfo; concurrency 3, 30 seconds per download; no production changes. One explicit CSDN retry through scripts.verify_fetch_download.",
+    "public_results": [
+      {
+        "url": "https://github.com/njnuzpy/TextCNN",
+        "dns": ["20.205.243.166"],
+        "dns_all_global": true,
+        "status": "failed",
+        "code": "fetch_unavailable",
+        "retryable": true
+      },
+      {
+        "url": "http://github.com/njnuzpy/TextCNN",
+        "dns": ["20.205.243.166"],
+        "dns_all_global": true,
+        "status": "ok",
+        "final_url": "https://github.com/njnuzpy/TextCNN",
+        "bytes": 256245,
+        "sha256": "2bdcaeec33f78850e64407d03e5e0690902916351c8db68866135038e80955cf",
+        "hash_verified": true,
+        "redirects": 1
+      },
+      {
+        "url": "https://blog.csdn.net/Haulyn5/article/details/123031971",
+        "dns": ["220.185.184.217", "220.185.184.87"],
+        "dns_all_global": true,
+        "initial_result": {"status": "failed", "code": "fetch_http_error", "retryable": true},
+        "explicit_cli_retry": {
+          "status": "ok",
+          "bytes": 301743,
+          "sha256": "9bbd2ae2509fb4f0ee05a0da7d420c7db957e0e20aed31abee56c60edaf0c5c5",
+          "media_type": "text/html",
+          "redirects": 0,
+          "elapsed_seconds": 1.243
+        }
+      },
+      {
+        "url": "https://www.cnblogs.com/billdingdj/archive/2019/10/04.html",
+        "dns": ["114.55.118.8", "47.96.31.232"],
+        "dns_all_global": true,
+        "status": "ok",
+        "final_url": "https://www.cnblogs.com/billdingdj/p/archive/2019/10/04",
+        "bytes": 14138,
+        "sha256": "f18aa78ecbfa6614b7ff186969185f0c82f7bd89bc0b3a830ee502e5040166bd",
+        "hash_verified": true,
+        "redirects": 1
+      },
+      {
+        "url": "http://www.oalib.com/paper/4068727",
+        "dns": ["211.100.8.115", "211.100.8.64", "211.100.8.82", "211.100.8.83"],
+        "dns_all_global": true,
+        "status": "ok",
+        "final_url": "https://www.oalib.com/research/4068727",
+        "bytes": 33062,
+        "sha256": "067f4cc270231eecefee6b7e955c2bec6e00f587551cd390141adc5fc14a6ddf",
+        "hash_verified": true,
+        "redirects": 2
+      },
+      {
+        "url": "https://arxiv.org/pdf/1706.03762v7",
+        "dns": ["151.101.131.42", "151.101.195.42", "151.101.3.42", "151.101.67.42"],
+        "dns_all_global": true,
+        "status": "ok",
+        "bytes": 2215244,
+        "sha256": "bdfaa68d8984f0dc02beaca527b76f207d99b666d31d1da728ee0728182df697",
+        "hash_verified": true,
+        "redirects": 0
+      }
+    ],
+    "rejected_urls": [
+      "http://localhost/",
+      "http://127.0.0.1/",
+      "http://10.0.0.1/",
+      "http://192.168.1.1/",
+      "http://169.254.169.254/latest/meta-data/",
+      "http://metadata.internal/",
+      "http://198.18.0.1/",
+      "http://198.19.255.254/"
+    ],
+    "all_rejected_code": "fetch_url_forbidden",
+    "security_contract_regression": {"passed": 57, "failed": 0, "seconds": 0.18}
+  }
+}
