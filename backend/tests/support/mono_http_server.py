@@ -21,7 +21,7 @@ from tests.integration.test_mono_run_driver import controlled_worker
 
 class ControlledModel:
     async def complete(self, prompt):
-        context = json.loads(prompt.split("Context JSON:\n", 1)[1])
+        context = json.loads(prompt.split("<research_context>\n", 1)[1].split("\n</research_context>", 1)[0])
         patch = (
             {}
             if not context["history"]

@@ -177,7 +177,9 @@ async def test_history_sent_to_model_is_bounded():
     value = SessionInput(session=value.session, history=history)
     result = await SessionService(model, clock).assess_round(value, "answer")
     assert [message.sequence for message in result.messages] == [21, 22]
-    context = json.loads(model.prompts[-1].split("Context JSON:\n", 1)[1])
+    context = json.loads(
+        model.prompts[-1].split("<research_context>\n", 1)[1].split("\n</research_context>", 1)[0]
+    )
     assert len(context["history"]) == 8
     assert all(len(item["content"]) == 8000 for item in context["history"])
     assert "old-history-marker" not in model.prompts[-1]
