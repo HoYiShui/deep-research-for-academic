@@ -63,3 +63,15 @@ POST /retry 使用空 DTO/Idempotency-Key，先授权，再保留请求租约（
 覆盖公开JobView、真实源验证/同身份重试、删源后同幂等键仍重放原响应、跨owner在存储I/O前404、缺源409且不接受、篡改源503且释放请求、不泄漏SDK异常/内容/key、存储宕机不是missing、源I/O期间提交真实删除屏障证明未持PG资源锁并拒绝最终retry、损坏缓存拒绝、空body/key验证、未配置取消能力明确失败。T042/T047保持未完成；旧CLI/Management/Retrieval/上传/真实Parser/Embedding/Milvus/完整取消与清理队列未替代。
 
 本批最终全量：`uv run --no-sync pytest -q --tb=short`，**1068 passed in 230.95s**。8 个改动 Python 文件 Ruff/format 检查与 git diff --check 通过。全量运行期间仅更新任务说明和证据，未改变受验证代码。测试只清理本批独立测试数据库与 bucket，未升级用户数据库或操作受保护 PostgreSQL 容器/卷。
+
+## 2026-10-08：管理事务与删除屏障
+
+基线 `f6f0cf7`。新增 `KnowledgeBasePatch` 与 Repository 内部 `KnowledgeManagement` 组合，尚未对外启用 Management HTTP。Patch只允许revision/name/description，拒绝空修改、null name、空白name、超长值、bool revision，以及分类/index profile等不可修改字段；明确省略description保留、显式null清空。数据库短事务owner+ID锁定，SQL revision CAS，成功revision+1；重复name由现有唯一约束翻译为name_already_exists且整事务回滚。并发两个同revision更新只有一个成功。
+
+KB active/creating进入deleting与Document active进入deleting原子保存revision+1、清理起点wait_jobs；同状态重复保持cursor与revision，deleted墓碑重复只读。Document按KB→Document顺序锁定并验证父子关系，不能跨owner/KB操作。KB或Document屏障提交后已有active正文立即不可见；未完成Job的迟到activate和新submit被拒绝。原active pointer、版本、Chunk、Job历史仍保留供后续物理清理定位，不能把本批称为已删除对象/向量。并发Patch/delete不能把deleting复活或清掉cursor。
+
+验证：`uv run --no-sync pytest -q tests/integration/test_mono_knowledge_management.py tests/integration/test_mono_ingestion.py tests/integration/test_mono_ingestion_http.py tests/integration/test_mono_kb_lifecycle.py tests/unit/test_knowledge_models.py --tb=short`，**89 passed in 14.65s**，其中新增17项；真实独立PG，没有真实Milvus删除或MinIO清理声明。4个改动Python文件Ruff/format和git diff --check通过。测试只在隔离数据库内建立或改变资源；不升级用户数据库、不重启Compose PostgreSQL、不改Agent/.env/docs/implementation。
+
+T040/T041/T049继续未勾选：HTTP幂等管理/分页、creating/deleting共同清理租约、Worker调度、索引/对象删除、迟到写入及SIGKILL恢复仍须闭环。本批只建立必要的持久化屏障，不接受缺少清理Worker的公共删除请求。
+
+最终全量：`uv run --no-sync pytest -q --tb=short`，**1085 passed in 228.41s**。全量期间只更新任务/证据，没有改受验证代码；静态检查通过。本批不以其他测试的green结果替代完整删除验收。

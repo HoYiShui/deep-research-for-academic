@@ -43,6 +43,20 @@ class KnowledgeBase(LeasedRecord):
     updated_at: UTC
 
 
+class KnowledgeBasePatch(Record):
+    revision: Positive
+    name: Annotated[Text, Field(max_length=100)] | None = None
+    description: Annotated[StrictStr, Field(max_length=2000)] | None = None
+
+    @model_validator(mode="after")
+    def changes(self):
+        if not self.model_fields_set.intersection({"name", "description"}):
+            raise ValueError("At least one editable field is required")
+        if "name" in self.model_fields_set and self.name is None:
+            raise ValueError("Name cannot be null")
+        return self
+
+
 class Document(LeasedRecord):
     document_id: UUID
     kb_id: UUID

@@ -13,9 +13,10 @@ from application.knowledge_models import (
     KnowledgeBase,
 )
 from infrastructure.storage.knowledge_jobs import KnowledgeJobs
+from infrastructure.storage.knowledge_management import KnowledgeManagement
 
 
-class KnowledgeRepository(KnowledgeJobs):
+class KnowledgeRepository(KnowledgeJobs, KnowledgeManagement):
     def __init__(self, store):
         self.store = store
 
