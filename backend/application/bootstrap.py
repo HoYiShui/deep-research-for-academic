@@ -13,6 +13,7 @@ from pathlib import Path
 import asyncpg
 
 from application.auth_service import AuthService
+from application.document_ingestion import DocumentIngestionService
 from application.errors import AppError
 from application.identity import ensure_development_identity
 from application.knowledge_base_service import KnowledgeBaseService
@@ -36,6 +37,7 @@ from infrastructure.search.arxiv import ArxivSearch
 from infrastructure.search.bocha import BochaSearch
 from infrastructure.search.composite import CompositeSearch
 from infrastructure.storage.artifacts import MinioArtifactStore
+from infrastructure.storage.content import MinioContentStore
 from infrastructure.storage.memory import InMemoryCancel, InMemoryDocumentStore, InMemoryUserStore
 from infrastructure.storage.migrations import run_migrations
 from infrastructure.storage.postgres import PostgresStateStore
@@ -174,6 +176,13 @@ class HttpRuntime:
             settings.minio_bucket,
             secure=settings.minio_secure,
         )
+        self.knowledge_content = MinioContentStore(
+            settings.minio_endpoint,
+            settings.minio_access_key.get_secret_value(),
+            settings.minio_secret_key.get_secret_value(),
+            settings.minio_bucket,
+            secure=settings.minio_secure,
+        )
         self.backup_dir = (
             Path(backup_dir)
             if backup_dir is not None
@@ -228,6 +237,9 @@ class HttpRuntime:
         )
         self.research_queries = ResearchQueries(store, store.research)
         self.research_artifacts = ResearchArtifacts(self.research_queries, self.artifact_store)
+        self.ingestion = DocumentIngestionService(
+            store, store.knowledge, store.requests, self.knowledge_content
+        )
         self.run_event_bus = RunEventBus(queue_size=self.settings.sse_queue_size)
         self.run_events = RunEventStream(
             self.research_queries,
@@ -281,7 +293,10 @@ class HttpRuntime:
                         await close()
         finally:
             try:
-                await self.artifact_store.close()
+                try:
+                    await self.artifact_store.close()
+                finally:
+                    await self.knowledge_content.close()
             finally:
                 if self.pool is not None:
                     pool, self.pool = self.pool, None

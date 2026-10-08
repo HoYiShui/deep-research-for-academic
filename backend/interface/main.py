@@ -9,6 +9,7 @@ from application.bootstrap import Container, HttpRuntime
 from application.settings import Settings
 from interface.http_errors import install_http_errors
 from interface.router.auth import router as auth_router
+from interface.router.ingestion_jobs import router as ingestion_router
 from interface.router.knowledge_base import router as kb_router
 from interface.router.research import router as research_router
 
@@ -52,6 +53,7 @@ def create_app(
     app.include_router(auth_router)
     app.include_router(research_router)
     app.include_router(kb_router)
+    app.include_router(ingestion_router)
     return app
 
 

@@ -165,6 +165,29 @@ class Chunk(Record):
         return self
 
 
+class IngestionJobContext(Record):
+    kb: KnowledgeBase
+    document: Document
+    version: DocumentVersion
+    job: IngestionJob
+
+    @model_validator(mode="after")
+    def ownership_chain(self):
+        if (
+            self.kb.kb_id != self.document.kb_id
+            or self.kb.kb_id != self.version.kb_id
+            or self.document.document_id != self.version.document_id
+            or self.job.document_version_id != self.version.document_version_id
+        ):
+            raise ValueError("Job context has mismatched parents")
+        return self
+
+
+class JobAccepted(Record):
+    job_id: UUID
+    status: Literal["accepted"]
+
+
 class SourceMetadata(Record):
     title: Text
     filename: Text

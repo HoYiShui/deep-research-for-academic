@@ -62,6 +62,21 @@ class KnowledgeRepository(KnowledgeJobs):
             )
         return decode(IngestionJob, row, {"failure", "progress", "attempt_history"})
 
+    async def job_context(self, owner, job_id, tx):
+        from application.knowledge_models import IngestionJobContext
+        from infrastructure.storage.research_postgres import decode
+
+        conn, kb, document, job, _ = await self._lock_job(owner, job_id, tx, require_active=False)
+        version = decode(
+            DocumentVersion,
+            await conn.fetchrow(
+                "SELECT * FROM document_versions WHERE document_version_id=$1",
+                job.document_version_id,
+            ),
+            set(),
+        )
+        return IngestionJobContext(kb=kb, document=document, version=version, job=job)
+
     async def submit(self, owner, document, version, job, tx, *, create_document: bool):
         """Accept uploaded immutable content, deduplicate, or fail without partial facts."""
         from infrastructure.storage.research_postgres import decode, encode, insert

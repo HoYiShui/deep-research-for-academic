@@ -11,6 +11,7 @@ from contextlib import AbstractAsyncContextManager
 from typing import Protocol
 from uuid import UUID
 
+from application.knowledge_models import IngestionJob, IngestionJobContext
 from application.records import (
     ClaimedRun,
     DevelopmentUser,
@@ -104,6 +105,16 @@ class TransactionPort(Protocol):
 
 class UnitOfWorkPort(Protocol):
     def transaction(self) -> AbstractAsyncContextManager[TransactionPort]: ...
+
+
+class IngestionJobRepositoryPort(Protocol):
+    async def job_context(
+        self, owner: UUID, job_id: UUID, tx: TransactionPort
+    ) -> IngestionJobContext: ...
+
+    async def retry_job(
+        self, owner: UUID, job_id: UUID, tx: TransactionPort, *, source_verified: bool = False
+    ) -> IngestionJob: ...
 
 
 class UserRepositoryPort(Protocol):

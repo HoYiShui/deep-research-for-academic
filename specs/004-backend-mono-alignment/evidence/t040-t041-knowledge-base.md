@@ -47,3 +47,19 @@ failed 的取消在内部也先取得清理边界；后续 HTTP Service 必须�
 剩余边界：此 scanner 尚未接 TaskRunner；没有实际进程 SIGKILL/外部迟到写入验收，没有持久 KB/Document 清理 cursor/租约扫描，完整 Service/HTTP/idempotency 仍待 T042/T047/T049。T040/T041/T047 不勾选。本轮不升级用户数据库、不修改 Agent/.env/docs/implementation。
 
 续批最终全量：`uv run --no-sync pytest -q --tb=short`，**1057 passed in 227.99s**；3 个改动 Python 文件 Ruff/format 检查与 git diff --check 均通过。本次只有文档证据在全量运行期间更新，受验证的代码与最终提交一致。
+
+## 2026-10-08：Job 应用层与 HTTP 首批
+
+基线 `a8c5db3`。新增 `application/document_ingestion.py`、typed IngestionJobContext/JobAccepted/Port、`interface/router/ingestion_jobs.py`；默认 HttpRuntime 装配私有 MinioContentStore 与持久 Job Service，关闭时回收 Adapter，失败也继续 PG 收尾。未改 Agent、用户 .env 或用户数据库。
+
+GET /ingestion-jobs/{UUID} 返回来自 owner-scoped PG 短事务的一致父子上下文，显式投影公共 IDs/status/progress/failure/timestamps，不含 lease/storage key 或内部 failure.details。retry_allowed 是当前生命周期资格加真实源存在性检查；它不表示 Worker 已执行，不替代 POST 的完整字节验证。已知源不存在为 false；未知存储故障返回脱敏 503，不能假装 missing。
+
+POST /retry 使用空 DTO/Idempotency-Key，先授权，再保留请求租约（120s）或返回原成功响应；源 I/O 在 PG 事务外，60s 上限，检查 owner/KB/version/hash 固定 key、真实 head/流式字节/大小/hash。短最终事务重检当前资源/Job/删除屏障、接受同 Job/Version 重试并原子保存 202 响应；失败释放 reservation。缓存响应也经严格 Schema、HTTP202/Job/资源身份复查，不返回损坏缓存的假接受。并无“幂等缓存自动修好数据”承诺。
+
+取消路由存在但清理 Worker 尚未装配：除已 cancelled 的只读重复响应与 completed 的409外，明确503 service_not_ready，不承诺排入不存在的清理队列、不写假 cancelled。上传/完整取消/TaskRunner仍属于后续 T047。该暂时能力缺口不是对 API 设计的另定语义。
+
+先跑首批 HTTP 测试，5项因缺失 Service 模块失败；接入后5项通过。追加反例发现损坏 cached response 被当202，3项真实PG测试失败；修复为严格投影和身份验证。最终：`uv run --no-sync pytest -q tests/integration/test_mono_ingestion_http.py tests/integration/test_mono_ingestion.py tests/integration/test_mono_kb_lifecycle.py tests/unit/test_knowledge_models.py --tb=short`，**72 passed in 12.85s**，其中11项新的HTTP测试使用真实独立PG/MinIO、受控源字节（只证明源传输，不是有效论文解析）。
+
+覆盖公开JobView、真实源验证/同身份重试、删源后同幂等键仍重放原响应、跨owner在存储I/O前404、缺源409且不接受、篡改源503且释放请求、不泄漏SDK异常/内容/key、存储宕机不是missing、源I/O期间提交真实删除屏障证明未持PG资源锁并拒绝最终retry、损坏缓存拒绝、空body/key验证、未配置取消能力明确失败。T042/T047保持未完成；旧CLI/Management/Retrieval/上传/真实Parser/Embedding/Milvus/完整取消与清理队列未替代。
+
+本批最终全量：`uv run --no-sync pytest -q --tb=short`，**1068 passed in 230.95s**。8 个改动 Python 文件 Ruff/format 检查与 git diff --check 通过。全量运行期间仅更新任务说明和证据，未改变受验证代码。测试只清理本批独立测试数据库与 bucket，未升级用户数据库或操作受保护 PostgreSQL 容器/卷。
