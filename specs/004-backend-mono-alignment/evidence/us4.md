@@ -67,3 +67,13 @@ T033反例完成于 `test_pipeline_workers.py`、`test_phase_contracts.py`、`te
 ## 未完成
 
 T039 的三任务真实 HTTP 报告、cases 粒度与引用人工抽查；默认预算下的收尾容量实测及提前停止政策；完整有限追溯/补查、可执行五种分析模板/真实沙箱回链；生产默认能力装配与 readiness；fake CLI 迁移。T026/T028/T034/T035/T039 不因这一批有限验证统一勾选。
+
+## 2026-10-08：借鉴 Open Deep Research 的 Prompt 结构试验
+
+用户提供的 [LangChain prompts.py](https://github.com/langchain-ai/open_deep_research/blob/1b7d2e80db9faa586165c60e09096dbbfd483a64/src/open_deep_research/prompts.py) 已固定到提交 `1b7d2e80db9faa586165c60e09096dbbfd483a64`，同时核验 deep_researcher.py 的调用路径。借鉴任务、材料、工作方法、质量要求与案例的分区表达，局部重写 canonical Writer/Critic；上游没有对应 DR4A 的 Critic，其审阅内容是本地编写。未复制上游自由报告结构、URL编号、think_tool、模型控预算或自由Supervisor。Clarify、Plan、Research抽取、Schema、事实门和共享契约不变。
+
+Writer示例分别展示受支持的机制与未知性能、原文存在但主张insufficient、待执行评测方案。Critic解释为什么换成hypothesis标记却仍声称效果已证实不能解决overclaim。通过实际局部Schema验证的新增反例：insufficient Claim即使有原文关系也不能写成factual；条件性hypothesis可保留其来源身份，原始事实状态不变。
+
+真实试验使用上一轮失败Checkpoint的**本地副本**，只把Prompt版本换为新hash、Write目标限定到section_2；其余Brief/事实不改。运行 `uv run --no-sync python -m cli phase write --state LOCAL_COPY --real --json`，不是恢复原PG Run，也不创建Session或发布Report。输入仅公开开发Brief/公开网页事实，无私有KB或凭据；不触发Search/Fetch。[结果记录](us4-writer-prompt-structure-20261008.json)：2次模型调用，22,533输入/21,089输出tokens，退出3、model_output_invalid，零state_delta。CLI未保存原始模型响应，因此本次无法区分具体引用校验、其他Schema或输出问题；不把旧Run的具体失败原因直接套到本次。
+
+**仍失败，不认定改写有效或真实E2E通过。** 单次新样本与历史失败不是受控A/B或泛化测试，Critic本轮没有真实供应商复验；未追加付费重试、升级Claim状态或放宽Schema。首次新增反例因fixture残留其他章节的Claim引用导致2失败/123通过，修正fixture归属后目标集 **125 passed in 1.93s**；CLI phase/run、活TCP TUI和Clarify确认回归 **31 passed in 62.62s**（真实PG/MinIO、受控外部模型）。Ruff/format/diff检查通过；本批未重跑上一批1156项全量，不把该旧数字冒充当前全量。

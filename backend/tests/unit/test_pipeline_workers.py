@@ -177,6 +177,61 @@ def test_factual_output_without_original_binding_is_rejected():
         materialize_chapter(output, section_id="section_1", version=1, values=values)
 
 
+@pytest.mark.parametrize("kind", ["factual", "hypothesis"])
+async def test_structured_prompt_keeps_unverified_originals_out_of_factual_prose(kind):
+    from domain.research.agents.writer import draft_chapter
+    from tests.unit.test_phase_contracts import writing_state
+    from tests.unit.test_state import populated_data
+
+    data = writing_state().model_dump()
+    fixtures = populated_data()
+    for name in ("sources", "evidence", "claims", "claim_evidence_links"):
+        data[name] = fixtures[name]
+    data["claims"]["c1"].update(spec_ids=["spec-1"], status="insufficient")
+    data["claim_evidence_links"][0]["relation"] = "limits"
+    data["section_coverage"]["section_1"].update(claim_ids=["c1"], evidence_ids=["e1"])
+    initial = PipelineState.model_validate(data)
+    values = PhaseInput.from_state(initial).values
+    before = initial.model_dump_json()
+    prompts = []
+
+    class Model:
+        async def complete(self, prompt):
+            prompts.append(prompt)
+            for section in ("Task", "Materials", "Approach", "Writing Quality", "Examples"):
+                assert f"<{section}>" in prompt and f"</{section}>" in prompt
+            return json.dumps(
+                {
+                    "title": "查证边界",
+                    "paragraphs": [
+                        {
+                            "text": "此效果已经证实"
+                            if kind == "factual"
+                            else "可以检验该效果，当前尚未证实",
+                            "kind": kind,
+                            "claim_ids": ["c1"],
+                            "evidence_ids": ["e1"],
+                            "artifact_ids": [],
+                        }
+                    ],
+                    "task_payload": None,
+                    "row_citations": [],
+                }
+            )
+
+    if kind == "factual":
+        with pytest.raises(AdapterError, match="violates its schema"):
+            await draft_chapter(Model(), plan=initial.section_plans[0], values=values, version=1)
+        assert len(prompts) == 2  # A single bounded repair, never a fact upgrade.
+    else:
+        chapter, bindings = await draft_chapter(
+            Model(), plan=initial.section_plans[0], values=values, version=1
+        )
+        assert len(prompts) == 1 and chapter.statements[0].kind == "hypothesis"
+        assert bindings[0].claim_ids == ["c1"] and bindings[0].cited_evidence_ids == ["e1"]
+    assert initial.model_dump_json() == before
+
+
 async def test_core_task_row_factual_without_binding_is_rejected_before_review_model():
     current = insufficient_review(task="method_differentiation")
     data = current.model_dump()

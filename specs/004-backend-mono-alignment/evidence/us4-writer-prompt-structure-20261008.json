@@ -1,0 +1,67 @@
+{
+  "scope": "isolated_cli_writer_prompt_trial",
+  "upstream": {
+    "repository": "langchain-ai/open_deep_research",
+    "commit": "1b7d2e80db9faa586165c60e09096dbbfd483a64",
+    "file": "src/open_deep_research/prompts.py",
+    "borrowed": "Task/material/approach/quality/example sections, not tool policy, citation formatting or business rules"
+  },
+  "baseline_commit": "cac2983",
+  "source_checkpoint": "us4-web-real-20261008-chapter-schema.json",
+  "source_run_id": "0844c2a8-1b7e-41af-b121-533c9687f1c4",
+  "section_ids": [
+    "section_2"
+  ],
+  "input_modifications": {
+    "prompt_versions": {
+      "clarify": "prompt-4f29687b195cbc94d885baf3e0c889c64b9811059b345c918413c12e6252a91a",
+      "plan": "prompt-2e7e668ca559b503bcb4e2d27bd057bb33619e74be9eb1b899e95d8f9bf24f75",
+      "research": "prompt-f10dd88642c187f4033534d03cdb04a7771ce364ce57bf7174f1dc5c1494741e",
+      "analyze": "prompt-0477d33a1939ee4358f8759b7dc5862a2f3361f547dc77fd261d17f18902a237",
+      "write": "prompt-f59f27a24e7edbe27b1842b05b6dd46cc5f283d20afdc8a5d496cd737f7c911d",
+      "review": "prompt-6b1461f7a3c2f5899de61170fd4354eeb413915b6acfde06e65631f4e127a931"
+    },
+    "rework_targets": [
+      {
+        "issue_ids": [],
+        "section_ids": [
+          "section_2"
+        ],
+        "claim_ids": [],
+        "action": "acknowledge_limit",
+        "reason": "Isolated local prompt trial on the previously failing chapter; not a persisted Run resume"
+      }
+    ]
+  },
+  "invocation": "uv run --no-sync python -m cli phase write --state LOCAL_COPY --real --json",
+  "input_scope": "Public development brief and public downloaded webpage evidence only; no credentials or private knowledge-base content",
+  "exit_code": 3,
+  "status": "env_error",
+  "error": {
+    "code": "model_output_invalid",
+    "message": "Structured model output violates its schema",
+    "details": null,
+    "retryable": false,
+    "request_id": "e5b1b22a-0f37-4ae5-af34-292687430d65"
+  },
+  "debug_usage": {
+    "llm_calls": 2,
+    "input_tokens": 22533,
+    "output_tokens": 21089,
+    "search_calls": 0,
+    "fetch_calls": 0
+  },
+  "state_delta": {},
+  "checks": {
+    "facts_preserved": true,
+    "no_research_tools": true,
+    "no_persisted_writes": true,
+    "one_schema_repair_limit": true
+  },
+  "quality_accepted": false,
+  "limitations": [
+    "Not a completed five-chapter pipeline or Critic experiment",
+    "Historical baseline and single new sample are not a controlled A/B or generalization test",
+    "CLI returned sanitized model_output_invalid without raw output; this trial does not establish its exact schema failure cause"
+  ]
+}
