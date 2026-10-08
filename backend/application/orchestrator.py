@@ -30,6 +30,7 @@ from domain.research.legacy_state import PipelineState
 from domain.research.machine import (
     WORKERS,
     apply_pipeline_decision,
+    contract_pipeline,
     decide_pipeline,
     next_phase,
     phase_after_review,
@@ -506,5 +507,73 @@ class RunUnitCoordinator:
         try:
             projected(transition)
         except Exception:  # noqa: BLE001 -- progress projection cannot undo the phase transaction
+            logging.getLogger(__name__).warning("phase_projection_failed")
+        return transition
+
+    async def contract(self, claimed, projected, reason):
+        """Commit an explicit exhaustion route, never bypass normal phase gates."""
+        claimed, point = await self.load_owned(claimed)
+        async with self.store.transaction() as tx:
+            budget = await self.store.research.load_tool_budget(
+                claimed.owner_id, claimed.run.run_id, tx
+            )
+            if budget is not None and budget.pending_attempts:
+                raise AppError("invalid_state", "Cannot contract outstanding tool reservations")
+            used = budget.used if budget is not None else point.state.run_metadata.budget_used
+            used = BudgetUsage.model_validate(
+                used.model_dump()
+                | {
+                    "elapsed_s": max(
+                        used.elapsed_s,
+                        point.state.run_metadata.budget_used.elapsed_s,
+                        self.elapsed_s(),
+                    ),
+                }
+            )
+            current = MonoState.model_validate(
+                point.state.model_dump()
+                | {
+                    "run_metadata": point.state.run_metadata.model_dump() | {"budget_used": used},
+                }
+            )
+            try:
+                state, decision = contract_pipeline(current, reason)
+            except (ValueError, TypeError):
+                raise AppError(
+                    "budget_exhausted", "Execution cannot safely enter terminal contraction"
+                ) from None
+            state = MonoState.model_validate(
+                state.model_dump()
+                | {
+                    "run_metadata": state.run_metadata.model_dump()
+                    | {
+                        "degraded_sources": [
+                            *state.run_metadata.degraded_sources,
+                            {
+                                "source": "pipeline",
+                                "reason": "Expansion stopped at the resource limit",
+                                "operation": reason,
+                                "section_id": None,
+                                "occurred_at": self.clock.now_utc(),
+                            },
+                        ],
+                    },
+                }
+            )
+            candidate = Checkpoint(
+                snapshot_id=uuid4(),
+                run_id=state.run_id,
+                seq=point.seq + 1,
+                schema_version=1,
+                phase=state.phase,
+                state=state,
+                state_hash=canonical_hash(state),
+                created_at=self.clock.now_utc(),
+            )
+            newer = await self.store.research.commit_checkpoint(claimed, point.seq, candidate, tx)
+        transition = PhaseTransition(claimed=newer, checkpoint=candidate, decision=decision)
+        try:
+            projected(transition)
+        except Exception:  # noqa: BLE001 -- checkpoint remains authoritative
             logging.getLogger(__name__).warning("phase_projection_failed")
         return transition

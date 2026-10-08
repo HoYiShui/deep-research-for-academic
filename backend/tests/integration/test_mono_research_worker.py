@@ -37,9 +37,11 @@ async def test_formal_research_commits_each_query_with_fact_links_and_shared_cla
     extracted = []
 
     async def complete(prompt):
-        if not prompt.startswith("Extract only facts"):
+        if "<original_context>" not in prompt:
             return await original_model(prompt)
-        context = json.loads(prompt.rsplit("\nContext:\n", 1)[1])
+        context = json.loads(
+            prompt.split("<original_context>\n", 1)[1].split("\n</original_context>", 1)[0]
+        )
         plan, blocks = context["section_plan"], context["original_blocks"]
         block = next(block for block in blocks if block["type"] == "table")
         quote = "\n".join(
@@ -119,7 +121,12 @@ async def test_formal_research_commits_each_query_with_fact_links_and_shared_cla
         assert await pool.fetchval("SELECT count(*) FROM reports") == 0
         if empty:
             assert extracted == network.connected == []
-            assert not latest.state.claims and not latest.state.evidence
+            assert not latest.state.evidence
+            assert len(latest.state.claims) == 1
+            assert all(
+                claim.claim_type == "hypothesis" and claim.status == "insufficient"
+                for claim in latest.state.claims.values()
+            )
             assert all(coverage.gaps for coverage in latest.state.section_coverage.values())
             assert (
                 await pool.fetchval("SELECT count(*) FROM tool_call_attempts WHERE tool='fetch'")

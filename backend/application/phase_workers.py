@@ -8,9 +8,12 @@ from application.errors import AppError
 from domain.documents import FetchedDocument, ParsedDocument
 from domain.ports import AdapterError
 from domain.research.agents import architect
-from domain.research.agents.coverage import section_coverage
+from domain.research.agents.coverage import planned_hypotheses, section_coverage
+from domain.research.agents.critic import review_draft
+from domain.research.agents.data_analyst import assess_requirement
 from domain.research.agents.extraction import extract
 from domain.research.agents.originals import register_original
+from domain.research.agents.writer import draft_chapter
 from domain.research.ids import canonical_hash
 from domain.research.phase_contracts import PhaseResult
 from domain.research.search import SearchBatch
@@ -208,6 +211,11 @@ async def research_worker(value, context):
     combined = {
         name: value.values[name] | changes[name] for name in ("sources", "evidence", "claims")
     }
+    # Evaluation design needs a registered target even when search has no
+    # results. This is the plan's hypothesis, explicitly not extracted evidence.
+    proposed = planned_hypotheses(plan, value.values["research_brief"], combined["claims"])
+    changes["claims"].update(proposed)
+    combined["claims"].update(proposed)
     updates, coverage = section_coverage(
         plan,
         combined["claims"],
@@ -230,3 +238,103 @@ async def research_worker(value, context):
         degradations=degradations,
         failures=[],
     )
+
+
+async def analyze_worker(value, context):
+    unit = context.unit
+    if unit is None:
+        raise AppError("invalid_state", "Analysis requires an explicit unit")
+    if unit.parameters.get("kind") == "analysis_skip":
+        changes = {}
+        degradations = [
+            {
+                "source": "analysis",
+                "reason": unit.parameters["reason"],
+                "operation": "analysis_skipped",
+                "section_id": None,
+                "occurred_at": datetime.now(UTC),
+            }
+        ]
+    else:
+        if (
+            unit.parameters.get("kind") != "analysis"
+            or len(unit.section_ids) != 1
+            or len(unit.requirement_ids) != 1
+        ):
+            raise AppError("invalid_state", "Analysis requires one section/requirement")
+        plan = next(
+            plan for plan in value.values["section_plans"] if plan.section_id == unit.section_ids[0]
+        )
+        requirement = next(
+            item
+            for item in plan.analysis_requirements
+            if item.requirement_id == unit.requirement_ids[0]
+        )
+        changes, degradations = assess_requirement(plan, requirement, value.values), []
+    return PhaseResult(
+        phase="analyze",
+        unit_id=context.unit_id,
+        input_hash=value.semantic_hash,
+        changes=changes,
+        degradations=degradations,
+        failures=[],
+    )
+
+
+async def write_worker(value, context):
+    if context.unit is None or context.unit.parameters.get("kind") != "write":
+        raise AppError("invalid_state", "Writing requires an explicit chapter scope")
+    version = value.values["draft_version"] + 1
+    sections, bindings = {}, []
+    for plan in value.values["section_plans"]:
+        if plan.section_id not in context.unit.section_ids:
+            continue
+        if await context.cancel_check():
+            raise AppError("invalid_session_state", "Writing is stopping")
+        section, cited = await draft_chapter(
+            _ContextLLM(context, "write"),
+            plan=plan,
+            values=value.values,
+            version=version,
+            timeout_s=context.config.timeouts_s.llm,
+        )
+        sections[section.section_id] = section
+        bindings.extend(cited)
+    return PhaseResult(
+        phase="write",
+        unit_id=context.unit_id,
+        input_hash=value.semantic_hash,
+        changes={
+            "draft_sections": sections,
+            "draft_claim_bindings": bindings,
+            "draft_version": version,
+        },
+        degradations=[],
+        failures=[],
+    )
+
+
+async def review_worker(value, context):
+    if context.unit is None or context.unit.parameters.get("kind") != "review":
+        raise AppError("invalid_state", "Review requires its explicit unit")
+    changes = await review_draft(
+        _ContextLLM(context, "review"), values=value.values, timeout_s=context.config.timeouts_s.llm
+    )
+    return PhaseResult(
+        phase="review",
+        unit_id=context.unit_id,
+        input_hash=value.semantic_hash,
+        changes=changes,
+        degradations=[],
+        failures=[],
+    )
+
+
+def public_workers():
+    return {
+        "plan": plan_worker,
+        "research": research_worker,
+        "analyze": analyze_worker,
+        "write": write_worker,
+        "review": review_worker,
+    }

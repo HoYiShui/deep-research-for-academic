@@ -1,6 +1,6 @@
 # Tasks：后端对齐 mono-v1
 
-> 状态：实施中，2026-10-05。这是用户要求的直接任务拆解，不是新增设计规范。任务只在实际验证后勾选并附证据，不继承旧 tasks 的完成标记。
+> 状态：实施中，更新至2026-10-08。这是用户要求的直接任务拆解，不是新增设计规范。任务只在实际验证后勾选并附证据，不继承旧 tasks 的完成标记。
 
 > 范围追加（2026-10-05）：用户要求本轮同时实现 Web 前端，参考 ChatGPT 的聊天布局，消费事件级 SSE。追加任务 T063–T066；在后端闭环后、最终回归前完成，不以“剩余 token”作为省略验收的理由。
 
@@ -81,7 +81,8 @@
   - 2026-10-07外围手动调试：默认HttpRuntime也启动维护扫描，但未显式配置executor时禁止领取ready或调用工具。无有效租约的取消可完成、过期running转failed等待显式resume；其他进程有效租约不受干扰。TUI经独立TCP验证ready→取消→PG cancelled且attempt/工具/报告均为0；完整业务组合仍未完成，不勾选。证据：[手动维护模式](evidence/t016-http-runner.md#手动调试维护模式2026-10-07)。
   - 调度核心与显式受控executor经过6项真实PG验证，全量349通过；默认HttpRuntime尚不启动，待T017正式执行器后组合，不勾选。证据：[Runner核心](evidence/t016-runner-core.md)。
   - HttpRuntime已接受显式executor factory，准备服务后启动Runner、确认提交后wake；关闭时先停止/持久化Run中断再关模型/PG。新增HTTP确认→正式Driver五阶段→原子发布→报告/迟到SSE读取受控闭环，未再复制阶段fixture。默认缺完整业务workers时不自动领取，不暗退fake；CLI run与生产组合仍待完成，不勾选。证据：[HTTP Runner组合](evidence/t016-http-runner.md)。
-- [ ] T017 [US2] 更新 `backend/application/orchestrator.py`：execute_phase输入切片/白名单PhaseResult、单元验证合并、unit_manifest、完整seq快照、Machine转换；禁止空计划成功、禁止全局State交给Agent修改，终态先提交再发事件。
+- [x] T017 [US2] 更新 `backend/application/orchestrator.py`：execute_phase输入切片/白名单PhaseResult、单元验证合并、unit_manifest、完整seq快照、Machine转换；禁止空计划成功、禁止全局State交给Agent修改，终态先提交再发事件。
+  - 2026-10-08完成复核：canonical五worker已注册并由real CLI、开发HTTP/TUI经同一PhaseExecutor/RunUnitCoordinator/RunDriver执行，单元结果不可变对象与完整seq先提交再投影；严格切片/合并/manifest/恢复与预算中途收缩已验证。受控外部模型+真实PG/MinIO/SDK传输实现完整五阶段报告，实际TUI客户端经活TCP完成确认/SSE/报告；全量1144项通过及分章Schema/错误分类后目标集57项通过。以下为历史部分进度；本任务完成不代替T016生产默认能力、T021 fake迁移或T039真实质量验收。证据：[五阶段调试链](evidence/us4.md)。
   - `phase_contracts.py`已实现五阶段严格读写白名单、稳定input hash及目标范围纯合并；27项新增反例、全量388通过。正式execute_phase/Worker/manifest/快照/Machine/默认Runner组合尚待接入，不勾选。证据：[阶段契约](evidence/t017-phase-contracts.md)。
   - `phase_executor.py`已补共享dispatch、缩小工具上下文和冻结hash/来源/执行身份前置，正式plan adapter经tool callback接入；9项dispatch反例通过。全量408通过后最后一项在目标集中验证；预算/cache callback与Orchestrator逐单元提交/Machine尚未组合，不勾选。证据：[dispatch](evidence/t017-phase-dispatch.md)。
   - `phase_tools.py`已把正式plan worker的LLM入口绑定真实PG预算/cache，包含模型用量与版本/来源/权限前置及共享进程信号量；13项真实PG/MinIO+受控模型反例通过。逐单元manifest/Checkpoint与Machine仍待组合，不勾选。证据：[持久phase工具入口](evidence/t017-phase-dispatch.md)。
@@ -154,9 +155,12 @@
 - [ ] T031 [US4] 更新 `backend/domain/research/agents/code_crafter.py`，新增 `backend/domain/research/analysis_templates.py`：实现五种闭集操作/parameters/output Schema、Decimal、模板版本/hash/回链、skipped/failed及Gap；不能执行模型自由Python。
 - [ ] T032 [US4] 更新 `backend/infrastructure/sandbox/docker.py` 与 `backend/tests/contract/test_execution.py`：正确挂脚本/输入、禁网/non-root/只读/资源限制、停止超时容器、附件路径/大小/hash；用 `backend/tests/integration/test_mono_sandbox.py` 真容器验证成功、超时、违规网络/路径拒绝，不只mock docker CLI。
   - 2026-10-08：开发可信脚本内核补齐ro挂载、non-root/禁网/资源限制、限定tmpfs输出、附件bytes/hash与真实容器超时/取消清理；真实Docker9项及contract16项通过。不接管Agent，正式AnalysisSpec闭集模板边界仍待T031协调，保持未完成。证据：[真实Docker内核](evidence/t032-sandbox.md)。
-- [ ] T033 [US4] 更新 `backend/tests/unit/test_writer.py`、`test_critic.py`、`test_route.py`：覆盖未改章节Binding保留、section_3事实同样审核、审核实际同版文本、空Binding拒绝、critical/major完整路由、返工上限不直接approved。
+- [x] T033 [US4] 更新 `backend/tests/unit/test_writer.py`、`test_critic.py`、`test_route.py`：覆盖未改章节Binding保留、section_3事实同样审核、审核实际同版文本、空Binding拒绝、critical/major完整路由、返工上限不直接approved。
+  - 2026-10-08完成复核：canonical实际Writer/Critic测试集中在test_pipeline_workers.py，结合test_phase_contracts.py、test_mono_machine.py及test_mono_report.py；覆盖未改章节绑定复制、审核真实正文、普通章节/任务表引用门、三任务payload、critical/major八种路由、返工上限不升级。最后目标集130项通过，任务表无绑定事实在模型审核前拒绝；仅完成确定性反例任务，不继承T035/T039业务质量验收。证据：[US4](evidence/us4.md)。
 - [ ] T034 [US4] 更新 `backend/domain/research/agents/writer.py` 与state：Statements/Binding/TaskPayload严格结构、每实质段落/行定位、按章相关上下文、三个task专属模块、版本复制与超长材料有界处理；未登记正文不能绕审。
+  - 2026-10-08：已接实际章节Writer与三任务Schema/Statement投影、相关关系和比较组材料、绑定复制、超长拒绝。真实运行暴露非核心章节错误生成row_citations；改为PlainChapter（task_payload=null、row_citations最多0项）与按任务判别的CoreChapter Schema，不追加Prompt禁令。真实复验及完整T039仍未通过，保持未勾选；证据：[US4](evidence/us4.md)。
 - [ ] T035 [US4] 更新 `backend/domain/research/agents/critic.py`、`machine.py`、`backend/application/orchestrator.py`：确定性引用校验+实际正文语义审核、旧issue复核、目标派生失效、最大3回流与终末收缩预算、approved/approved_with_risks/needs_more_work，不可安全交付则failed。
+  - 2026-10-08：实际Critic审阅同版草稿、事实/关系/比较条件并逐项复核旧问题；有缺口不会因模型approved自动通过。研究中途预算耗尽提交收缩Checkpoint，保留事实、不伪造完成单元，受控完整CLI证明仅一次write/review；真实默认预算仍在Write预留不足失败。完整提前收尾容量与多种返工/真实验收仍缺，不勾选；证据：[US4](evidence/us4.md)。
 - [x] T036 [US4] 新增 `backend/application/report_serializer.py` 并更新发布Repository：固定0–5+References、三任务第3节、真实引用编号/定位、风险/未闭环说明、HTML转义与白名单附件；Report/done Checkpoint/Run/Session同事务发布。新增 `backend/tests/contract/test_mono_report.py` 覆盖空引用说明、无效链接协议、悬空ID、错draft_version与故障回滚。
   - 纯装配与校验在`domain/research/reporting.py`，生产ReportPublisher已接显式Driver；Repository复查确定性内容，不能删风险/伪造书目/追加正文。51项报告contract、含真实PG/MinIO/独立SIGKILL与HTTP的119项目标集、全量607通过。三任务模型/取证仍为受控fixture，T034/T035/T037/T039保持未完成。证据：[确定性报告发布](evidence/t036-report-serializer.md)。
 - [x] T037 [US4] 实现 `backend/interface/router/research.py` 附件端点：owner/Artifact/文件白名单校验、MinIO私有读、媒体类型与错误；补 `backend/tests/integration/test_mono_artifacts.py`，跨owner/路径穿越404，内容不可读503，不暴露storage key。
@@ -255,4 +259,4 @@ Web执行顺序：T063 → T064 → T065 → T066 → T061–T062；T064依赖T0
 
 验收覆盖索引：A1=T008–T013；A2=T006/T008/T011/T053；A3=T006/T015/T036；A4=T027/T033–T038；A5=T029–T032；A6=T034–T039；A7=T043–T048/T050/T052；A8=T040–T041/T047/T049/T052；A9=T020/T022/T055；A10=T014/T018–T019/T022；A11=T007/T050/T053–T054；A12=T021/T051/T059；A13=T056–T058/T061。
 
-**当前下一步：真实业务worker与工具（T023–T035，含T032真实沙箱与必要的T043 Parser） → 默认T016 Runner组合 → T021 CLI → T022完整HTTP与独立进程返工恢复验收。** T015租约/取消/恢复/报告事务和T019 HTTP生命周期已接入；T018默认HTTP可订阅当前持久状态。最新隔离真实PG/MinIO环境全量607通过，工具结果写入前/后及单元提交到阶段推进之间的真实SIGKILL恢复已验证；原PG在磁盘断连后不能启动且数据未修改。正式phase executor/plan worker、PG预算/cache与共享模型信号量、单元manifest/完整seq提交/可验证跳过、稳定单元规划与typed Machine/独立阶段提交、五阶段/返工RunDriver及显式Runner已组合（证据：[Driver与恢复](evidence/t017-phase-dispatch.md)）；T036确定性报告装配/发布校验已完成（证据：[报告serializer](evidence/t036-report-serializer.md)），默认ready Run尚不自动研究，真实业务worker、预算提前耗尽的最终收缩仍待实施；不能宣称M2或业务报告完成。T011仅KB授权/版本/隐私部分等待T041/T050，当前对KB请求明确404且零模型调用。历史阶段说明记录当时边界，以最新证据为准。Web仍按T063–T066纳入最终交付。
+**当前下一步：先完成公开web的真实CLI/HTTP/TUI报告验证，继续T027/T029–T035/T038–T039；随后完成T016默认能力组合、T021 fake/legacy迁移与KB/安全/部署/Web余项。** T017与T033已按各自确定性/真实存储范围复核完成；五阶段canonical workers已注册，开发执行器显式开启，预算中途收缩已接入，但真实报告尚未发布成功。最新工作流证据见[US4](evidence/us4.md)，此前[Driver恢复](evidence/t017-phase-dispatch.md)、[报告发布](evidence/t036-report-serializer.md)与[US2](evidence/us2.md)保留各自边界。开发PG已换全新Compose管理卷，救援/损坏旧卷保留，测试只清理自己创建的隔离资源。T011的KB授权/版本/隐私等待T041/T050，当前KB请求仍明确404且零模型调用。历史阶段说明以最新证据为准；Web仍按T063–T066纳入最终交付，不将本次调试链当作整个goal完成。

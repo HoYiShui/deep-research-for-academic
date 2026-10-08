@@ -63,8 +63,11 @@ def test_no_quantitative_analysis_requires_explicit_skip_reason():
         ("logic_error", True, "research", "re_research"),
     ],
 )
-def test_closed_review_policy_routes_explicit_targets(kind, fillable, phase, action):
-    state = reviewed(critic_feedback=[issue() | {"issue_type": kind, "fillable": fillable}])
+@pytest.mark.parametrize("severity", ["critical", "major"])
+def test_closed_review_policy_routes_explicit_targets(kind, fillable, phase, action, severity):
+    state = reviewed(
+        critic_feedback=[issue() | {"issue_type": kind, "fillable": fillable, "severity": severity}]
+    )
     decision = decide_pipeline(state)
     assert decision.next_phase == phase and not decision.deliver and decision.rework_count == 1
     assert decision.targets[0].action == action

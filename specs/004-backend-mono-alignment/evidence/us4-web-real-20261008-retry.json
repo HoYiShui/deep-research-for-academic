@@ -1,0 +1,1290 @@
+{
+  "scope": "real_frozen_cli_workflow",
+  "quality_accepted": false,
+  "brief": {
+    "task_type": "method_differentiation",
+    "decision_goal": "辨析 Transformer self-attention 与 CNN convolution 用于序列建模时的机制区别，为后续学术研究选择验证问题",
+    "research_object": "self-attention 与 convolution 两类序列建模机制",
+    "scope": "公开可下载网页原文中的方法机制说明；不要求论文检索工具或新实验",
+    "comparison_scope": "输入表示、局部与全局信息交互、输出形式和适用限制；不跨数据集或协议排序性能",
+    "claims_to_verify": "两种机制如何关联序列位置、局部感受野与长程依赖；哪些差分有原文支持，哪些仍是假设",
+    "evidence_requirements": "关键事实须有真实网页原文摘录、位置、哈希与参考文献；搜索摘要不作为证据",
+    "conclusion_boundary": "不声称新颖性、SOTA或普遍性能优势；没有同协议结果不作性能排名；缺证据明确记录Gap",
+    "deliverable": "五章固定结构的方法辨析报告，含机制差分表、贡献边界、局限和参考文献",
+    "assumptions": "公开开发验证用冻结任务书；本轮验证执行链路，不接受研究质量、不执行训练或计时实验"
+  },
+  "checks": {
+    "command_succeeded": false,
+    "checkpoint_readable": true,
+    "done": false,
+    "reviewed_current_version": false,
+    "five_chapters": false,
+    "published_report": false
+  },
+  "result": {
+    "status": "failed",
+    "error": {
+      "code": "budget_exhausted",
+      "message": "Run execution stopped before publication",
+      "details": null,
+      "retryable": false,
+      "request_id": "082d1af1-f5e6-423b-b701-25b76b179bd7"
+    },
+    "session_id": "40a99bae-a21b-4349-b735-529b7e83ffa6",
+    "run_id": "cc4560fb-0e7a-4eef-ad30-9c8e44609899",
+    "final_report": null,
+    "checkpoint_seq": 11,
+    "phase": "research",
+    "dependency_mode": "real",
+    "events": [
+      {
+        "event_id": "48ed886a-70b9-43ec-b212-8825acdb405f",
+        "session_id": "40a99bae-a21b-4349-b735-529b7e83ffa6",
+        "run_id": "cc4560fb-0e7a-4eef-ad30-9c8e44609899",
+        "timestamp": "2026-10-08T10:40:24.773252Z",
+        "checkpoint_seq": 2,
+        "event": "phase",
+        "phase": "plan",
+        "status": "running",
+        "message": "Current committed run state"
+      },
+      {
+        "event_id": "a3829c5f-b64b-4144-856d-92beb5c431bd",
+        "session_id": "40a99bae-a21b-4349-b735-529b7e83ffa6",
+        "run_id": "cc4560fb-0e7a-4eef-ad30-9c8e44609899",
+        "timestamp": "2026-10-08T10:40:24.805263Z",
+        "checkpoint_seq": 3,
+        "event": "phase",
+        "phase": "research",
+        "status": "running",
+        "message": "Current committed run state"
+      },
+      {
+        "event_id": "4dc97fa7-1612-480c-88c3-534f8a84c715",
+        "session_id": "40a99bae-a21b-4349-b735-529b7e83ffa6",
+        "run_id": "cc4560fb-0e7a-4eef-ad30-9c8e44609899",
+        "timestamp": "2026-10-08T10:40:24.839182Z",
+        "checkpoint_seq": 4,
+        "event": "phase",
+        "phase": "research",
+        "status": "running",
+        "message": "Current committed run state"
+      },
+      {
+        "event_id": "658c180f-42f5-46d0-a9c9-fddc7d0ff89a",
+        "session_id": "40a99bae-a21b-4349-b735-529b7e83ffa6",
+        "run_id": "cc4560fb-0e7a-4eef-ad30-9c8e44609899",
+        "timestamp": "2026-10-08T10:40:24.839423Z",
+        "checkpoint_seq": 4,
+        "event": "progress",
+        "phase": "research",
+        "section_id": "section_1",
+        "stage": "section_completed",
+        "unit_id": "unit-bf906f847ccb1dba028abc84ad80df7a349b493d16225a1b1f5c3edf44140415",
+        "completed_units": 1,
+        "total_units": 21,
+        "message": "Section coverage checkpoint committed",
+        "results": null,
+        "chart": null
+      },
+      {
+        "event_id": "306b1e32-72ac-4194-ac21-14d1327bb32b",
+        "session_id": "40a99bae-a21b-4349-b735-529b7e83ffa6",
+        "run_id": "cc4560fb-0e7a-4eef-ad30-9c8e44609899",
+        "timestamp": "2026-10-08T10:40:24.842794Z",
+        "checkpoint_seq": 4,
+        "event": "progress",
+        "phase": "research",
+        "section_id": "section_2",
+        "stage": "query_started",
+        "unit_id": "unit-de3246c81f8b8ab884e7ece5aaffcb7c22a0abfa0e23193180a3fea32c915a0a",
+        "completed_units": 1,
+        "total_units": 21,
+        "message": "Research query unit started; result is not committed",
+        "results": null,
+        "chart": null
+      },
+      {
+        "event_id": "78b107ed-d817-47be-8b3d-c3dd879823c7",
+        "session_id": "40a99bae-a21b-4349-b735-529b7e83ffa6",
+        "run_id": "cc4560fb-0e7a-4eef-ad30-9c8e44609899",
+        "timestamp": "2026-10-08T10:40:25.469383Z",
+        "checkpoint_seq": 5,
+        "event": "phase",
+        "phase": "research",
+        "status": "running",
+        "message": "Current committed run state"
+      },
+      {
+        "event_id": "f878b6fb-aff2-422c-941d-da5b5eea7659",
+        "session_id": "40a99bae-a21b-4349-b735-529b7e83ffa6",
+        "run_id": "cc4560fb-0e7a-4eef-ad30-9c8e44609899",
+        "timestamp": "2026-10-08T10:40:25.469731Z",
+        "checkpoint_seq": 5,
+        "event": "progress",
+        "phase": "research",
+        "section_id": "section_2",
+        "stage": "query_completed",
+        "unit_id": "unit-de3246c81f8b8ab884e7ece5aaffcb7c22a0abfa0e23193180a3fea32c915a0a",
+        "completed_units": 2,
+        "total_units": 21,
+        "message": "Research query unit checkpoint committed",
+        "results": null,
+        "chart": null
+      },
+      {
+        "event_id": "1f094a95-63a8-450e-8601-00b211a9fd93",
+        "session_id": "40a99bae-a21b-4349-b735-529b7e83ffa6",
+        "run_id": "cc4560fb-0e7a-4eef-ad30-9c8e44609899",
+        "timestamp": "2026-10-08T10:40:25.474230Z",
+        "checkpoint_seq": 5,
+        "event": "progress",
+        "phase": "research",
+        "section_id": "section_2",
+        "stage": "query_started",
+        "unit_id": "unit-a5de90334e604978b4a2013364f42ff49db81e84aa6a551306ecb5e28abb537b",
+        "completed_units": 2,
+        "total_units": 21,
+        "message": "Research query unit started; result is not committed",
+        "results": null,
+        "chart": null
+      },
+      {
+        "event_id": "d35ed059-0632-4d7e-80f9-a72147a65eea",
+        "session_id": "40a99bae-a21b-4349-b735-529b7e83ffa6",
+        "run_id": "cc4560fb-0e7a-4eef-ad30-9c8e44609899",
+        "timestamp": "2026-10-08T10:40:25.715804Z",
+        "checkpoint_seq": 6,
+        "event": "phase",
+        "phase": "research",
+        "status": "running",
+        "message": "Current committed run state"
+      },
+      {
+        "event_id": "f3ce2d76-cdb9-43bd-bf77-e9d5ea14e63b",
+        "session_id": "40a99bae-a21b-4349-b735-529b7e83ffa6",
+        "run_id": "cc4560fb-0e7a-4eef-ad30-9c8e44609899",
+        "timestamp": "2026-10-08T10:40:25.715928Z",
+        "checkpoint_seq": 6,
+        "event": "progress",
+        "phase": "research",
+        "section_id": "section_2",
+        "stage": "query_completed",
+        "unit_id": "unit-a5de90334e604978b4a2013364f42ff49db81e84aa6a551306ecb5e28abb537b",
+        "completed_units": 3,
+        "total_units": 21,
+        "message": "Research query unit checkpoint committed",
+        "results": null,
+        "chart": null
+      },
+      {
+        "event_id": "f1a8a556-00c2-4065-8534-aca8c17a1feb",
+        "session_id": "40a99bae-a21b-4349-b735-529b7e83ffa6",
+        "run_id": "cc4560fb-0e7a-4eef-ad30-9c8e44609899",
+        "timestamp": "2026-10-08T10:40:25.718036Z",
+        "checkpoint_seq": 6,
+        "event": "progress",
+        "phase": "research",
+        "section_id": "section_2",
+        "stage": "query_started",
+        "unit_id": "unit-f890472e2f69bbde950521b74c5738b2de3f8663084099cc43fd7567933c48a7",
+        "completed_units": 3,
+        "total_units": 21,
+        "message": "Research query unit started; result is not committed",
+        "results": null,
+        "chart": null
+      },
+      {
+        "event_id": "c740191e-50e4-454b-916e-42736ea61738",
+        "session_id": "40a99bae-a21b-4349-b735-529b7e83ffa6",
+        "run_id": "cc4560fb-0e7a-4eef-ad30-9c8e44609899",
+        "timestamp": "2026-10-08T10:40:30.953649Z",
+        "checkpoint_seq": 7,
+        "event": "phase",
+        "phase": "research",
+        "status": "running",
+        "message": "Current committed run state"
+      },
+      {
+        "event_id": "5d9844f1-c0c2-4b58-bbe1-e15607b3d36d",
+        "session_id": "40a99bae-a21b-4349-b735-529b7e83ffa6",
+        "run_id": "cc4560fb-0e7a-4eef-ad30-9c8e44609899",
+        "timestamp": "2026-10-08T10:40:30.953831Z",
+        "checkpoint_seq": 7,
+        "event": "progress",
+        "phase": "research",
+        "section_id": "section_2",
+        "stage": "query_completed",
+        "unit_id": "unit-f890472e2f69bbde950521b74c5738b2de3f8663084099cc43fd7567933c48a7",
+        "completed_units": 4,
+        "total_units": 21,
+        "message": "Research query unit checkpoint committed",
+        "results": null,
+        "chart": null
+      },
+      {
+        "event_id": "33ea9ce4-f0b6-48cc-9aa3-dc8c18fbb071",
+        "session_id": "40a99bae-a21b-4349-b735-529b7e83ffa6",
+        "run_id": "cc4560fb-0e7a-4eef-ad30-9c8e44609899",
+        "timestamp": "2026-10-08T10:40:30.957227Z",
+        "checkpoint_seq": 7,
+        "event": "progress",
+        "phase": "research",
+        "section_id": "section_2",
+        "stage": "query_started",
+        "unit_id": "unit-a62a2ac4ca48a564e24c44905437fd3d09a02dfea290c97abe3fa4f0536a9664",
+        "completed_units": 4,
+        "total_units": 21,
+        "message": "Research query unit started; result is not committed",
+        "results": null,
+        "chart": null
+      },
+      {
+        "event_id": "20277ba8-fadf-42c9-af59-a87704dd3d55",
+        "session_id": "40a99bae-a21b-4349-b735-529b7e83ffa6",
+        "run_id": "cc4560fb-0e7a-4eef-ad30-9c8e44609899",
+        "timestamp": "2026-10-08T10:40:31.243940Z",
+        "checkpoint_seq": 8,
+        "event": "phase",
+        "phase": "research",
+        "status": "running",
+        "message": "Current committed run state"
+      },
+      {
+        "event_id": "afd8d501-12aa-441d-a401-c8642a3b3431",
+        "session_id": "40a99bae-a21b-4349-b735-529b7e83ffa6",
+        "run_id": "cc4560fb-0e7a-4eef-ad30-9c8e44609899",
+        "timestamp": "2026-10-08T10:40:31.244117Z",
+        "checkpoint_seq": 8,
+        "event": "progress",
+        "phase": "research",
+        "section_id": "section_2",
+        "stage": "query_completed",
+        "unit_id": "unit-a62a2ac4ca48a564e24c44905437fd3d09a02dfea290c97abe3fa4f0536a9664",
+        "completed_units": 5,
+        "total_units": 21,
+        "message": "Research query unit checkpoint committed",
+        "results": null,
+        "chart": null
+      },
+      {
+        "event_id": "95cac031-fd62-495e-ab93-6509bccfd9fb",
+        "session_id": "40a99bae-a21b-4349-b735-529b7e83ffa6",
+        "run_id": "cc4560fb-0e7a-4eef-ad30-9c8e44609899",
+        "timestamp": "2026-10-08T10:40:31.246225Z",
+        "checkpoint_seq": 8,
+        "event": "progress",
+        "phase": "research",
+        "section_id": "section_2",
+        "stage": "query_started",
+        "unit_id": "unit-19f9f14cee3f2452582be26946b8f48bf4f8c8e9f92f1cd230c309f59c979b38",
+        "completed_units": 5,
+        "total_units": 21,
+        "message": "Research query unit started; result is not committed",
+        "results": null,
+        "chart": null
+      },
+      {
+        "event_id": "8e431c01-9797-45a2-9b48-30967398a3f0",
+        "session_id": "40a99bae-a21b-4349-b735-529b7e83ffa6",
+        "run_id": "cc4560fb-0e7a-4eef-ad30-9c8e44609899",
+        "timestamp": "2026-10-08T10:40:31.545092Z",
+        "checkpoint_seq": 9,
+        "event": "phase",
+        "phase": "research",
+        "status": "running",
+        "message": "Current committed run state"
+      },
+      {
+        "event_id": "8d8ce714-24e6-4d2e-9398-4c67f441dcd9",
+        "session_id": "40a99bae-a21b-4349-b735-529b7e83ffa6",
+        "run_id": "cc4560fb-0e7a-4eef-ad30-9c8e44609899",
+        "timestamp": "2026-10-08T10:40:31.545263Z",
+        "checkpoint_seq": 9,
+        "event": "progress",
+        "phase": "research",
+        "section_id": "section_2",
+        "stage": "query_completed",
+        "unit_id": "unit-19f9f14cee3f2452582be26946b8f48bf4f8c8e9f92f1cd230c309f59c979b38",
+        "completed_units": 6,
+        "total_units": 21,
+        "message": "Research query unit checkpoint committed",
+        "results": null,
+        "chart": null
+      },
+      {
+        "event_id": "81e6847a-c94e-450c-b695-9a62c8fe71be",
+        "session_id": "40a99bae-a21b-4349-b735-529b7e83ffa6",
+        "run_id": "cc4560fb-0e7a-4eef-ad30-9c8e44609899",
+        "timestamp": "2026-10-08T10:40:31.547513Z",
+        "checkpoint_seq": 9,
+        "event": "progress",
+        "phase": "research",
+        "section_id": "section_2",
+        "stage": "query_started",
+        "unit_id": "unit-c678100bf530d553f092ebd505fc3bd2e35c2c0d0ea1a7ecc944ef0cba964a65",
+        "completed_units": 6,
+        "total_units": 21,
+        "message": "Research query unit started; result is not committed",
+        "results": null,
+        "chart": null
+      },
+      {
+        "event_id": "cfe0a27a-cb0b-4ac5-b69d-b4b2f3b1df37",
+        "session_id": "40a99bae-a21b-4349-b735-529b7e83ffa6",
+        "run_id": "cc4560fb-0e7a-4eef-ad30-9c8e44609899",
+        "timestamp": "2026-10-08T10:40:31.758351Z",
+        "checkpoint_seq": 10,
+        "event": "phase",
+        "phase": "research",
+        "status": "running",
+        "message": "Current committed run state"
+      },
+      {
+        "event_id": "08b3bbde-4460-4e75-8931-722b9f91ce19",
+        "session_id": "40a99bae-a21b-4349-b735-529b7e83ffa6",
+        "run_id": "cc4560fb-0e7a-4eef-ad30-9c8e44609899",
+        "timestamp": "2026-10-08T10:40:31.758492Z",
+        "checkpoint_seq": 10,
+        "event": "progress",
+        "phase": "research",
+        "section_id": "section_2",
+        "stage": "query_completed",
+        "unit_id": "unit-c678100bf530d553f092ebd505fc3bd2e35c2c0d0ea1a7ecc944ef0cba964a65",
+        "completed_units": 7,
+        "total_units": 21,
+        "message": "Research query unit checkpoint committed",
+        "results": null,
+        "chart": null
+      },
+      {
+        "event_id": "4f7b68b7-7814-4247-9ffc-cc3e579a95cd",
+        "session_id": "40a99bae-a21b-4349-b735-529b7e83ffa6",
+        "run_id": "cc4560fb-0e7a-4eef-ad30-9c8e44609899",
+        "timestamp": "2026-10-08T10:40:31.760283Z",
+        "checkpoint_seq": 10,
+        "event": "progress",
+        "phase": "research",
+        "section_id": "section_2",
+        "stage": "query_started",
+        "unit_id": "unit-491b6c8b7c319a471a2c14506fc8d92909b1882e6865d0d28f1fa19801a5bfb3",
+        "completed_units": 7,
+        "total_units": 21,
+        "message": "Research query unit started; result is not committed",
+        "results": null,
+        "chart": null
+      },
+      {
+        "event_id": "6bd8b797-f106-44a5-b282-f000eb38b0a6",
+        "session_id": "40a99bae-a21b-4349-b735-529b7e83ffa6",
+        "run_id": "cc4560fb-0e7a-4eef-ad30-9c8e44609899",
+        "timestamp": "2026-10-08T10:40:31.989622Z",
+        "checkpoint_seq": 11,
+        "event": "phase",
+        "phase": "research",
+        "status": "running",
+        "message": "Current committed run state"
+      },
+      {
+        "event_id": "020c5e17-7650-4579-a8e4-868701cee47a",
+        "session_id": "40a99bae-a21b-4349-b735-529b7e83ffa6",
+        "run_id": "cc4560fb-0e7a-4eef-ad30-9c8e44609899",
+        "timestamp": "2026-10-08T10:40:31.989768Z",
+        "checkpoint_seq": 11,
+        "event": "progress",
+        "phase": "research",
+        "section_id": "section_2",
+        "stage": "query_completed",
+        "unit_id": "unit-491b6c8b7c319a471a2c14506fc8d92909b1882e6865d0d28f1fa19801a5bfb3",
+        "completed_units": 8,
+        "total_units": 21,
+        "message": "Research query unit checkpoint committed",
+        "results": null,
+        "chart": null
+      },
+      {
+        "event_id": "e9e84eb2-4c4d-4bda-9a5c-d35b504e6eb1",
+        "session_id": "40a99bae-a21b-4349-b735-529b7e83ffa6",
+        "run_id": "cc4560fb-0e7a-4eef-ad30-9c8e44609899",
+        "timestamp": "2026-10-08T10:40:31.991401Z",
+        "checkpoint_seq": 11,
+        "event": "progress",
+        "phase": "research",
+        "section_id": "section_2",
+        "stage": "query_started",
+        "unit_id": "unit-f6a157947a0ca5f3305cb0af3d25fb14bcf5a6e1e040262785ce33c8a45528cd",
+        "completed_units": 8,
+        "total_units": 21,
+        "message": "Research query unit started; result is not committed",
+        "results": null,
+        "chart": null
+      },
+      {
+        "event_id": "4cee8d6f-2c84-4459-a108-997bac3f0470",
+        "session_id": "40a99bae-a21b-4349-b735-529b7e83ffa6",
+        "run_id": "cc4560fb-0e7a-4eef-ad30-9c8e44609899",
+        "timestamp": "2026-10-08T10:40:32.942881Z",
+        "checkpoint_seq": 11,
+        "event": "done",
+        "status": "failed",
+        "review_verdict": null,
+        "final_report_url": null,
+        "failure": {
+          "code": "budget_exhausted",
+          "dependency": null,
+          "operation": "execute_run",
+          "phase": "research",
+          "message": "Run execution stopped before publication",
+          "retryable": false,
+          "resume_allowed": false,
+          "attempt": 1,
+          "occurred_at": "2026-10-08T10:40:32.146497Z",
+          "details": null
+        }
+      }
+    ]
+  },
+  "snapshot": {
+    "status": "ok",
+    "error": null,
+    "session_id": "40a99bae-a21b-4349-b735-529b7e83ffa6",
+    "run_id": "cc4560fb-0e7a-4eef-ad30-9c8e44609899",
+    "checkpoint_seq": 11,
+    "phase": "research",
+    "state": {
+      "schema_version": 1,
+      "session_id": "40a99bae-a21b-4349-b735-529b7e83ffa6",
+      "run_id": "cc4560fb-0e7a-4eef-ad30-9c8e44609899",
+      "brief_version": 1,
+      "brief_hash": "f150884e362759153f109a00494d79fde684afab43cebfa0b4787bd4fb8047f8",
+      "phase": "research",
+      "research_brief": {
+        "task_type": "method_differentiation",
+        "decision_goal": "辨析 Transformer self-attention 与 CNN convolution 用于序列建模时的机制区别，为后续学术研究选择验证问题",
+        "research_object": "self-attention 与 convolution 两类序列建模机制",
+        "scope": "公开可下载网页原文中的方法机制说明；不要求论文检索工具或新实验",
+        "comparison_scope": "输入表示、局部与全局信息交互、输出形式和适用限制；不跨数据集或协议排序性能",
+        "claims_to_verify": "两种机制如何关联序列位置、局部感受野与长程依赖；哪些差分有原文支持，哪些仍是假设",
+        "evidence_requirements": "关键事实须有真实网页原文摘录、位置、哈希与参考文献；搜索摘要不作为证据",
+        "conclusion_boundary": "不声称新颖性、SOTA或普遍性能优势；没有同协议结果不作性能排名；缺证据明确记录Gap",
+        "deliverable": "五章固定结构的方法辨析报告，含机制差分表、贡献边界、局限和参考文献",
+        "assumptions": "公开开发验证用冻结任务书；本轮验证执行链路，不接受研究质量、不执行训练或计时实验"
+      },
+      "source_selection": {
+        "categories": [
+          "web"
+        ],
+        "knowledge_base_ids": []
+      },
+      "section_plans": [
+        {
+          "section_id": "section_1",
+          "title": "问题定义与边界",
+          "objective": "围绕冻结任务书的决策目标，界定 self-attention 与 convolution 序列建模机制辨析对象、比较维度（输入表示、局部/全局信息交互、输出形式、适用限制）、证据范围（公开可下载网页原文）与结论边界（不主张新颖性、SOTA 或普遍性能优势，无同协议结果不作性能排名），明确五章固定结构方法辨析报告的交付边界，不新增实验、不跨数据集或协议排序性能。",
+          "claim_specs": [
+            {
+              "spec_id": "spec_boundary_no_performance_ranking",
+              "text": "需遵守的边界主张：本报告不声称新颖性、SOTA 或普遍性能优势；没有同协议结果不作性能排名；缺证据明确记录 Gap。",
+              "required_conditions": [
+                "以冻结任务书为唯一范围来源",
+                "性能相关陈述不得跨数据集或协议排序",
+                "无法满足证据要求时记录未决/Gap"
+              ],
+              "required_source_tiers": [
+                "unknown"
+              ]
+            }
+          ],
+          "sub_questions": [],
+          "retrieval_anchors": [],
+          "evidence_requirements": [
+            "冻结任务书作为任务定义与边界来源；记录 scope、comparison_scope、conclusion_boundary 与 deliverable。",
+            "不要求论文检索工具或新实验；仅规划公开可下载网页原文证据的核验方式。"
+          ],
+          "analysis_requirements": []
+        },
+        {
+          "section_id": "section_2",
+          "title": "证据基础与待验证发现",
+          "objective": "建立证据基础与核验清单：规定关键事实须来自公开可下载网页原文摘录，附 URL、位置、哈希与参考文献，搜索摘要不作为证据；为 self-attention 与 convolution 的机制说明、输入表示、局部感受野、长程依赖、输出形式和限制收集待验证 ClaimSpec，并标注来源层级与冲突。",
+          "claim_specs": [
+            {
+              "spec_id": "spec_attention_query_key_weighting",
+              "text": "需核验的来源主张：在原始 Transformer 论文及其官方/原始网页中，self-attention 是否被描述为以 query-key 相似度对序列位置进行加权聚合，并形成数据依赖的全局信息交互。",
+              "required_conditions": [
+                "提供原文摘录、URL、位置（章节/段落/页码）、哈希与参考文献",
+                "区分论文明确陈述与后续解释",
+                "搜索摘要不作为证据"
+              ],
+              "required_source_tiers": [
+                "primary",
+                "peer_reviewed"
+              ]
+            },
+            {
+              "spec_id": "spec_convolution_local_weight_sharing",
+              "text": "需核验的来源主张：在卷积序列建模原始论文或官方文档中，convolution 是否被描述为通过局部窗口、权值共享和堆叠/空洞扩大有效感受野来提取序列特征。",
+              "required_conditions": [
+                "提供原文摘录、URL、位置（章节/段落/页码）、哈希与参考文献",
+                "区分论文明确陈述与后续解释",
+                "搜索摘要不作为证据"
+              ],
+              "required_source_tiers": [
+                "primary",
+                "peer_reviewed"
+              ]
+            },
+            {
+              "spec_id": "spec_positional_information",
+              "text": "需核验的来源主张：原始来源是否明确说明 self-attention 对序列顺序信息的处理需要位置编码/位置表示，convolution 是否通过局部窗口结构隐含顺序或平移归纳偏置。",
+              "required_conditions": [
+                "提供原文摘录、URL、位置（章节/段落/页码）、哈希与参考文献",
+                "区分论文明确陈述与后续解释",
+                "搜索摘要不作为证据"
+              ],
+              "required_source_tiers": [
+                "primary",
+                "peer_reviewed"
+              ]
+            },
+            {
+              "spec_id": "spec_long_range_dependency",
+              "text": "需核验的来源主张：原始来源如何说明 self-attention 与 convolution 关联长程依赖的机制差异，例如单层全位置交互与深层/空洞卷积扩展感受野。",
+              "required_conditions": [
+                "提供原文摘录、URL、位置（章节/段落/页码）、哈希与参考文献",
+                "区分论文明确陈述与后续解释",
+                "搜索摘要不作为证据"
+              ],
+              "required_source_tiers": [
+                "primary",
+                "peer_reviewed"
+              ]
+            }
+          ],
+          "sub_questions": [
+            "公开可下载原文中，self-attention 的 query-key-value 计算、位置编码和长程依赖说明分别出现在哪些章节/段落？",
+            "公开可下载原文中，convolution 的局部感受野、权值共享、堆叠/空洞卷积说明分别出现在哪些章节/段落？",
+            "哪些机制陈述有原文明确支持，哪些只是综述、博客或搜索摘要中的解释？",
+            "不同来源对相同机制术语是否存在冲突或局限陈述？"
+          ],
+          "retrieval_anchors": [
+            "Attention Is All You Need self-attention scaled dot-product positional encoding WMT 2014 English-German BLEU original PDF",
+            "Neural Machine Translation by Jointly Learning to Align and Translate attention alignment mechanism original PDF",
+            "Convolutional Neural Networks for Sentence Classification convolution filter weight sharing SST-2 original PDF",
+            "An Empirical Evaluation of Generic Convolutional and Recurrent Networks for Sequence Modeling TCN dilated convolution receptive field original PDF",
+            "WaveNet: A Generative Model for Raw Audio dilated convolution receptive field raw audio original PDF",
+            "Conformer: Convolution-augmented Transformer for Speech Recognition convolution self-attention local global LibriSpeech WER original PDF",
+            "BERT: Pre-training of Deep Bidirectional Transformers for Language Understanding positional embeddings GLUE original PDF",
+            "Long Short-Term Memory sequence modeling gating original PDF"
+          ],
+          "evidence_requirements": [
+            "关键事实须有公开可下载网页原文摘录；每段摘录附 URL、位置（页码/章节/段落）、哈希与参考文献。",
+            "搜索摘要不作为证据；优先原始论文或官方文档，次选同行评审综述，并标注来源层级。",
+            "对同一机制术语的不同来源解释进行冲突登记，无法核验时标记 Gap。"
+          ],
+          "analysis_requirements": []
+        },
+        {
+          "section_id": "section_3",
+          "title": "任务核心分析：机制差分与贡献边界",
+          "objective": "围绕输入表示、机制、输出形式、最接近基线与差分主张进行任务特定核心分析：对 self-attention 与 convolution 的序列位置关联、局部感受野、长程依赖、输出形式和适用限制建立可追溯差分表；区分原文支持的差分、仍为假设的差分与贡献边界，不进行跨数据集或协议性能排序。",
+          "claim_specs": [
+            {
+              "spec_id": "spec_diff_input_representation",
+              "text": "需核验的差分主张：两类机制在输入表示上的差分包括——self-attention 是否通常直接作用于 token/位置集合表示并需显式或隐式位置信息；convolution 是否通常作用于局部 n-gram/时序窗口并按平移等变方式提取特征。",
+              "required_conditions": [
+                "差分项须映射到至少一条原文摘录或明确标注为假设/Gap",
+                "不得以不同数据集或协议的性能结果支持机制差分",
+                "记录原文与推断的边界"
+              ],
+              "required_source_tiers": [
+                "primary",
+                "peer_reviewed"
+              ]
+            },
+            {
+              "spec_id": "spec_diff_interaction_scope",
+              "text": "需核验的差分主张：两类机制在信息交互范围上的差分包括——self-attention 单层是否可聚合任意两位置；convolution 单层是否仅聚合核窗口内位置，需深层或空洞卷积扩展长程依赖。",
+              "required_conditions": [
+                "差分项须映射到至少一条原文摘录或明确标注为假设/Gap",
+                "不得以不同数据集或协议的性能结果支持机制差分",
+                "记录原文与推断的边界"
+              ],
+              "required_source_tiers": [
+                "primary",
+                "peer_reviewed"
+              ]
+            },
+            {
+              "spec_id": "spec_diff_output_and_limits",
+              "text": "需核验的差分主张：两类机制在输出形式和适用限制上的差分须由原文支持，包括 attention 的序列长度计算/内存增长与位置信息敏感限制，以及 convolution 的局部归纳偏置与长程依赖结构化限制。",
+              "required_conditions": [
+                "差分项须映射到至少一条原文摘录或明确标注为假设/Gap",
+                "不得以不同数据集或协议的性能结果支持机制差分",
+                "记录原文与推断的边界"
+              ],
+              "required_source_tiers": [
+                "primary",
+                "peer_reviewed"
+              ]
+            },
+            {
+              "spec_id": "spec_contribution_boundary",
+              "text": "需核验的贡献边界主张：本辨析只描述机制差分与待验证问题，不主张新方法、新颖性、SOTA 或普遍性能优势；无同协议结果不作性能排名。",
+              "required_conditions": [
+                "所有结论受冻结任务书 conclusion_boundary 约束",
+                "贡献边界须与 evidence 支持范围一致",
+                "缺证据差分标记为假设或 Gap"
+              ],
+              "required_source_tiers": [
+                "unknown"
+              ]
+            }
+          ],
+          "sub_questions": [
+            "在输入表示维度，原文如何描述 token/位置集合、局部窗口、位置编码与平移等变？",
+            "在局部/全局信息交互维度，原文如何说明单层感受野、任意两位置交互、深层与空洞卷积的作用？",
+            "在输出形式维度，两类机制输出如何表示序列位置，哪些限制被原文明确陈述？",
+            "哪些差分是原文直接支持，哪些是由机制定义推导的假设，哪些缺证据？",
+            "如何划定贡献边界，避免从机制差分滑向性能或新颖性主张？"
+          ],
+          "retrieval_anchors": [
+            "self-attention convolution sequence modeling mechanism difference local global receptive field positional encoding original PDF",
+            "Attention Is All You Need self-attention multi-head attention positional encoding limitations original PDF",
+            "Convolutional Neural Networks for Sentence Classification convolution filter n-gram local receptive field original PDF",
+            "An Empirical Evaluation of Generic Convolutional and Recurrent Networks for Sequence Modeling TCN causal convolution dilated convolution receptive field original PDF",
+            "Conformer: Convolution-augmented Transformer for Speech Recognition convolution-augmented self-attention local global original PDF",
+            "WaveNet: A Generative Model for Raw Audio dilated convolution receptive field original PDF",
+            "BERT: Pre-training of Deep Bidirectional Transformers for Language Understanding position embeddings sequence length limitations original PDF",
+            "Temporal Convolutional Networks for Action Segmentation and Detection temporal convolution receptive field original PDF"
+          ],
+          "evidence_requirements": [
+            "差分表每行须有来源摘录 URL、位置、哈希、参考文献或标记假设/Gap；不得用搜索摘要替代原文。",
+            "机制差分表属于 Writer 报告结构，不因此要求 comparison_matrix 或聚合等数值分析。",
+            "不得请求或执行跨数据集或协议的机制性能排序。"
+          ],
+          "analysis_requirements": []
+        },
+        {
+          "section_id": "section_4",
+          "title": "可支持结论与条件性建议",
+          "objective": "仅基于第2/3节已验证 ClaimSpec 形成可支持结论与条件性建议：说明哪些机制差分在原文证据下可表述，哪些只能作为待验证假设；给出后续学术研究验证问题的选择建议及触发条件、证据门槛和不适用范围，不作性能排名或新颖性主张。",
+          "claim_specs": [
+            {
+              "spec_id": "spec_contribution_boundary",
+              "text": "需核验的贡献边界主张：本辨析只描述机制差分与待验证问题，不主张新方法、新颖性、SOTA 或普遍性能优势；无同协议结果不作性能排名。",
+              "required_conditions": [
+                "所有结论受冻结任务书 conclusion_boundary 约束",
+                "贡献边界须与 evidence 支持范围一致",
+                "缺证据差分标记为假设或 Gap"
+              ],
+              "required_source_tiers": [
+                "unknown"
+              ]
+            }
+          ],
+          "sub_questions": [],
+          "retrieval_anchors": [],
+          "evidence_requirements": [
+            "结论只引用第2/3节已验证 ClaimSpec；每条条件建议注明触发条件、所需证据、不适用范围与 Gap。",
+            "不得跨数据集或协议排序性能；缺同协议结果时保留未决并记录 Gap。"
+          ],
+          "analysis_requirements": []
+        },
+        {
+          "section_id": "section_5",
+          "title": "未验证风险与验证动作",
+          "objective": "登记未验证假设、来源缺口、冲突证据、证据层级不足与执行风险，并为每条风险设计验证动作：补充公开可下载网页原文检索、原文位置与哈希复核、跨来源三角验证、区分搜索摘要与原文；无法验证时保持未决并记录 Gap，不预标支持。",
+          "claim_specs": [],
+          "sub_questions": [],
+          "retrieval_anchors": [],
+          "evidence_requirements": [
+            "列出未验证假设、来源缺口、冲突证据与验证动作。",
+            "验证动作包括补充检索、原文定位、哈希复核、跨来源三角验证。",
+            "无法验证的结论保持未决并记录 Gap，不预标支持。"
+          ],
+          "analysis_requirements": []
+        }
+      ],
+      "sources": {},
+      "evidence": {},
+      "claims": {},
+      "claim_evidence_links": [],
+      "quantitative_observations": {},
+      "comparable_metrics": {},
+      "comparison_sets": {},
+      "analysis_artifacts": {},
+      "section_coverage": {
+        "section_1": {
+          "section_id": "section_1",
+          "claim_spec_ids": [
+            "spec_boundary_no_performance_ranking"
+          ],
+          "claim_ids": [],
+          "evidence_ids": [],
+          "covered_claim_ids": [],
+          "gaps": [
+            {
+              "gap_id": "gap-1957acba256b573e87b9ce61fe2c7f11d7e672d3b1a1d177874745bce59fe2bc",
+              "section_id": "section_1",
+              "claim_spec_id": "spec_boundary_no_performance_ranking",
+              "claim_id": null,
+              "reason": "No extracted claim for this ClaimSpec",
+              "fillable": true,
+              "verification_action": "Retrieve original evidence addressing this spec and its required conditions"
+            }
+          ],
+          "unresolved_items": [
+            "No extracted claim for this ClaimSpec"
+          ]
+        },
+        "section_2": {
+          "section_id": "section_2",
+          "claim_spec_ids": [
+            "spec_attention_query_key_weighting",
+            "spec_convolution_local_weight_sharing",
+            "spec_long_range_dependency",
+            "spec_positional_information"
+          ],
+          "claim_ids": [],
+          "evidence_ids": [],
+          "covered_claim_ids": [],
+          "gaps": [
+            {
+              "gap_id": "gap-e322cd1ea81a7647661d3c7e604777b76e5ca220b14c84c86ea9ba1e2aab9ea8",
+              "section_id": "section_2",
+              "claim_spec_id": "spec_attention_query_key_weighting",
+              "claim_id": null,
+              "reason": "No extracted claim for this ClaimSpec",
+              "fillable": true,
+              "verification_action": "Retrieve original evidence addressing this spec and its required conditions"
+            },
+            {
+              "gap_id": "gap-9d940b71c994527379803d653b85970cd7836cf6ccfc2fac4828d06b44c85215",
+              "section_id": "section_2",
+              "claim_spec_id": "spec_convolution_local_weight_sharing",
+              "claim_id": null,
+              "reason": "No extracted claim for this ClaimSpec",
+              "fillable": true,
+              "verification_action": "Retrieve original evidence addressing this spec and its required conditions"
+            },
+            {
+              "gap_id": "gap-2a8e268c205f373a020452b08260cae1313e68d1f796bad80f64e947109d3fbd",
+              "section_id": "section_2",
+              "claim_spec_id": "spec_long_range_dependency",
+              "claim_id": null,
+              "reason": "No extracted claim for this ClaimSpec",
+              "fillable": true,
+              "verification_action": "Retrieve original evidence addressing this spec and its required conditions"
+            },
+            {
+              "gap_id": "gap-16c0d84abf53d74e1a7c9ac78de1c87baa1d6a7eb736990ae9d03e023dd8934c",
+              "section_id": "section_2",
+              "claim_spec_id": "spec_positional_information",
+              "claim_id": null,
+              "reason": "No extracted claim for this ClaimSpec",
+              "fillable": true,
+              "verification_action": "Retrieve original evidence addressing this spec and its required conditions"
+            }
+          ],
+          "unresolved_items": [
+            "No extracted claim for this ClaimSpec",
+            "No extracted claim for this ClaimSpec",
+            "No extracted claim for this ClaimSpec",
+            "No extracted claim for this ClaimSpec"
+          ]
+        }
+      },
+      "draft_sections": {},
+      "draft_claim_bindings": [],
+      "critic_feedback": [],
+      "draft_version": 0,
+      "reviewed_draft_version": null,
+      "review_verdict": null,
+      "final_report": null,
+      "run_metadata": {
+        "config": {
+          "versions": {
+            "llm_provider": "anthropic_compatible",
+            "llm_model": "deepseek-flash",
+            "llm_revision": "unconfigured",
+            "prompt_versions": {
+              "plan": "prompt-2e7e668ca559b503bcb4e2d27bd057bb33619e74be9eb1b899e95d8f9bf24f75",
+              "write": "prompt-182dfc08536d195e1aa33a0400fa666e9de1f35b9ecabb5712a01de1f184fcc8",
+              "review": "prompt-d7f998fd47b545ec96e7a1bfe5343eb84e7d9b75d5519e16ef978b458dac6231",
+              "analyze": "prompt-0477d33a1939ee4358f8759b7dc5862a2f3361f547dc77fd261d17f18902a237",
+              "clarify": "prompt-4f29687b195cbc94d885baf3e0c889c64b9811059b345c918413c12e6252a91a",
+              "research": "prompt-9c88093a764e931130b9313ab78f17996071118212d576b48d26cebfeaed4e10"
+            },
+            "template_versions": {
+              "plot": "mono-v1",
+              "statistic": "mono-v1",
+              "aggregation": "mono-v1",
+              "pairwise_delta": "mono-v1",
+              "comparison_matrix": "mono-v1"
+            },
+            "parser_version": "dr4a-html-v1",
+            "chunker_version": "mono-v1",
+            "embedding_version": "unconfigured",
+            "reranker_version": "unconfigured",
+            "index_version": "dr4a_chunks_v1"
+          },
+          "source_policy": {
+            "categories": [
+              "web"
+            ],
+            "knowledge_base_ids": [],
+            "private_only": false
+          },
+          "limits": {
+            "deadline_s": 1800,
+            "search_calls": 60,
+            "fetch_calls": 30,
+            "llm_calls": 60,
+            "tokens": 120000,
+            "terminal_reserved_calls": 8,
+            "terminal_reserved_tokens": 12000,
+            "rework_rounds": 3,
+            "citation_depth": 2,
+            "gap_queries_per_spec": 2
+          },
+          "timeouts_s": {
+            "llm": 180,
+            "search": 20,
+            "fetch": 45,
+            "embedding": 120,
+            "rerank": 60,
+            "vector": 15,
+            "content": 30,
+            "parser": 600,
+            "sandbox": 30
+          },
+          "concurrency": {
+            "search": 4,
+            "fetch": 2,
+            "llm": 2,
+            "local_inference": 1
+          }
+        },
+        "budget_used": {
+          "llm_calls": 1,
+          "search_calls": 7,
+          "fetch_calls": 28,
+          "tokens": 10881,
+          "elapsed_s": 54.51391483399857
+        },
+        "rework_count": 0,
+        "rework_targets": [],
+        "degraded_sources": [
+          {
+            "source": "research",
+            "reason": "Additional candidates remain unexamined beyond the bounded selection",
+            "operation": "candidate_selection",
+            "section_id": "section_2",
+            "occurred_at": "2026-10-08T10:40:25.318536Z"
+          },
+          {
+            "source": "https://m.blog.csdn.net/qq_52852138/article/details/124904169",
+            "reason": "fetch_url_forbidden",
+            "operation": "fetch",
+            "section_id": "section_2",
+            "occurred_at": "2026-10-08T10:40:25.357257Z"
+          },
+          {
+            "source": "https://blog.csdn.net/Haulyn5/article/details/123031971",
+            "reason": "fetch_url_forbidden",
+            "operation": "fetch",
+            "section_id": "section_2",
+            "occurred_at": "2026-10-08T10:40:25.387385Z"
+          },
+          {
+            "source": "https://blog.51cto.com/yunyaniu/3247434",
+            "reason": "fetch_url_forbidden",
+            "operation": "fetch",
+            "section_id": "section_2",
+            "occurred_at": "2026-10-08T10:40:25.414609Z"
+          },
+          {
+            "source": "https://m.blog.csdn.net/jokerwu192/article/details/125567174",
+            "reason": "fetch_url_forbidden",
+            "operation": "fetch",
+            "section_id": "section_2",
+            "occurred_at": "2026-10-08T10:40:25.435863Z"
+          },
+          {
+            "source": "research",
+            "reason": "Additional candidates remain unexamined beyond the bounded selection",
+            "operation": "candidate_selection",
+            "section_id": "section_2",
+            "occurred_at": "2026-10-08T10:40:25.624307Z"
+          },
+          {
+            "source": "https://download.csdn.net/download/weixin_38562026/14033660",
+            "reason": "fetch_url_forbidden",
+            "operation": "fetch",
+            "section_id": "section_2",
+            "occurred_at": "2026-10-08T10:40:25.647185Z"
+          },
+          {
+            "source": "https://www.cnblogs.com/billdingdj/archive/2019/10/04.html",
+            "reason": "fetch_url_forbidden",
+            "operation": "fetch",
+            "section_id": "section_2",
+            "occurred_at": "2026-10-08T10:40:25.664485Z"
+          },
+          {
+            "source": "http://www.oalib.com/paper/4068727",
+            "reason": "fetch_url_forbidden",
+            "operation": "fetch",
+            "section_id": "section_2",
+            "occurred_at": "2026-10-08T10:40:25.682437Z"
+          },
+          {
+            "source": "https://download.csdn.net/download/xmu_lin/9874372",
+            "reason": "fetch_url_forbidden",
+            "operation": "fetch",
+            "section_id": "section_2",
+            "occurred_at": "2026-10-08T10:40:25.696770Z"
+          },
+          {
+            "source": "research",
+            "reason": "Additional candidates remain unexamined beyond the bounded selection",
+            "operation": "candidate_selection",
+            "section_id": "section_2",
+            "occurred_at": "2026-10-08T10:40:25.846830Z"
+          },
+          {
+            "source": "https://blog.csdn.net/xum2008/article/details/50655380?locationNum=14&fps=1",
+            "reason": "fetch_url_forbidden",
+            "operation": "fetch",
+            "section_id": "section_2",
+            "occurred_at": "2026-10-08T10:40:25.867029Z"
+          },
+          {
+            "source": "https://github.com/njnuzpy/TextCNN",
+            "reason": "fetch_url_forbidden",
+            "operation": "fetch",
+            "section_id": "section_2",
+            "occurred_at": "2026-10-08T10:40:25.889179Z"
+          },
+          {
+            "source": "https://arxiv.org/abs/2505.08514",
+            "reason": "fetch_unavailable",
+            "operation": "fetch",
+            "section_id": "section_2",
+            "occurred_at": "2026-10-08T10:40:30.911370Z"
+          },
+          {
+            "source": "https://mathpretty.com/10598.html",
+            "reason": "fetch_url_forbidden",
+            "operation": "fetch",
+            "section_id": "section_2",
+            "occurred_at": "2026-10-08T10:40:30.935658Z"
+          },
+          {
+            "source": "research",
+            "reason": "Additional candidates remain unexamined beyond the bounded selection",
+            "operation": "candidate_selection",
+            "section_id": "section_2",
+            "occurred_at": "2026-10-08T10:40:31.156149Z"
+          },
+          {
+            "source": "https://github.com/flrngel/understanding-ai/issues/12",
+            "reason": "fetch_url_forbidden",
+            "operation": "fetch",
+            "section_id": "section_2",
+            "occurred_at": "2026-10-08T10:40:31.178296Z"
+          },
+          {
+            "source": "https://www.cnblogs.com/xuehuiping/p/17022239.html",
+            "reason": "fetch_url_forbidden",
+            "operation": "fetch",
+            "section_id": "section_2",
+            "occurred_at": "2026-10-08T10:40:31.194867Z"
+          },
+          {
+            "source": "https://blog.csdn.net/a1424262219/article/details/102148593",
+            "reason": "fetch_url_forbidden",
+            "operation": "fetch",
+            "section_id": "section_2",
+            "occurred_at": "2026-10-08T10:40:31.209457Z"
+          },
+          {
+            "source": "https://blog.csdn.net/moliaochunfeng/article/details/98177583",
+            "reason": "fetch_url_forbidden",
+            "operation": "fetch",
+            "section_id": "section_2",
+            "occurred_at": "2026-10-08T10:40:31.223476Z"
+          },
+          {
+            "source": "research",
+            "reason": "Additional candidates remain unexamined beyond the bounded selection",
+            "operation": "candidate_selection",
+            "section_id": "section_2",
+            "occurred_at": "2026-10-08T10:40:31.435044Z"
+          },
+          {
+            "source": "https://www.researchgate.net/publication/308026508_WaveNet_A_Generative_Model_for_Raw_Audio",
+            "reason": "fetch_url_forbidden",
+            "operation": "fetch",
+            "section_id": "section_2",
+            "occurred_at": "2026-10-08T10:40:31.451252Z"
+          },
+          {
+            "source": "https://www.researchgate.net/publication/320971438_Dilated_Residual_Networks",
+            "reason": "fetch_url_forbidden",
+            "operation": "fetch",
+            "section_id": "section_2",
+            "occurred_at": "2026-10-08T10:40:31.470058Z"
+          },
+          {
+            "source": "https://blog.csdn.net/weixin_45863274/article/details/141347142",
+            "reason": "fetch_url_forbidden",
+            "operation": "fetch",
+            "section_id": "section_2",
+            "occurred_at": "2026-10-08T10:40:31.490084Z"
+          },
+          {
+            "source": "https://www.doc88.com/p-5344762298418.html",
+            "reason": "fetch_url_forbidden",
+            "operation": "fetch",
+            "section_id": "section_2",
+            "occurred_at": "2026-10-08T10:40:31.519844Z"
+          },
+          {
+            "source": "research",
+            "reason": "Additional candidates remain unexamined beyond the bounded selection",
+            "operation": "candidate_selection",
+            "section_id": "section_2",
+            "occurred_at": "2026-10-08T10:40:31.681621Z"
+          },
+          {
+            "source": "https://api.semanticscholar.org/arXiv:2005.08100",
+            "reason": "fetch_url_forbidden",
+            "operation": "fetch",
+            "section_id": "section_2",
+            "occurred_at": "2026-10-08T10:40:31.695592Z"
+          },
+          {
+            "source": "https://blog.csdn.net/weixin_45234741/article/details/157611934",
+            "reason": "fetch_url_forbidden",
+            "operation": "fetch",
+            "section_id": "section_2",
+            "occurred_at": "2026-10-08T10:40:31.708364Z"
+          },
+          {
+            "source": "https://arxiv.org/abs/2311.02772",
+            "reason": "fetch_unavailable",
+            "operation": "fetch",
+            "section_id": "section_2",
+            "occurred_at": "2026-10-08T10:40:31.720492Z"
+          },
+          {
+            "source": "https://developer.aliyun.com/article/1221522",
+            "reason": "fetch_url_forbidden",
+            "operation": "fetch",
+            "section_id": "section_2",
+            "occurred_at": "2026-10-08T10:40:31.736637Z"
+          },
+          {
+            "source": "research",
+            "reason": "Additional candidates remain unexamined beyond the bounded selection",
+            "operation": "candidate_selection",
+            "section_id": "section_2",
+            "occurred_at": "2026-10-08T10:40:31.911881Z"
+          },
+          {
+            "source": "https://www.cnblogs.com/rh-li/p/18532244",
+            "reason": "fetch_url_forbidden",
+            "operation": "fetch",
+            "section_id": "section_2",
+            "occurred_at": "2026-10-08T10:40:31.928594Z"
+          },
+          {
+            "source": "https://www.cnblogs.com/rh-li/p/archive/2024/11/07",
+            "reason": "fetch_url_forbidden",
+            "operation": "fetch",
+            "section_id": "section_2",
+            "occurred_at": "2026-10-08T10:40:31.941762Z"
+          },
+          {
+            "source": "https://github.com/brightmart/bert_language_understanding",
+            "reason": "fetch_url_forbidden",
+            "operation": "fetch",
+            "section_id": "section_2",
+            "occurred_at": "2026-10-08T10:40:31.957738Z"
+          },
+          {
+            "source": "https://github.com/lovychen/BERT_Paper_Chinese_Translation",
+            "reason": "fetch_url_forbidden",
+            "operation": "fetch",
+            "section_id": "section_2",
+            "occurred_at": "2026-10-08T10:40:31.972530Z"
+          }
+        ],
+        "unit_manifest": {
+          "unit-19f9f14cee3f2452582be26946b8f48bf4f8c8e9f92f1cd230c309f59c979b38": {
+            "unit_id": "unit-19f9f14cee3f2452582be26946b8f48bf4f8c8e9f92f1cd230c309f59c979b38",
+            "phase": "research",
+            "input_hash": "8e5a5c4fd0d5cee5e3629e3b60afd624d76bd74469c3588c3546120764381d0b",
+            "result_hash": "eb265bab8a44c6d63d519f15c2ce699f0efe66a22f9adb59aa28456075eaa138",
+            "result_ref": {
+              "key": "phase-results/cc4560fb-0e7a-4eef-ad30-9c8e44609899/eb265bab8a44c6d63d519f15c2ce699f0efe66a22f9adb59aa28456075eaa138",
+              "sha256": "eb265bab8a44c6d63d519f15c2ce699f0efe66a22f9adb59aa28456075eaa138",
+              "size": 3558,
+              "media_type": "application/json"
+            },
+            "checkpoint_seq": 9,
+            "completed_at": "2026-10-08T10:40:31.528775Z",
+            "affected_ids": [
+              "section_2"
+            ]
+          },
+          "unit-491b6c8b7c319a471a2c14506fc8d92909b1882e6865d0d28f1fa19801a5bfb3": {
+            "unit_id": "unit-491b6c8b7c319a471a2c14506fc8d92909b1882e6865d0d28f1fa19801a5bfb3",
+            "phase": "research",
+            "input_hash": "8e5a5c4fd0d5cee5e3629e3b60afd624d76bd74469c3588c3546120764381d0b",
+            "result_hash": "69cb63840a8239f0d69958e04a27387ec54ec9f4ed623c9cad5d930c21c217c2",
+            "result_ref": {
+              "key": "phase-results/cc4560fb-0e7a-4eef-ad30-9c8e44609899/69cb63840a8239f0d69958e04a27387ec54ec9f4ed623c9cad5d930c21c217c2",
+              "sha256": "69cb63840a8239f0d69958e04a27387ec54ec9f4ed623c9cad5d930c21c217c2",
+              "size": 3511,
+              "media_type": "application/json"
+            },
+            "checkpoint_seq": 11,
+            "completed_at": "2026-10-08T10:40:31.981111Z",
+            "affected_ids": [
+              "section_2"
+            ]
+          },
+          "unit-a5de90334e604978b4a2013364f42ff49db81e84aa6a551306ecb5e28abb537b": {
+            "unit_id": "unit-a5de90334e604978b4a2013364f42ff49db81e84aa6a551306ecb5e28abb537b",
+            "phase": "research",
+            "input_hash": "8e5a5c4fd0d5cee5e3629e3b60afd624d76bd74469c3588c3546120764381d0b",
+            "result_hash": "43ea154930955887b585cf18058b87dfcac2e96c7b780f2f7695603771bfafb2",
+            "result_ref": {
+              "key": "phase-results/cc4560fb-0e7a-4eef-ad30-9c8e44609899/43ea154930955887b585cf18058b87dfcac2e96c7b780f2f7695603771bfafb2",
+              "sha256": "43ea154930955887b585cf18058b87dfcac2e96c7b780f2f7695603771bfafb2",
+              "size": 3499,
+              "media_type": "application/json"
+            },
+            "checkpoint_seq": 6,
+            "completed_at": "2026-10-08T10:40:25.706684Z",
+            "affected_ids": [
+              "section_2"
+            ]
+          },
+          "unit-a62a2ac4ca48a564e24c44905437fd3d09a02dfea290c97abe3fa4f0536a9664": {
+            "unit_id": "unit-a62a2ac4ca48a564e24c44905437fd3d09a02dfea290c97abe3fa4f0536a9664",
+            "phase": "research",
+            "input_hash": "8e5a5c4fd0d5cee5e3629e3b60afd624d76bd74469c3588c3546120764381d0b",
+            "result_hash": "a42d22b6e170be0558a0f8dd88a49f3a63bd44faac97839f7805127fd04fa246",
+            "result_ref": {
+              "key": "phase-results/cc4560fb-0e7a-4eef-ad30-9c8e44609899/a42d22b6e170be0558a0f8dd88a49f3a63bd44faac97839f7805127fd04fa246",
+              "sha256": "a42d22b6e170be0558a0f8dd88a49f3a63bd44faac97839f7805127fd04fa246",
+              "size": 3555,
+              "media_type": "application/json"
+            },
+            "checkpoint_seq": 8,
+            "completed_at": "2026-10-08T10:40:31.233038Z",
+            "affected_ids": [
+              "section_2"
+            ]
+          },
+          "unit-bf906f847ccb1dba028abc84ad80df7a349b493d16225a1b1f5c3edf44140415": {
+            "unit_id": "unit-bf906f847ccb1dba028abc84ad80df7a349b493d16225a1b1f5c3edf44140415",
+            "phase": "research",
+            "input_hash": "29630eb0017a1e2eb6a8d4704565abee92480a689b27bcb66053dd68d269bc48",
+            "result_hash": "9b7d373b36b7ad397ef65c4c0ad406cfb7377be97a150509dcbba61e195aa165",
+            "result_ref": {
+              "key": "phase-results/cc4560fb-0e7a-4eef-ad30-9c8e44609899/9b7d373b36b7ad397ef65c4c0ad406cfb7377be97a150509dcbba61e195aa165",
+              "sha256": "9b7d373b36b7ad397ef65c4c0ad406cfb7377be97a150509dcbba61e195aa165",
+              "size": 1212,
+              "media_type": "application/json"
+            },
+            "checkpoint_seq": 4,
+            "completed_at": "2026-10-08T10:40:24.829970Z",
+            "affected_ids": [
+              "section_1"
+            ]
+          },
+          "unit-c678100bf530d553f092ebd505fc3bd2e35c2c0d0ea1a7ecc944ef0cba964a65": {
+            "unit_id": "unit-c678100bf530d553f092ebd505fc3bd2e35c2c0d0ea1a7ecc944ef0cba964a65",
+            "phase": "research",
+            "input_hash": "8e5a5c4fd0d5cee5e3629e3b60afd624d76bd74469c3588c3546120764381d0b",
+            "result_hash": "a161ed0b7b109678d4bb514a0ad0f73ad6e0bfd7d670212c5becff985c397974",
+            "result_ref": {
+              "key": "phase-results/cc4560fb-0e7a-4eef-ad30-9c8e44609899/a161ed0b7b109678d4bb514a0ad0f73ad6e0bfd7d670212c5becff985c397974",
+              "sha256": "a161ed0b7b109678d4bb514a0ad0f73ad6e0bfd7d670212c5becff985c397974",
+              "size": 3507,
+              "media_type": "application/json"
+            },
+            "checkpoint_seq": 10,
+            "completed_at": "2026-10-08T10:40:31.749190Z",
+            "affected_ids": [
+              "section_2"
+            ]
+          },
+          "unit-d5092658124513eb3984bae8be549245b1a043adca74bc91f485a8c1ea826a87": {
+            "unit_id": "unit-d5092658124513eb3984bae8be549245b1a043adca74bc91f485a8c1ea826a87",
+            "phase": "plan",
+            "input_hash": "b7a7fcc81c365c95f49c6b2b338d778dc68ab5a205b1b72582937bcfe71314ca",
+            "result_hash": "cd2d64ab23a354492a44fb53ba13a23fa715d9a1f3d6de96440eb078eac4b566",
+            "result_ref": {
+              "key": "phase-results/cc4560fb-0e7a-4eef-ad30-9c8e44609899/cd2d64ab23a354492a44fb53ba13a23fa715d9a1f3d6de96440eb078eac4b566",
+              "sha256": "cd2d64ab23a354492a44fb53ba13a23fa715d9a1f3d6de96440eb078eac4b566",
+              "size": 12664,
+              "media_type": "application/json"
+            },
+            "checkpoint_seq": 2,
+            "completed_at": "2026-10-08T10:40:24.757514Z",
+            "affected_ids": [
+              "section_1",
+              "section_2",
+              "section_3",
+              "section_4",
+              "section_5"
+            ]
+          },
+          "unit-de3246c81f8b8ab884e7ece5aaffcb7c22a0abfa0e23193180a3fea32c915a0a": {
+            "unit_id": "unit-de3246c81f8b8ab884e7ece5aaffcb7c22a0abfa0e23193180a3fea32c915a0a",
+            "phase": "research",
+            "input_hash": "52fbcb34c2ac07e31abc942e4f45f7f48342469ffe106d3ee2babf0bd433a2c6",
+            "result_hash": "e570b03a37df01e41b6572bb0d061f60a23a31aeefb9c56e0a9d3a899173dfc3",
+            "result_ref": {
+              "key": "phase-results/cc4560fb-0e7a-4eef-ad30-9c8e44609899/e570b03a37df01e41b6572bb0d061f60a23a31aeefb9c56e0a9d3a899173dfc3",
+              "sha256": "e570b03a37df01e41b6572bb0d061f60a23a31aeefb9c56e0a9d3a899173dfc3",
+              "size": 3522,
+              "media_type": "application/json"
+            },
+            "checkpoint_seq": 5,
+            "completed_at": "2026-10-08T10:40:25.452050Z",
+            "affected_ids": [
+              "section_2"
+            ]
+          },
+          "unit-f890472e2f69bbde950521b74c5738b2de3f8663084099cc43fd7567933c48a7": {
+            "unit_id": "unit-f890472e2f69bbde950521b74c5738b2de3f8663084099cc43fd7567933c48a7",
+            "phase": "research",
+            "input_hash": "8e5a5c4fd0d5cee5e3629e3b60afd624d76bd74469c3588c3546120764381d0b",
+            "result_hash": "c42e41916b5a0c3cc06598eb816cb8e171a56fda8134a5562f71c4b097982f51",
+            "result_ref": {
+              "key": "phase-results/cc4560fb-0e7a-4eef-ad30-9c8e44609899/c42e41916b5a0c3cc06598eb816cb8e171a56fda8134a5562f71c4b097982f51",
+              "sha256": "c42e41916b5a0c3cc06598eb816cb8e171a56fda8134a5562f71c4b097982f51",
+              "size": 3468,
+              "media_type": "application/json"
+            },
+            "checkpoint_seq": 7,
+            "completed_at": "2026-10-08T10:40:30.944380Z",
+            "affected_ids": [
+              "section_2"
+            ]
+          }
+        },
+        "knowledge_snapshot": [],
+        "stop_reason": null
+      },
+      "errors": []
+    }
+  }
+}

@@ -2,7 +2,9 @@
 
 `python -m cli` 是给 Agent 和开发者的后端调试入口。它不是用户研究入口：Clarify 的多轮对话由 HTTP/API 或前端处理；CLI 只消费已经冻结的 ResearchBrief。
 
-当前正在迁移到 [mono CLI 契约](../../docs/mono/api-contract.md#5-cli-契约)。`dump` 已读取新的 owner-scoped Run Checkpoint；`phase` 已使用正式执行器/合并，注册 plan 和 research worker。`run --real`复用TUI的公开来源plan/research、冻结/账本/Driver/限定Runner；缺少analyze/write/review时明确failed并保留检查点，不能验收完整研究。默认fake run仍是旧链路，JSON标记legacy_fake；ingest/search也仍待迁移。
+当前正在迁移到 [mono CLI 契约](../../docs/mono/api-contract.md#5-cli-契约)。`dump` 读取 owner-scoped Run Checkpoint；`phase` 与 `run --real` 使用正式五阶段 worker。real run 复用 TUI 的公开来源执行器、冻结/账本/Driver/限定 Runner，可发布经过审核的报告；运行完成不等于研究质量验收。默认 fake run 仍是旧链路，JSON 标记 legacy_fake；ingest/search 仍待迁移。
+
+当前工具注册仅包含 Bocha web search；arXiv 实现和测试保留，但不在运行时注册。默认 papers,web 只调用已注册的 web 源；papers-only 明确失败，不暗退 web。分析无需求时合法 skip；有需求则登记条件判断与明确 Gap，受控数值计算尚未接入，不制造 Artifact。新 Run 的 Prompt/示例/Schema 版本采用哈希；旧版本不匹配时明确拒绝，不能把不同 Prompt 当作同一 Run 的恢复。
 
 在 `backend/` 目录中运行：
 
@@ -20,7 +22,7 @@ python -m cli dump <session-id> --json
 | 命令 | 用途 |
 |---|---|
 | `doctor` | 只读检查配置、PG连接/迁移标记、MinIO bucket；默认另查Milvus连接/本地模型文件，不能证明推理或完整Pipeline可用。 |
-| `run --brief FILE` | 跳过 Clarify 执行冻结 Brief；当前 real 装配 plan/research，不能产出完整报告。 |
+| `run --brief FILE` | 跳过 Clarify 执行冻结 Brief；real 执行五阶段并持久化报告，质量不足仍如实披露。 |
 | `phase PHASE --state FILE` | 用快照状态只执行一个 phase。 |
 | `dump SESSION_ID` | 从 PostgreSQL 读取当前 Run 的最新 seq，不按阶段倒序。 |
 | `ingest PDF` / `search QUERY` | 独立调试知识库入库与检索。 |
@@ -46,19 +48,19 @@ real run必须显式配置已支持的parser版本；不沿用`unconfigured`或�
 PARSER_VERSION=dr4a-html-v1 uv run python -m cli run --brief frozen-brief.json --real --json
 ```
 
-PDF模式用`PARSER_VERSION=dr4a-mineru-4.0.10-standard-v1`，另需已准备的`MINERU_MODELS_DIR`；格式/平台限制同下文research原文探针。CLI结果events包含本进程query/section进度；HTTP只会轮询该Run持久phase/done，不共享CLI瞬态队列。失败后可dump已提交research事实，不能把未配置后续阶段当成功报告。
+PDF模式用`PARSER_VERSION=dr4a-mineru-4.0.10-standard-v1`，另需已准备的`MINERU_MODELS_DIR`；格式/平台限制同下文research原文探针。CLI结果events包含本进程query/section进度；HTTP只会轮询该Run持久phase/done，不共享CLI瞬态队列。失败后可dump已提交事实；空搜索和 Gap 不是已获得证据。
 
 ## phase 输入前置
 
-`phase` 要求严格完整 mono PipelineState（schema_version=1），包括全部空输出字段；不接受旧版局部dict。`state.phase` 必须与命令相同，来源/config/Brief hash与事实回链必须有效。阶段前置复用正式 PhaseInput；当前 plan 和 research 可执行。
+`phase` 要求严格完整 mono PipelineState（schema_version=1），包括全部空输出字段；不接受旧版局部dict。`state.phase` 必须与命令相同，来源/config/Brief hash与事实回链必须有效。五阶段均复用正式 PhaseInput 与 worker。
 
 | phase | 最低输入 |
 |---|---|
 | `plan` | 完整 Brief、冻结来源与运行配置 |
 | `research` | 完整五章计划/来源与事实 map |
-| `analyze` | 五章计划/分析输入；Observation允许空但不能缺key（worker待接入） |
-| `write` | plans/事实/五章coverage，空证据必须有明确缺口（worker待接入） |
-| `review` | 完整同版 draft_sections/bindings及事实回链（worker待接入） |
+| `analyze` | 五章计划/分析输入；Observation允许空但不能缺key；没有需求时 skip，有需求但无法计算时 Gap |
+| `write` | plans/事实/五章coverage，空证据必须有明确缺口 |
+| `review` | 完整同版 draft_sections/bindings及事实回链；审核实际段落与任务表 |
 
 成功时，`phase --json` 输出完整 post-state、events，以及顶层 `state_delta`。缺少前置或状态阶段不匹配会以退出码 2 退出，并在 stderr 指出原因。
 
@@ -98,7 +100,9 @@ uv run python -m scripts.verify_research_phase --state research-state.json --rea
 
 `verify_cli_plan --sources papers` 可冻结仅论文来源，默认仍为 `papers,web`；`PARSER_VERSION` 在生成输入时进入冻结配置，后续 phase 不静默切换 parser。用 plan 结果中的完整 state 作为下一阶段输入，仅按正式阶段前置将 phase 标记改为 research，保留 Brief/config/计划和事实。独立 phase 不推进持久 Run。
 
-research 优先使用该章去重后的 `retrieval_anchors` 建 query 单元，无 anchors 时兼容 sub_questions；纯建议章没有子问题时不启动背景检索。明确 arXiv 编号采用标准 `id_list` 定位，版本号保留。普通关键词仍走搜索；这不等于已经解决所有查询生成、相关性排序或受限追溯。
+持久Run在研究单元中途耗尽预算时会停止扩展，保留已提交事实、为未完成部分记录Gap，并用预留预算尝试一次限制写作/审核；中断单元不记入完成manifest，也不发query_completed。结构/引用/安全收缩或剩余额度不满足时仍failed，不保证任何输入都能发布报告。默认120000 tokens/12000收尾预留未做容量承诺；可通过`RUN_TOKENS`、`RUN_TERMINAL_RESERVED_TOKENS`明确调整新Run并在其快照记录，不能给旧Run偷偷追加预算。模型输入UTF-8字节加输出上限是保守预留，不是测得tokens；实际用量来自供应商usage。
+
+research 优先使用该章去重后的 `retrieval_anchors` 建 query 单元，无 anchors 时兼容 sub_questions；纯建议章没有子问题时不启动背景检索。当前只执行已注册的 web search；独立 arXiv adapter 保留标准 `id_list` 和版本定位测试，不代表运行时启用。查询质量、相关性排序和受限追溯仍需进一步验证。
 
 Observation 的表格 `raw_value` 必须来自完整单元格，不能截取系数、指数或不确定性。表格 HTML 的上标用 `^`、下标用 `_` 表示；含糊科学计数法保留原文并保持数值 null，不自动修补 OCR 拆列，也不据此声称行列归属/比较条件均已验证。
 
@@ -131,7 +135,7 @@ uv run python -m cli doctor --scope research --debug-db --json
 - Run HTTP/SSE：`uv run python -m scripts.verify_run_http --help`，已有会话的观察默认只读，取消/恢复需显式 action。
 - 单阶段：上文的 `verify_cli_plan` / `verify_research_phase`；`--real` 会产生相应模型/检索调用，不把缺证据或网络失败记录为通过。
 
-开发入口推荐 `scripts.debug_backend` 与 TUI，使用独立 `dr4a_debug` 数据库。当前本机 PostgreSQL 已恢复到新卷，原 Compose 定义仍指向损坏旧卷：**不要运行 `docker compose up postgres` 或 `services.sh restart`**。本段是当前本机交接警告，不改变 mono 的目标部署设计。
+开发入口推荐 `scripts.debug_backend` 与 TUI，使用独立 `dr4a_debug` 数据库。本机 Compose PostgreSQL 已切换到新的开发卷，日常仍由根目录 `services.sh` 管理；旧损坏/救援/恢复卷保留，不执行 clean。外接盘断连仍可能损坏正在运行的数据库。
 
 ## mono 状态读取
 
@@ -148,12 +152,18 @@ JSON 模式错误也返回单个对象，`error` 包含 code/message/details/ret
 
 ## 活 HTTP Run 验证
 
-`run`仍在迁移时，不要用其旧结果验收mono。先通过HTTP Clarify探针审阅并明确确认Brief，再观察已接受的Run：
+先通过HTTP Clarify探针审阅并明确确认Brief，再观察已接受的Run：
 
 ```bash
 uv run python -m scripts.verify_run_http --session SESSION_UUID --model-mode real
 ```
 
-仅传已有`--session`时只订阅SSE并核对最新HTTP状态/报告，不直接执行或创建Run。`--action cancel`或`--action resume`才发送对应控制请求；resume需要failed且resume_allowed。`--url`可指定后端，`--timeout`限制整个过程。`--model-mode controlled`用于明确受控测试，不代表真实研究能力通过。当前生产完整worker尚未组合，缺能力时超时/失败是有效诊断，不会自动退回fake。
+仅传已有`--session`时只订阅SSE并核对最新HTTP状态/报告，不直接执行或创建Run。`--action cancel`或`--action resume`才发送对应控制请求；resume需要failed且resume_allowed。`--url`可指定后端，`--timeout`限制整个过程。`--model-mode controlled`用于明确受控测试，不代表真实研究能力通过。缺资料/能力时留下明确失败或 Gap，不自动退回 fake。
+
+冻结 Brief 的完整真实 CLI 验证可用下列入口；会创建调试会话并消耗模型/检索额度，结果不自动接受报告质量。`--record` 只允许新文件，记录本轮结果与只读 dump：
+
+```bash
+PARSER_VERSION=dr4a-html-v1 uv run --no-sync python -m scripts.verify_cli_workflow --brief frozen-brief.json --real --debug-db --record NEW_FILE
+```
 
 也可以用同一探针创建/澄清：`--query "公开研究问题"`，随后用返回的Session UUID加`--answers-file answers.json`继续。系统到confirm后需审阅完整Brief，再显式提供`--approve-file approval.json`；格式复用Clarify探针的session_id/brief_version/research_brief。未提供确认文件不会启动Run，不能与cancel/resume action混用。

@@ -57,6 +57,34 @@ async def tui_probe(url, code, **values):
     return json.loads(stdout)
 
 
+async def test_tui_default_workers_clarify_confirm_sse_and_report(pg_database, object_cache):
+    pool, database = pg_database
+    async with server(database, run_bucket=object_cache.bucket, canonical=True) as url:
+        result = await tui_probe(
+            url,
+            """
+await current.send('Design a public evaluation');
+await current.send('Public intrusion detector evaluation');
+assert.equal(current.view.status,'confirm');
+assert(current.view.run_id == null);
+await current.confirm();
+const events=[];
+await current.observe(event=>events.push(event),()=>{},error=>{throw error},25);
+assert.equal(current.view.status,'completed',JSON.stringify(current.view));
+assert(events.some(event=>event.event==='done' && event.data.status==='completed'));
+const report=await api.report(current.view.session_id);
+assert.equal(report.review_verdict,'needs_more_work');
+assert(report.report.includes('受控调试样例'));
+assert.equal(typeof report.report,'string');
+console.log(JSON.stringify(current.view));
+""",
+        )
+    assert result["status"] == "completed"
+    assert await pool.fetchval("SELECT count(*) FROM reports") == 1
+    assert await pool.fetchval("SELECT count(*) FROM research_runs") == 1
+    assert await pool.fetchval("SELECT count(*) FROM tool_call_attempts") == 12
+
+
 async def test_tui_cancels_live_owned_execution_and_observes_durable_terminal(
     pg_database,
     object_cache,

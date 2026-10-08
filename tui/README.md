@@ -12,7 +12,7 @@ uv run python -m scripts.debug_backend
 
 读取 backend/.env，但连接同一 PostgreSQL 实例上的独立 `dr4a_debug` 数据库；不存在时创建，空库初始化 mono schema。**不修改 .env，不迁移/清空原数据库，不管理 Docker volumes。** PG 账号需有创建数据库权限。默认 manual：真实 Clarify/确认/状态/CLI dump 可用，确认后 Run 排 ready，等待执行器，不能称研究已开始。维护扫描仍处理取消、失租和排队超时；默认排队超过30分钟会 failed/queue_timeout，可按契约显式 resume，不自动执行研究。
 
-要由后端执行现有真实 plan/research，显式开启（会调用收费模型/搜索）：
+要由后端执行五阶段公开研究流程，显式开启（会调用收费模型/搜索）：
 
 ```bash
 uv run python -m scripts.debug_backend --execute --parser html
@@ -20,7 +20,9 @@ uv run python -m scripts.debug_backend --execute --parser html
 MINERU_MODELS_DIR=/你的/已准备模型目录 uv run --no-sync python -m scripts.debug_backend --execute --parser pdf
 ```
 
-开发执行器复用正式 RunDriver、PG checkpoint/预算/cache。当前只注册 plan/research；analyze/write/review 尚未实现时明确 failed，保留最后 checkpoint，不退回 fake，不生成空报告。修改/扩展 worker 注册在 `backend/application/debug_runtime.py`；Agent 本身仍在原实现位置。HTML/PDF 分支目前不是混合格式自动路由，PDF 仅支持已验证的 macOS 隔离配置。
+开发执行器复用正式 RunDriver、PG checkpoint/预算/cache，注册 plan/research/analyze/write/review。当前检索只注册 Bocha web search；arXiv 实现保留但不参与执行，papers-only 会明确失败，默认 papers,web 只使用已注册的 web 来源。TUI 没有额外的工具开关。HTML/PDF 分支目前不是混合格式自动路由，PDF 仅支持已验证的 macOS 隔离配置。
+
+没有分析需求时合法 skip；有需求时登记可比条件判断，缺资料或缺受控计算执行能力明确留下 Gap，暂不生成数值 Artifact。Writer 生成已登记段落与任务表，Critic 审查实际文本及证据。`completed` 只表示报告发布成功，`needs_more_work` 仍表示研究资料/验证不足，不代表科研效果已验收。新 Run 冻结实际 Prompt/示例/Schema 哈希；版本不匹配的旧 Run 不会静默使用新 Prompt 重跑，应新建调试会话。
 
 必须先准备 MinIO bucket；此入口不自动创建 bucket/下载权重。KB、登录、附件、部署能力不属于本次调试路径。已有匿名 mono 后端也可以直接使用，无需该辅助入口。
 

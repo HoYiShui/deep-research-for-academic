@@ -167,9 +167,16 @@ class Settings(BaseModel):
         return value.rstrip("/")
 
     @field_validator(
-        "llm_model", "llm_revision", "embedding_revision", "reranker_revision",
-        "parser_version", "chunker_version", "index_version", "minio_bucket",
-        "bge_m3_model_path", "bge_reranker_model_path",
+        "llm_model",
+        "llm_revision",
+        "embedding_revision",
+        "reranker_revision",
+        "parser_version",
+        "chunker_version",
+        "index_version",
+        "minio_bucket",
+        "bge_m3_model_path",
+        "bge_reranker_model_path",
     )
     @classmethod
     def nonempty(cls, value: str) -> str:
@@ -204,7 +211,10 @@ class Settings(BaseModel):
             if not self.dr4a_auth_required:
                 raise ValueError("production requires authentication")
             required = (
-                "database_url", "jwt_secret", "minio_access_key", "minio_secret_key",
+                "database_url",
+                "jwt_secret",
+                "minio_access_key",
+                "minio_secret_key",
             )
             for name in required:
                 value = getattr(self, name).get_secret_value()
@@ -227,13 +237,14 @@ class Settings(BaseModel):
     ) -> dict:
         """Return fixed non-secret inputs; capability checks reject unconfigured versions."""
         operations = ("comparison_matrix", "pairwise_delta", "plot", "statistic", "aggregation")
-        agents = ("clarify", "plan", "research", "analyze", "write", "review")
+        from domain.research.agents import prompt_versions
+
         snapshot = {
             "versions": {
                 "llm_provider": "local" if self.llm_local else "anthropic_compatible",
                 "llm_model": self.llm_model,
                 "llm_revision": self.llm_revision,
-                "prompt_versions": {agent: "mono-v1" for agent in agents},
+                "prompt_versions": prompt_versions(),
                 "template_versions": {operation: "mono-v1" for operation in operations},
                 "parser_version": self.parser_version,
                 "chunker_version": self.chunker_version,
@@ -261,10 +272,17 @@ class Settings(BaseModel):
             "timeouts_s": {
                 name: getattr(self, f"{name}_timeout_s")
                 for name in (
-                    "llm", "search", "fetch", "embedding", "rerank", "content", "parser",
+                    "llm",
+                    "search",
+                    "fetch",
+                    "embedding",
+                    "rerank",
+                    "content",
+                    "parser",
                     "sandbox",
                 )
-            } | {"vector": self.vector_timeout_s},
+            }
+            | {"vector": self.vector_timeout_s},
             "concurrency": {
                 "search": self.search_concurrency,
                 "fetch": self.fetch_concurrency,

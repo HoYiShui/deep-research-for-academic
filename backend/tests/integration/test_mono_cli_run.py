@@ -22,7 +22,15 @@ from tests.unit.test_state import initial_state
 
 
 async def command(
-    path, database, bucket, url, *extra, session=None, parser_version=HTML_PARSER_VERSION
+    path,
+    database,
+    bucket,
+    url,
+    *extra,
+    session=None,
+    parser_version=HTML_PARSER_VERSION,
+    partial_executor=True,
+    fetch_exhaustion=False,
 ):
     settings = Settings.load()
     parts = urlsplit(settings.database_url.get_secret_value())
@@ -34,12 +42,22 @@ async def command(
     return await asyncio.create_subprocess_exec(
         sys.executable,
         "-c",
-        """
+        f"""
 import sys
 from infrastructure.search.arxiv import ArxivSearch
 from infrastructure.search.bocha import BochaSearch
+import application.debug_runtime as runtime_module
+from application.phase_workers import plan_worker, research_worker
+# This legacy failure-path test deliberately binds an incomplete executor.
+# New complete-runtime tests exercise the actual default worker registration.
+if {partial_executor!r}:
+    runtime_module.public_workers = lambda: {{"plan": plan_worker, "research": research_worker}}
 from cli.__main__ import main
 async def empty_search(self, query):
+    if {fetch_exhaustion!r}:
+        from domain.ports import SearchResult
+        return [SearchResult(source_id=f"blocked-{{n}}", source_type="web", title="Controlled blocked candidate",
+            snippet="Not evidence", url=f"http://127.0.0.1/{{n}}", provider="bocha") for n in (1, 2)]
     return []
 # Explicit child-only controlled providers, never a production fallback.
 ArxivSearch.search = BochaSearch.search = empty_search
@@ -60,6 +78,7 @@ sys.exit(main())
             "NO_PROXY": "127.0.0.1,localhost",
             "SHUTDOWN_S": "1",
             "PARSER_VERSION": parser_version,
+            "RUN_FETCH_CALLS": "1" if fetch_exhaustion else str(settings.run_fetch_calls),
         },
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE,
@@ -74,6 +93,108 @@ async def collect(process):
             process.kill()
             await process.wait()
     return process.returncode, json.loads(stdout), stderr.decode()
+
+
+async def test_default_five_workers_publish_real_pg_report_with_controlled_external_io(
+    pg_database, object_cache, tmp_path
+):
+    """No worker replacements: SDK transport, all workers, ledger and publisher."""
+    from domain.research.state import PipelineState
+
+    pool, database = pg_database
+    await run_migrations(pool)
+    initial = initial_state()
+    fake = DebugTools(initial, fake=True)
+    path = tmp_path / "brief.json"
+    path.write_text(initial.research_brief.model_dump_json())
+
+    def response(request):
+        prompt = request["messages"][0]["content"]
+        if "<chapter_context>" in prompt:
+            return fake.fake_draft(prompt)
+        if "<review_context>" in prompt:
+            return json.dumps({"issues": [], "prior_issues": [], "verdict": "needs_more_work"})
+        return fake.fake_plan()
+
+    async with model_server(Settings.load().llm_model, response) as (url, calls, _):
+        process = await command(
+            path, database, object_cache.bucket, url, "--verbose", partial_executor=False
+        )
+        code, body, stderr = await collect(process)
+    assert code == 0, (body.get("error"), stderr)
+    assert len(calls) == 7  # plan + five actual writer calls + actual critic
+    assert body["phase"] == "done" and body["final_report"]
+    run_id = UUID(body["run_id"])
+    assert (
+        await pool.fetchval("SELECT status FROM research_runs WHERE run_id=$1", run_id)
+        == "completed"
+    )
+    assert await pool.fetchval("SELECT count(*) FROM reports") == 1
+    snapshot = json.loads(
+        await pool.fetchval(
+            "SELECT state FROM phase_snapshots WHERE run_id=$1 ORDER BY seq DESC LIMIT 1", run_id
+        )
+    )
+    state = PipelineState.model_validate(snapshot)
+    assert state.review_verdict == "needs_more_work" and state.draft_version == 1
+    assert len(state.draft_sections) == 5 and not state.evidence
+    assert all(claim.claim_type == "hypothesis" for claim in state.claims.values())
+    assert any(item.operation == "analysis_skipped" for item in state.run_metadata.degraded_sources)
+    assert state.final_report.risks and not state.final_report.references
+    assert await pool.fetchval("SELECT count(*) FROM tool_call_attempts") == 12
+    assert "controlled-test-key" not in json.dumps(body) + stderr
+    await fake.close()
+
+
+async def test_mid_query_fetch_budget_contracts_once_without_fake_query_completion(
+    pg_database, object_cache, tmp_path
+):
+    from domain.research.state import PipelineState
+
+    pool, database = pg_database
+    await run_migrations(pool)
+    initial = initial_state()
+    fake = DebugTools(initial, fake=True)
+    path = tmp_path / "brief.json"
+    path.write_text(initial.research_brief.model_dump_json())
+
+    def response(request):
+        prompt = request["messages"][0]["content"]
+        if "<chapter_context>" in prompt:
+            return fake.fake_draft(prompt)
+        if "<review_context>" in prompt:
+            return json.dumps({"issues": [], "prior_issues": [], "verdict": "approved"})
+        return fake.fake_plan()
+
+    async with model_server(Settings.load().llm_model, response) as (url, calls, _):
+        process = await command(
+            path,
+            database,
+            object_cache.bucket,
+            url,
+            "--verbose",
+            partial_executor=False,
+            fetch_exhaustion=True,
+        )
+        code, body, stderr = await collect(process)
+    assert code == 0, (body.get("error"), stderr)
+    assert len(calls) == 7
+    state = PipelineState.model_validate_json(
+        await pool.fetchval("SELECT state::text FROM phase_snapshots ORDER BY seq DESC LIMIT 1")
+    )
+    assert state.phase == "done" and state.review_verdict == "needs_more_work"
+    assert state.run_metadata.stop_reason == "budget_exhausted"
+    assert state.run_metadata.budget_used.fetch_calls == 1
+    assert state.run_metadata.budget_used.search_calls == 1
+    assert not state.sources and not state.evidence and not state.analysis_artifacts
+    assert [entry.phase for entry in state.run_metadata.unit_manifest.values()].count(
+        "research"
+    ) == 0
+    assert all(coverage.gaps for coverage in state.section_coverage.values())
+    assert stderr.count("stage=query_started") == 1 and "stage=query_completed" not in stderr
+    assert await pool.fetchval("SELECT count(*) FROM reports") == 1
+    assert await pool.fetchval("SELECT count(*) FROM tool_call_attempts WHERE tool='fetch'") == 1
+    await fake.close()
 
 
 @pytest.mark.parametrize("repair", [False, True])

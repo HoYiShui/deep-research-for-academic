@@ -172,7 +172,12 @@ async def test_search_budget_denial_propagates_before_provider_io(pg_database, o
 
     async def before(value, context, *_):
         if value.phase == "research" and context.unit.parameters["kind"] == "query":
-            await context.invoke("search", {"query": context.unit.parameters["query"]})
+            with pytest.raises(AppError, match="budget_exhausted"):
+                await context.invoke("search", {"query": context.unit.parameters["query"]})
+            # This probe tests the search boundary, not a fixture Writer's
+            # contraction report. The default-worker CLI test covers that
+            # policy with the actual registered Writer and Critic.
+            raise AppError("controlled_probe_complete", "Search budget denial verified")
 
     pool, store, _, _, claimed, _, _, _, _, _, make_driver = await world(
         pg_database, object_cache, before_worker=before
@@ -189,7 +194,7 @@ async def test_search_budget_denial_propagates_before_provider_io(pg_database, o
             ToolBudgetRequest(tool="search", token_reservation=0, terminal=False),
             empty,
         )
-    with pytest.raises(AppError, match="budget_exhausted"):
+    with pytest.raises(AppError, match="controlled_probe_complete"):
         await make_driver(search=binding(paper, web)).execute(claimed, asyncio.Event())
     assert paper.requests == web.requests == []
     assert (

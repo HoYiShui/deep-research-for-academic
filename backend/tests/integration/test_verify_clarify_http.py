@@ -19,7 +19,14 @@ from scripts.verify_clarify_http import VerificationError, verify
 
 @asynccontextmanager
 async def server(
-    database, *, real=False, run_bucket=None, pause=None, rework=False, with_process=False
+    database,
+    *,
+    real=False,
+    run_bucket=None,
+    pause=None,
+    rework=False,
+    with_process=False,
+    canonical=False,
 ):
     settings = Settings.load()
     parts = urlsplit(settings.database_url.get_secret_value())
@@ -41,6 +48,15 @@ async def server(
         env["DR4A_TEST_PAUSE"] = pause or ""
         env["DR4A_TEST_REWORK"] = "1" if rework else "0"
         target = "tests.support.mono_http_server:create_run_test_app"
+        if canonical:
+            env.update(
+                MINIO_BUCKET=run_bucket,
+                DR4A_DEBUG_RUNNER="true",
+                PARSER_VERSION="dr4a-html-v1",
+                LLM_LOCAL="false",
+                ANTHROPIC_API_KEY="controlled-test-key",
+            )
+            target = "tests.support.mono_http_server:create_canonical_test_app"
     args = [sys.executable, "-m", "uvicorn", target, "--host", "127.0.0.1", "--port", str(port)]
     if not real:
         args.append("--factory")

@@ -1,0 +1,2574 @@
+{
+  "scope": "real_frozen_cli_workflow",
+  "quality_accepted": false,
+  "brief": {
+    "task_type": "method_differentiation",
+    "decision_goal": "辨析 Transformer self-attention 与 CNN convolution 用于序列建模时的机制区别，为后续学术研究选择验证问题",
+    "research_object": "self-attention 与 convolution 两类序列建模机制",
+    "scope": "公开可下载网页原文中的方法机制说明；不要求论文检索工具或新实验",
+    "comparison_scope": "输入表示、局部与全局信息交互、输出形式和适用限制；不跨数据集或协议排序性能",
+    "claims_to_verify": "两种机制如何关联序列位置、局部感受野与长程依赖；哪些差分有原文支持，哪些仍是假设",
+    "evidence_requirements": "关键事实须有真实网页原文摘录、位置、哈希与参考文献；搜索摘要不作为证据",
+    "conclusion_boundary": "不声称新颖性、SOTA或普遍性能优势；没有同协议结果不作性能排名；缺证据明确记录Gap",
+    "deliverable": "五章固定结构的方法辨析报告，含机制差分表、贡献边界、局限和参考文献",
+    "assumptions": "公开开发验证用冻结任务书；本轮验证执行链路，不接受研究质量、不执行训练或计时实验"
+  },
+  "checks": {
+    "command_succeeded": false,
+    "checkpoint_readable": true,
+    "done": false,
+    "reviewed_current_version": false,
+    "five_chapters": false,
+    "published_report": false
+  },
+  "result": {
+    "status": "failed",
+    "error": {
+      "code": "budget_exhausted",
+      "message": "Run execution stopped before publication",
+      "details": null,
+      "retryable": false,
+      "request_id": "6d6d4148-13d0-4ca8-80e5-49322aabb5b3"
+    },
+    "session_id": "8cdb8477-4fad-4a66-8272-d48ee35f2d33",
+    "run_id": "756d2f15-0059-402f-9e95-2f9e5eb3fa73",
+    "final_report": null,
+    "checkpoint_seq": 10,
+    "phase": "write",
+    "dependency_mode": "real",
+    "events": [
+      {
+        "event_id": "405a70aa-0655-42d1-bd17-c31ff5adfa34",
+        "session_id": "8cdb8477-4fad-4a66-8272-d48ee35f2d33",
+        "run_id": "756d2f15-0059-402f-9e95-2f9e5eb3fa73",
+        "timestamp": "2026-10-08T11:04:53.964183Z",
+        "checkpoint_seq": 2,
+        "event": "phase",
+        "phase": "plan",
+        "status": "running",
+        "message": "Current committed run state"
+      },
+      {
+        "event_id": "17dde297-95dd-4e20-bf7e-b61c025d2017",
+        "session_id": "8cdb8477-4fad-4a66-8272-d48ee35f2d33",
+        "run_id": "756d2f15-0059-402f-9e95-2f9e5eb3fa73",
+        "timestamp": "2026-10-08T11:04:53.994803Z",
+        "checkpoint_seq": 3,
+        "event": "phase",
+        "phase": "research",
+        "status": "running",
+        "message": "Current committed run state"
+      },
+      {
+        "event_id": "e3646524-d54d-4ceb-9343-9df534d529a1",
+        "session_id": "8cdb8477-4fad-4a66-8272-d48ee35f2d33",
+        "run_id": "756d2f15-0059-402f-9e95-2f9e5eb3fa73",
+        "timestamp": "2026-10-08T11:04:54.021926Z",
+        "checkpoint_seq": 4,
+        "event": "phase",
+        "phase": "research",
+        "status": "running",
+        "message": "Current committed run state"
+      },
+      {
+        "event_id": "c4d7639b-4ef1-4efc-9ba7-cb0cb35de015",
+        "session_id": "8cdb8477-4fad-4a66-8272-d48ee35f2d33",
+        "run_id": "756d2f15-0059-402f-9e95-2f9e5eb3fa73",
+        "timestamp": "2026-10-08T11:04:54.022031Z",
+        "checkpoint_seq": 4,
+        "event": "progress",
+        "phase": "research",
+        "section_id": "section_1",
+        "stage": "section_completed",
+        "unit_id": "unit-6c1400e27b276981ce6ffcb44f1b7dd6bad6d7c9ed8a5c7644764a8b01d8cf7e",
+        "completed_units": 1,
+        "total_units": 19,
+        "message": "Section coverage checkpoint committed",
+        "results": null,
+        "chart": null
+      },
+      {
+        "event_id": "ede05ca6-13eb-4817-82b7-30cce1361e6c",
+        "session_id": "8cdb8477-4fad-4a66-8272-d48ee35f2d33",
+        "run_id": "756d2f15-0059-402f-9e95-2f9e5eb3fa73",
+        "timestamp": "2026-10-08T11:04:54.024158Z",
+        "checkpoint_seq": 4,
+        "event": "progress",
+        "phase": "research",
+        "section_id": "section_2",
+        "stage": "query_started",
+        "unit_id": "unit-fd5ecdf1801458255e5ea6cfd544daf8fa980bca19eb422bdcc2563205305b4d",
+        "completed_units": 1,
+        "total_units": 19,
+        "message": "Research query unit started; result is not committed",
+        "results": null,
+        "chart": null
+      },
+      {
+        "event_id": "05d51f0c-4933-4ceb-9cc6-deff95a3b942",
+        "session_id": "8cdb8477-4fad-4a66-8272-d48ee35f2d33",
+        "run_id": "756d2f15-0059-402f-9e95-2f9e5eb3fa73",
+        "timestamp": "2026-10-08T11:05:03.942996Z",
+        "checkpoint_seq": 5,
+        "event": "phase",
+        "phase": "research",
+        "status": "running",
+        "message": "Current committed run state"
+      },
+      {
+        "event_id": "57da99f6-0b44-49a1-bc08-75e6fc1cd356",
+        "session_id": "8cdb8477-4fad-4a66-8272-d48ee35f2d33",
+        "run_id": "756d2f15-0059-402f-9e95-2f9e5eb3fa73",
+        "timestamp": "2026-10-08T11:05:03.943284Z",
+        "checkpoint_seq": 5,
+        "event": "progress",
+        "phase": "research",
+        "section_id": "section_2",
+        "stage": "query_completed",
+        "unit_id": "unit-fd5ecdf1801458255e5ea6cfd544daf8fa980bca19eb422bdcc2563205305b4d",
+        "completed_units": 2,
+        "total_units": 19,
+        "message": "Research query unit checkpoint committed",
+        "results": null,
+        "chart": null
+      },
+      {
+        "event_id": "32c535b5-a7af-4a3f-8784-115832bd95e2",
+        "session_id": "8cdb8477-4fad-4a66-8272-d48ee35f2d33",
+        "run_id": "756d2f15-0059-402f-9e95-2f9e5eb3fa73",
+        "timestamp": "2026-10-08T11:05:03.946729Z",
+        "checkpoint_seq": 5,
+        "event": "progress",
+        "phase": "research",
+        "section_id": "section_2",
+        "stage": "query_started",
+        "unit_id": "unit-07f232d6796831148da5a81d8f2ab9a04ab13dc886e56efbb38072b94aa03687",
+        "completed_units": 2,
+        "total_units": 19,
+        "message": "Research query unit started; result is not committed",
+        "results": null,
+        "chart": null
+      },
+      {
+        "event_id": "34235fd8-371f-4e89-83f0-142f6884ad06",
+        "session_id": "8cdb8477-4fad-4a66-8272-d48ee35f2d33",
+        "run_id": "756d2f15-0059-402f-9e95-2f9e5eb3fa73",
+        "timestamp": "2026-10-08T11:06:29.674708Z",
+        "checkpoint_seq": 6,
+        "event": "phase",
+        "phase": "research",
+        "status": "running",
+        "message": "Current committed run state"
+      },
+      {
+        "event_id": "172f88ee-68d0-4f78-8b18-1c447ed60128",
+        "session_id": "8cdb8477-4fad-4a66-8272-d48ee35f2d33",
+        "run_id": "756d2f15-0059-402f-9e95-2f9e5eb3fa73",
+        "timestamp": "2026-10-08T11:06:29.675443Z",
+        "checkpoint_seq": 6,
+        "event": "progress",
+        "phase": "research",
+        "section_id": "section_2",
+        "stage": "query_completed",
+        "unit_id": "unit-07f232d6796831148da5a81d8f2ab9a04ab13dc886e56efbb38072b94aa03687",
+        "completed_units": 3,
+        "total_units": 19,
+        "message": "Research query unit checkpoint committed",
+        "results": null,
+        "chart": null
+      },
+      {
+        "event_id": "ea904e4b-3eb5-4520-8658-cf1d2604a9a1",
+        "session_id": "8cdb8477-4fad-4a66-8272-d48ee35f2d33",
+        "run_id": "756d2f15-0059-402f-9e95-2f9e5eb3fa73",
+        "timestamp": "2026-10-08T11:06:29.680260Z",
+        "checkpoint_seq": 6,
+        "event": "progress",
+        "phase": "research",
+        "section_id": "section_2",
+        "stage": "query_started",
+        "unit_id": "unit-bd192ee639ee02b7131c97d501f7697091e700f8d4bbaae3f5f919d95268ba09",
+        "completed_units": 3,
+        "total_units": 19,
+        "message": "Research query unit started; result is not committed",
+        "results": null,
+        "chart": null
+      },
+      {
+        "event_id": "468b37e0-7a49-48dc-885b-537863930d8f",
+        "session_id": "8cdb8477-4fad-4a66-8272-d48ee35f2d33",
+        "run_id": "756d2f15-0059-402f-9e95-2f9e5eb3fa73",
+        "timestamp": "2026-10-08T11:06:46.364003Z",
+        "checkpoint_seq": 7,
+        "event": "phase",
+        "phase": "research",
+        "status": "running",
+        "message": "Current committed run state"
+      },
+      {
+        "event_id": "4c0acca4-123e-47d2-97b4-5450a78f8c86",
+        "session_id": "8cdb8477-4fad-4a66-8272-d48ee35f2d33",
+        "run_id": "756d2f15-0059-402f-9e95-2f9e5eb3fa73",
+        "timestamp": "2026-10-08T11:06:46.364650Z",
+        "checkpoint_seq": 7,
+        "event": "progress",
+        "phase": "research",
+        "section_id": "section_2",
+        "stage": "query_completed",
+        "unit_id": "unit-bd192ee639ee02b7131c97d501f7697091e700f8d4bbaae3f5f919d95268ba09",
+        "completed_units": 4,
+        "total_units": 19,
+        "message": "Research query unit checkpoint committed",
+        "results": null,
+        "chart": null
+      },
+      {
+        "event_id": "81ac2e02-8e20-40a0-b41f-4629bfa88f71",
+        "session_id": "8cdb8477-4fad-4a66-8272-d48ee35f2d33",
+        "run_id": "756d2f15-0059-402f-9e95-2f9e5eb3fa73",
+        "timestamp": "2026-10-08T11:06:46.369376Z",
+        "checkpoint_seq": 7,
+        "event": "progress",
+        "phase": "research",
+        "section_id": "section_2",
+        "stage": "query_started",
+        "unit_id": "unit-bb6a2e68c6bd739371727ce877e3475b81b9cb8bd26d2d3c6d21d114a97b0820",
+        "completed_units": 4,
+        "total_units": 19,
+        "message": "Research query unit started; result is not committed",
+        "results": null,
+        "chart": null
+      },
+      {
+        "event_id": "eb2b3869-7774-48e9-b117-e8a52d871fac",
+        "session_id": "8cdb8477-4fad-4a66-8272-d48ee35f2d33",
+        "run_id": "756d2f15-0059-402f-9e95-2f9e5eb3fa73",
+        "timestamp": "2026-10-08T11:09:13.729900Z",
+        "checkpoint_seq": 8,
+        "event": "phase",
+        "phase": "research",
+        "status": "running",
+        "message": "Current committed run state"
+      },
+      {
+        "event_id": "4741eb6e-dd67-4387-9a00-aaea285c8c44",
+        "session_id": "8cdb8477-4fad-4a66-8272-d48ee35f2d33",
+        "run_id": "756d2f15-0059-402f-9e95-2f9e5eb3fa73",
+        "timestamp": "2026-10-08T11:09:13.730262Z",
+        "checkpoint_seq": 8,
+        "event": "progress",
+        "phase": "research",
+        "section_id": "section_2",
+        "stage": "query_completed",
+        "unit_id": "unit-bb6a2e68c6bd739371727ce877e3475b81b9cb8bd26d2d3c6d21d114a97b0820",
+        "completed_units": 5,
+        "total_units": 19,
+        "message": "Research query unit checkpoint committed",
+        "results": null,
+        "chart": null
+      },
+      {
+        "event_id": "0df341f1-5a1c-4979-9a6d-74fd16641200",
+        "session_id": "8cdb8477-4fad-4a66-8272-d48ee35f2d33",
+        "run_id": "756d2f15-0059-402f-9e95-2f9e5eb3fa73",
+        "timestamp": "2026-10-08T11:09:13.798548Z",
+        "checkpoint_seq": 9,
+        "event": "phase",
+        "phase": "research",
+        "status": "running",
+        "message": "Current committed run state"
+      },
+      {
+        "event_id": "71ae5520-056e-4a56-8a96-92a7cec70a90",
+        "session_id": "8cdb8477-4fad-4a66-8272-d48ee35f2d33",
+        "run_id": "756d2f15-0059-402f-9e95-2f9e5eb3fa73",
+        "timestamp": "2026-10-08T11:09:13.798908Z",
+        "checkpoint_seq": 9,
+        "event": "progress",
+        "phase": "research",
+        "section_id": "section_2",
+        "stage": "section_completed",
+        "unit_id": "unit-b5f3f0aac08f9cf0edb6922d5a0e6fffa876f451ad2d25e3fd30d9266d9bb10b",
+        "completed_units": 6,
+        "total_units": 19,
+        "message": "Section coverage checkpoint committed",
+        "results": null,
+        "chart": null
+      },
+      {
+        "event_id": "311f24d3-a65e-410a-973e-6ba31439883a",
+        "session_id": "8cdb8477-4fad-4a66-8272-d48ee35f2d33",
+        "run_id": "756d2f15-0059-402f-9e95-2f9e5eb3fa73",
+        "timestamp": "2026-10-08T11:09:13.801588Z",
+        "checkpoint_seq": 9,
+        "event": "progress",
+        "phase": "research",
+        "section_id": "section_3",
+        "stage": "query_started",
+        "unit_id": "unit-bc39b88a7df2fc8089fa41426e1874653d3dfdf1bed4cfe61ab884724500c69e",
+        "completed_units": 6,
+        "total_units": 19,
+        "message": "Research query unit started; result is not committed",
+        "results": null,
+        "chart": null
+      },
+      {
+        "event_id": "a39fda35-34e5-4692-b0a4-e1d70dc9c0aa",
+        "session_id": "8cdb8477-4fad-4a66-8272-d48ee35f2d33",
+        "run_id": "756d2f15-0059-402f-9e95-2f9e5eb3fa73",
+        "timestamp": "2026-10-08T11:09:15.800142Z",
+        "checkpoint_seq": 10,
+        "event": "phase",
+        "phase": "write",
+        "status": "running",
+        "message": "Current committed run state"
+      },
+      {
+        "event_id": "57528da7-8cfc-42ea-b2ff-b82d503c46e3",
+        "session_id": "8cdb8477-4fad-4a66-8272-d48ee35f2d33",
+        "run_id": "756d2f15-0059-402f-9e95-2f9e5eb3fa73",
+        "timestamp": "2026-10-08T11:09:36.703366Z",
+        "checkpoint_seq": 10,
+        "event": "done",
+        "status": "failed",
+        "review_verdict": null,
+        "final_report_url": null,
+        "failure": {
+          "code": "budget_exhausted",
+          "dependency": null,
+          "operation": "execute_run",
+          "phase": "write",
+          "message": "Run execution stopped before publication",
+          "retryable": false,
+          "resume_allowed": false,
+          "attempt": 1,
+          "occurred_at": "2026-10-08T11:09:36.495642Z",
+          "details": null
+        }
+      }
+    ]
+  },
+  "snapshot": {
+    "status": "ok",
+    "error": null,
+    "session_id": "8cdb8477-4fad-4a66-8272-d48ee35f2d33",
+    "run_id": "756d2f15-0059-402f-9e95-2f9e5eb3fa73",
+    "checkpoint_seq": 10,
+    "phase": "write",
+    "state": {
+      "schema_version": 1,
+      "session_id": "8cdb8477-4fad-4a66-8272-d48ee35f2d33",
+      "run_id": "756d2f15-0059-402f-9e95-2f9e5eb3fa73",
+      "brief_version": 1,
+      "brief_hash": "f150884e362759153f109a00494d79fde684afab43cebfa0b4787bd4fb8047f8",
+      "phase": "write",
+      "research_brief": {
+        "task_type": "method_differentiation",
+        "decision_goal": "辨析 Transformer self-attention 与 CNN convolution 用于序列建模时的机制区别，为后续学术研究选择验证问题",
+        "research_object": "self-attention 与 convolution 两类序列建模机制",
+        "scope": "公开可下载网页原文中的方法机制说明；不要求论文检索工具或新实验",
+        "comparison_scope": "输入表示、局部与全局信息交互、输出形式和适用限制；不跨数据集或协议排序性能",
+        "claims_to_verify": "两种机制如何关联序列位置、局部感受野与长程依赖；哪些差分有原文支持，哪些仍是假设",
+        "evidence_requirements": "关键事实须有真实网页原文摘录、位置、哈希与参考文献；搜索摘要不作为证据",
+        "conclusion_boundary": "不声称新颖性、SOTA或普遍性能优势；没有同协议结果不作性能排名；缺证据明确记录Gap",
+        "deliverable": "五章固定结构的方法辨析报告，含机制差分表、贡献边界、局限和参考文献",
+        "assumptions": "公开开发验证用冻结任务书；本轮验证执行链路，不接受研究质量、不执行训练或计时实验"
+      },
+      "source_selection": {
+        "categories": [
+          "web"
+        ],
+        "knowledge_base_ids": []
+      },
+      "section_plans": [
+        {
+          "section_id": "section_1",
+          "title": "问题定义与边界",
+          "objective": "定义任务为辨析 Transformer self-attention 与 CNN convolution 用于序列建模时的机制区别，服务于后续学术研究选择验证问题；范围限定为公开可下载网页原文中的方法机制说明，不要求论文检索工具或新实验；比较维度为输入表示、局部与全局信息交互、输出形式和适用限制；不跨数据集或协议排序性能；交付物为五章固定结构的方法辨析报告，含机制差分表、贡献边界、局限和参考文献；边界为不声称新颖性、SOTA或普遍性能优势，无同协议结果不作性能排名，缺证据明确记录Gap。",
+          "claim_specs": [],
+          "sub_questions": [],
+          "retrieval_anchors": [],
+          "evidence_requirements": [
+            "以冻结任务书为唯一问题定义来源；不扩展范围；不加入新实验、计时或性能排名要求；所有后续章节须遵守交付物与结论边界。"
+          ],
+          "analysis_requirements": []
+        },
+        {
+          "section_id": "section_2",
+          "title": "证据基础与待验证发现",
+          "objective": "建立公开网页原文证据基础，用于验证 self-attention 与 convolution 在序列位置关联、局部感受野、长程依赖、输出形式和适用限制上的机制陈述；关键事实须有真实网页原文摘录、位置、哈希与参考文献，搜索摘要不作为证据；明确区分原文支持、原文未直接支持及仍为假设的差分。",
+          "claim_specs": [
+            {
+              "spec_id": "claim_input_representation",
+              "text": "验证 self-attention 与 convolution 在序列建模中输入表示及位置信息注入方式的原文机制说明，如 token/词嵌入、位置编码、卷积输入通道与位置对齐。",
+              "required_conditions": [
+                "引用公开可下载网页原文",
+                "记录摘录位置与哈希",
+                "区分模型架构描述与任务特定预处理"
+              ],
+              "required_source_tiers": [
+                "primary",
+                "peer_reviewed"
+              ]
+            },
+            {
+              "spec_id": "claim_positional_relation",
+              "text": "验证两种机制如何关联序列位置：self-attention 的注意力权重/掩码如何建立位置间关系，convolution 的核窗口、步长与填充如何建立局部位置关系。",
+              "required_conditions": [
+                "覆盖位置编码/掩码或核窗口/步长/填充",
+                "不得用搜索摘要替代原文",
+                "若原文未直接比较则标记为待验证差分"
+              ],
+              "required_source_tiers": [
+                "primary",
+                "peer_reviewed"
+              ]
+            },
+            {
+              "spec_id": "claim_receptive_field",
+              "text": "验证 self-attention 与 convolution 的局部感受野和全局信息交互范围如何由原文描述，包括单层与多层堆叠、膨胀卷积或注意力掩码对范围的影响。",
+              "required_conditions": [
+                "区分单层感受野与堆叠后有效范围",
+                "记录架构超参数条件",
+                "不得跨数据集或协议推断性能排序"
+              ],
+              "required_source_tiers": [
+                "primary",
+                "peer_reviewed"
+              ]
+            },
+            {
+              "spec_id": "claim_long_range_dependency",
+              "text": "验证两种机制对长程依赖的建模方式与原文所述限制，如注意力全局连接、卷积局部性与深度/膨胀扩展、序列长度带来的计算或信息瓶颈。",
+              "required_conditions": [
+                "区分机制支持与实证性能断言",
+                "引用原文限制或假设",
+                "无同协议结果不作性能排名"
+              ],
+              "required_source_tiers": [
+                "primary",
+                "peer_reviewed"
+              ]
+            },
+            {
+              "spec_id": "claim_output_form",
+              "text": "验证 self-attention 与 convolution 在序列建模中的输出形式及位置对齐：如逐位置上下文表示、注意力加权聚合、卷积特征图、多通道输出与解码接口。",
+              "required_conditions": [
+                "覆盖输出形状/对齐/通道语义",
+                "区分编码器与解码器设置",
+                "记录原文出处"
+              ],
+              "required_source_tiers": [
+                "primary",
+                "peer_reviewed"
+              ]
+            },
+            {
+              "spec_id": "claim_applicability_limitations",
+              "text": "验证两种机制的适用限制原文说明，如计算/内存复杂度、并行性、局部性假设、序列长度、长程依赖与归纳偏置。",
+              "required_conditions": [
+                "区分原文明确限制与研究者推导",
+                "记录架构与任务条件",
+                "不推广为普遍性能优势"
+              ],
+              "required_source_tiers": [
+                "primary",
+                "peer_reviewed"
+              ]
+            }
+          ],
+          "sub_questions": [
+            "在公开可下载网页原文中，self-attention 与 convolution 的输入表示和位置信息注入分别如何描述？",
+            "原文如何描述两种机制的单层与堆叠后感受野、局部窗口和全局连接范围？",
+            "原文如何说明长程依赖建模方式及各自局限性？",
+            "两种机制的输出形式、位置对齐和下游接口有何原文机制差异？",
+            "哪些差分是原文直接支持，哪些只是跨文献推导或仍为假设？",
+            "关键事实的原文摘录、位置、哈希和参考文献是否齐全？"
+          ],
+          "retrieval_anchors": [
+            "Attention Is All You Need arXiv:1706.03762 self-attention positional encoding",
+            "Convolutional Sequence to Sequence Learning arXiv:1705.03122 convolution sequence modeling",
+            "WaveNet: A Generative Model for Raw Audio arXiv:1609.03499 dilated causal convolution",
+            "An Empirical Evaluation of Generic Convolutional and Recurrent Networks for Sequence Modeling arXiv:1803.01271 temporal convolutional network receptive field"
+          ],
+          "evidence_requirements": [
+            "每项关键机制事实须来自公开可下载网页原文摘录，并附位置、哈希、参考文献；搜索摘要不作为证据；原文未直接支持的内容须标注为待验证或假设；不得跨数据集或协议作性能排序。"
+          ],
+          "analysis_requirements": []
+        },
+        {
+          "section_id": "section_3",
+          "title": "任务特定核心分析：机制差分、最近基线与贡献边界",
+          "objective": "围绕输入表示、机制、输出、最近基线和差分贡献边界，对 self-attention 与 convolution 进行任务特定机制分析；将可支持的差分、原文未直接比较的推导和贡献边界分列；不跨数据集或协议排序性能；不声称新颖性、SOTA或普遍性能优势。",
+          "claim_specs": [
+            {
+              "spec_id": "diff_input_representation",
+              "text": "差分主张：self-attention 与 convolution 在输入表示及位置信息注入上的机制区别是否有原文直接支持。",
+              "required_conditions": [
+                "映射到 section_2 原文摘录",
+                "区分原文比较与研究者并置",
+                "记录位置/哈希/参考文献"
+              ],
+              "required_source_tiers": [
+                "primary",
+                "peer_reviewed"
+              ]
+            },
+            {
+              "spec_id": "diff_positional_interaction",
+              "text": "差分主张：self-attention 通过注意力权重/掩码建立位置间关系，而 convolution 通过核窗口、步长、填充/膨胀建立局部位置关系，二者差异的原文支持边界。",
+              "required_conditions": [
+                "覆盖单层与堆叠机制",
+                "标注掩码/因果条件",
+                "不得跨协议排序性能"
+              ],
+              "required_source_tiers": [
+                "primary",
+                "peer_reviewed"
+              ]
+            },
+            {
+              "spec_id": "diff_receptive_field_long_range",
+              "text": "差分主张：两种机制在局部感受野、全局信息交互与长程依赖建模上的区别及其原文限制。",
+              "required_conditions": [
+                "区分单层与堆叠后有效范围",
+                "记录深度/膨胀/掩码条件",
+                "无同协议结果不作性能排名"
+              ],
+              "required_source_tiers": [
+                "primary",
+                "peer_reviewed"
+              ]
+            },
+            {
+              "spec_id": "diff_output_form",
+              "text": "差分主张：两种机制输出形式、位置对齐与下游接口的机制区别是否有原文支持。",
+              "required_conditions": [
+                "覆盖编码器/解码器输出",
+                "记录通道/位置语义",
+                "不得混淆机制与任务特定头"
+              ],
+              "required_source_tiers": [
+                "primary",
+                "peer_reviewed"
+              ]
+            },
+            {
+              "spec_id": "diff_applicability_limitations",
+              "text": "差分主张：两种机制适用限制，包括计算/内存、并行性、归纳偏置、序列长度、局部性假设的原文支持与未支持假设。",
+              "required_conditions": [
+                "区分原文明确限制与推导",
+                "记录架构超参数",
+                "不推广为普遍优势"
+              ],
+              "required_source_tiers": [
+                "primary",
+                "peer_reviewed"
+              ]
+            }
+          ],
+          "sub_questions": [
+            "在输入表示维度，两种机制的原文机制说明有哪些可直接对照的差分？",
+            "在局部感受野与长程依赖维度，哪些差分是原文明确支持，哪些仅是跨文献推导？",
+            "在输出形式与位置对齐维度，两种机制如何影响下游序列接口？",
+            "最近基线应如何限定为原始机制文献中的架构，而不扩展到性能排行榜？",
+            "贡献边界应如何限定为机制辨析而非新颖性、SOTA或普遍性能优势？"
+          ],
+          "retrieval_anchors": [
+            "Attention Is All You Need arXiv:1706.03762 self-attention architecture",
+            "Convolutional Sequence to Sequence Learning arXiv:1705.03122 convolution architecture",
+            "WaveNet arXiv:1609.03499 dilated causal convolution",
+            "An Empirical Evaluation of Generic Convolutional and Recurrent Networks for Sequence Modeling arXiv:1803.01271 receptive field",
+            "Transformer convolution sequence modeling mechanism comparison"
+          ],
+          "evidence_requirements": [
+            "每条差分须有 section_2 可追溯原文摘录；若原文未直接比较，标为研究者推导假设；不得跨数据集/协议排序性能；最近基线仅限机制原始文献，不扩展为排行榜。"
+          ],
+          "analysis_requirements": []
+        },
+        {
+          "section_id": "section_4",
+          "title": "可支持结论与条件化建议",
+          "objective": "基于已验证机制差分形成可支持结论与条件化建议，服务于后续学术研究选择验证问题；结论仅限公开网页原文支持的机制说明；无同协议结果不作性能排名；不声称新颖性、SOTA或普遍性能优势；缺证据记录Gap；建议须附条件与验证前提。",
+          "claim_specs": [],
+          "sub_questions": [],
+          "retrieval_anchors": [],
+          "evidence_requirements": [
+            "结论只能引用已验证 ClaimSpec；每条建议说明适用条件、所需后续证据、可能改变结论的条件；无同协议结果禁止性能排名；缺证据明确记录Gap。"
+          ],
+          "analysis_requirements": []
+        },
+        {
+          "section_id": "section_5",
+          "title": "未验证风险与验证动作",
+          "objective": "列出未验证风险、证据缺口和验证动作，确保后续研究可暴露哪些机制差分仍为假设；不预判风险为事实；不要求新实验，仅规划公开网页原文检索与证据核验动作。",
+          "claim_specs": [],
+          "sub_questions": [
+            "哪些关键机制差分缺少公开网页原文直接支持？",
+            "哪些风险来自搜索摘要、二手综述或跨文献推导？",
+            "哪些验证动作可核验摘录位置、哈希与参考文献？",
+            "哪些缺失证据会改变机制差分结论或贡献边界？"
+          ],
+          "retrieval_anchors": [
+            "Attention Is All You Need arXiv:1706.03762 positional encoding self-attention limitations",
+            "Convolutional Sequence to Sequence Learning arXiv:1705.03122 architecture limitations",
+            "WaveNet arXiv:1609.03499 dilated convolution receptive field limitations",
+            "An Empirical Evaluation of Generic Convolutional and Recurrent Networks for Sequence Modeling arXiv:1803.01271 sequence modeling limitations",
+            "self-attention convolution sequence modeling literature review gap"
+          ],
+          "evidence_requirements": [
+            "验证动作须给出目标原文、需核验字段（摘录、位置、哈希、参考文献）和失败时Gap记录方式；不得用搜索摘要补齐；不得预判未验证风险为事实。"
+          ],
+          "analysis_requirements": []
+        }
+      ],
+      "sources": {
+        "src-076f8b1b98c314f31c0625e901ef4408f0a1f8b237b215868a8dc5867af423fb": {
+          "source_id": "src-076f8b1b98c314f31c0625e901ef4408f0a1f8b237b215868a8dc5867af423fb",
+          "source_type": "web",
+          "title": "论文笔记:An Empirical Evaluation of Generic Convolutional and Recurrent Networks for Sequence Modeling_玛卡巴卡米卡巴卡的博客-CSDN博客",
+          "authors_or_publisher": [
+            "CSDN"
+          ],
+          "published_at": "2019-04-23T17:59:04+08:00",
+          "version": null,
+          "canonical_url": "https://blog.csdn.net/travalscx/article/details/89477872",
+          "provenance": [
+            {
+              "retrieved_at": "2026-10-08T11:08:34.861235Z",
+              "retrieved_via": "web",
+              "original_ref": "https://blog.csdn.net/travalscx/article/details/89477872",
+              "document_version_id": null,
+              "upstream_source_id": null
+            }
+          ],
+          "source_tier": "unknown",
+          "content_object_key": "research-content/756d2f15-0059-402f-9e95-2f9e5eb3fa73/685f68ba054b8aafb96e388a8399c28629957846c1e0513cadb9eacbbb8ad212",
+          "content_hash": "685f68ba054b8aafb96e388a8399c28629957846c1e0513cadb9eacbbb8ad212",
+          "data_classification": "public"
+        },
+        "src-2c183b690a708a8facba36d0b81a67232806ba5168ea799fda06e0b5d4831201": {
+          "source_id": "src-2c183b690a708a8facba36d0b81a67232806ba5168ea799fda06e0b5d4831201",
+          "source_type": "web",
+          "title": "2018 年 5月 16 日 随笔档案 - AHU-WangXiao - 博客园",
+          "authors_or_publisher": [
+            "博客园"
+          ],
+          "published_at": "2018-05-16T19:43:32+08:00",
+          "version": null,
+          "canonical_url": "https://www.cnblogs.com/wangxiaocvpr/p/archive/2018/05/16",
+          "provenance": [
+            {
+              "retrieved_at": "2026-10-08T11:08:22.874276Z",
+              "retrieved_via": "web",
+              "original_ref": "https://www.cnblogs.com/wangxiaocvpr/p/archive/2018/05/16",
+              "document_version_id": null,
+              "upstream_source_id": null
+            }
+          ],
+          "source_tier": "unknown",
+          "content_object_key": "research-content/756d2f15-0059-402f-9e95-2f9e5eb3fa73/43f5b88c5fac646ac691bea77dd11060748f7bfcfb31b9ee66861d4603f33f92",
+          "content_hash": "43f5b88c5fac646ac691bea77dd11060748f7bfcfb31b9ee66861d4603f33f92",
+          "data_classification": "public"
+        },
+        "src-5c4ce18de8731d8025c5b62db903fdcd2c3db8c68db77709ca47fbc208d66740": {
+          "source_id": "src-5c4ce18de8731d8025c5b62db903fdcd2c3db8c68db77709ca47fbc208d66740",
+          "source_type": "web",
+          "title": "Smoothed dilated convolutions for improved dense prediction_2021_Zhengyang Wang - 道客巴巴",
+          "authors_or_publisher": [
+            "道客巴巴"
+          ],
+          "published_at": "2023-01-15T07:29:58+08:00",
+          "version": null,
+          "canonical_url": "https://www.doc88.com/p-99159710162300.html",
+          "provenance": [
+            {
+              "retrieved_at": "2026-10-08T11:06:30.752459Z",
+              "retrieved_via": "web",
+              "original_ref": "https://www.doc88.com/p-99159710162300.html",
+              "document_version_id": null,
+              "upstream_source_id": null
+            }
+          ],
+          "source_tier": "unknown",
+          "content_object_key": "research-content/756d2f15-0059-402f-9e95-2f9e5eb3fa73/93917ca1cdea2702b1b36f6fa49c8e454bb6ac045cd9a41d36e674d5966c587d",
+          "content_hash": "93917ca1cdea2702b1b36f6fa49c8e454bb6ac045cd9a41d36e674d5966c587d",
+          "data_classification": "public"
+        },
+        "src-5e45f90064f5324b2315d5037c3b146683422f81905d9ad98f790ced8ad0eb5f": {
+          "source_id": "src-5e45f90064f5324b2315d5037c3b146683422f81905d9ad98f790ced8ad0eb5f",
+          "source_type": "web",
+          "title": "机器学习补充内容 - AlexanderOscar - 博客园",
+          "authors_or_publisher": [
+            "博客园"
+          ],
+          "published_at": "2023-10-14T20:36:00+08:00",
+          "version": null,
+          "canonical_url": "https://www.cnblogs.com/alexanders/p/17764692.html",
+          "provenance": [
+            {
+              "retrieved_at": "2026-10-08T11:07:31.935097Z",
+              "retrieved_via": "web",
+              "original_ref": "https://www.cnblogs.com/alexanders/p/17764692.html",
+              "document_version_id": null,
+              "upstream_source_id": null
+            }
+          ],
+          "source_tier": "unknown",
+          "content_object_key": "research-content/756d2f15-0059-402f-9e95-2f9e5eb3fa73/7bcedcecd8c13716769490b17b7fc96fc94da9fc5adf47c4a895ec243c502862",
+          "content_hash": "7bcedcecd8c13716769490b17b7fc96fc94da9fc5adf47c4a895ec243c502862",
+          "data_classification": "public"
+        },
+        "src-64d74581287e597d2e21732bb911cf83bba62c4e0fa136af9b61408cf4c84ab2": {
+          "source_id": "src-64d74581287e597d2e21732bb911cf83bba62c4e0fa136af9b61408cf4c84ab2",
+          "source_type": "web",
+          "title": "An Empirical Evaluation of generic Convolutional and Recurrent Networks for Sequence Modeling · Issue #12 · flrngel/understanding-ai · GitHub",
+          "authors_or_publisher": [
+            "GitHub"
+          ],
+          "published_at": "2018-03-10T05:02:02+08:00",
+          "version": null,
+          "canonical_url": "https://github.com/flrngel/understanding-ai/issues/12",
+          "provenance": [
+            {
+              "retrieved_at": "2026-10-08T11:06:47.985550Z",
+              "retrieved_via": "web",
+              "original_ref": "https://github.com/flrngel/understanding-ai/issues/12",
+              "document_version_id": null,
+              "upstream_source_id": null
+            }
+          ],
+          "source_tier": "unknown",
+          "content_object_key": "research-content/756d2f15-0059-402f-9e95-2f9e5eb3fa73/6fcd5c6805b5bf6b76e5898d56d627aeb1481daec0332bbb322a465e68fa8378",
+          "content_hash": "6fcd5c6805b5bf6b76e5898d56d627aeb1481daec0332bbb322a465e68fa8378",
+          "data_classification": "public"
+        },
+        "src-6d117a2c779b13ac98286cad3da3106fd342943b52a29bad082b7d088f91bf0b": {
+          "source_id": "src-6d117a2c779b13ac98286cad3da3106fd342943b52a29bad082b7d088f91bf0b",
+          "source_type": "web",
+          "title": "【论文阅读】Convolutional Sequence to Sequence Learning (未完待续)_convolutional sequence to sequence learning. jonas-CSDN博客",
+          "authors_or_publisher": [
+            "CSDN"
+          ],
+          "published_at": "2024-01-17T22:49:48+08:00",
+          "version": null,
+          "canonical_url": "https://blog.csdn.net/chengdezhi2011/article/details/72917286",
+          "provenance": [
+            {
+              "retrieved_at": "2026-10-08T11:05:20.379042Z",
+              "retrieved_via": "web",
+              "original_ref": "https://blog.csdn.net/chengdezhi2011/article/details/72917286",
+              "document_version_id": null,
+              "upstream_source_id": null
+            }
+          ],
+          "source_tier": "unknown",
+          "content_object_key": "research-content/756d2f15-0059-402f-9e95-2f9e5eb3fa73/6794db19efc84473ff49200fb2197fe7ae5e867919dc5c2add5f8b9752f8f3b5",
+          "content_hash": "6794db19efc84473ff49200fb2197fe7ae5e867919dc5c2add5f8b9752f8f3b5",
+          "data_classification": "public"
+        },
+        "src-7f0b2fa6f790176cce318638f55f6081f42e45cb2ef9c8741560d60f46cb9a2d": {
+          "source_id": "src-7f0b2fa6f790176cce318638f55f6081f42e45cb2ef9c8741560d60f46cb9a2d",
+          "source_type": "web",
+          "title": "Attention is all you need 论文精读笔记 Transformer_tansformer 根号d-CSDN博客",
+          "authors_or_publisher": [
+            "CSDN"
+          ],
+          "published_at": "2023-12-18T20:44:49+08:00",
+          "version": null,
+          "canonical_url": "https://blog.csdn.net/Haulyn5/article/details/123031971",
+          "provenance": [
+            {
+              "retrieved_at": "2026-10-08T11:04:55.350548Z",
+              "retrieved_via": "web",
+              "original_ref": "https://blog.csdn.net/Haulyn5/article/details/123031971",
+              "document_version_id": null,
+              "upstream_source_id": null
+            }
+          ],
+          "source_tier": "unknown",
+          "content_object_key": "research-content/756d2f15-0059-402f-9e95-2f9e5eb3fa73/0ff605015bb78c3c44922f4eadf137ef461a332361230f31de91390d2234eb3a",
+          "content_hash": "0ff605015bb78c3c44922f4eadf137ef461a332361230f31de91390d2234eb3a",
+          "data_classification": "public"
+        },
+        "src-ba72e89799f56d06b4dc4f9720e86b1b2372ba3c3cf6fe8217a6afafabb1aeaf": {
+          "source_id": "src-ba72e89799f56d06b4dc4f9720e86b1b2372ba3c3cf6fe8217a6afafabb1aeaf",
+          "source_type": "web",
+          "title": "SequencetoSequenceLearningwithNeuralNetworksv论文资源-CSDN文库",
+          "authors_or_publisher": [
+            "CSDN文库"
+          ],
+          "published_at": "2018-04-17T02:40:44+08:00",
+          "version": null,
+          "canonical_url": "https://download.csdn.net/download/qq_35376241/10354723",
+          "provenance": [
+            {
+              "retrieved_at": "2026-10-08T11:05:05.071125Z",
+              "retrieved_via": "web",
+              "original_ref": "https://download.csdn.net/download/qq_35376241/10354723",
+              "document_version_id": null,
+              "upstream_source_id": null
+            }
+          ],
+          "source_tier": "unknown",
+          "content_object_key": "research-content/756d2f15-0059-402f-9e95-2f9e5eb3fa73/1740a471a507f3fda8e28706f92c1542410500729a319e58be69b53c29744086",
+          "content_hash": "1740a471a507f3fda8e28706f92c1542410500729a319e58be69b53c29744086",
+          "data_classification": "public"
+        },
+        "src-f4c934f6520d1ad594feb707b530c9f536fab864f5edcf40d80ecde2c62adff9": {
+          "source_id": "src-f4c934f6520d1ad594feb707b530c9f536fab864f5edcf40d80ecde2c62adff9",
+          "source_type": "web",
+          "title": "Smoothed Dilated Convolutions for Improved Dense Prediction - 道客巴巴",
+          "authors_or_publisher": [
+            "道客巴巴"
+          ],
+          "published_at": "2018-08-31T04:02:44+08:00",
+          "version": null,
+          "canonical_url": "https://www.doc88.com/p-2595055314749.html",
+          "provenance": [
+            {
+              "retrieved_at": "2026-10-08T11:06:39.021079Z",
+              "retrieved_via": "web",
+              "original_ref": "https://www.doc88.com/p-2595055314749.html",
+              "document_version_id": null,
+              "upstream_source_id": null
+            }
+          ],
+          "source_tier": "unknown",
+          "content_object_key": "research-content/756d2f15-0059-402f-9e95-2f9e5eb3fa73/5d8ef0eccc24c917a180abd2a5d304ff267200c62e6caa042bbff43f181f7ddf",
+          "content_hash": "5d8ef0eccc24c917a180abd2a5d304ff267200c62e6caa042bbff43f181f7ddf",
+          "data_classification": "public"
+        }
+      },
+      "evidence": {
+        "ev-3c3c86ecf897e8dac3368bf26aff1a7d8a16ff58470a8afe0435eba8f6e6fdae": {
+          "evidence_id": "ev-3c3c86ecf897e8dac3368bf26aff1a7d8a16ff58470a8afe0435eba8f6e6fdae",
+          "source_id": "src-64d74581287e597d2e21732bb911cf83bba62c4e0fa136af9b61408cf4c84ab2",
+          "evidence_type": "other",
+          "location": {
+            "page_start": null,
+            "page_end": null,
+            "section": "Abstract",
+            "table": null,
+            "file": null,
+            "commit": null,
+            "selector": null,
+            "line_start": 569,
+            "line_end": 569,
+            "chunk_id": null
+          },
+          "quote_or_raw_content": "Convolutional networks should be regarded as a natural starting point for sequence modeling tasks",
+          "extraction_method": "parser:dr4a-html-v1:verified_range",
+          "content_hash": "6fcd5c6805b5bf6b76e5898d56d627aeb1481daec0332bbb322a465e68fa8378"
+        },
+        "ev-46dbff83deb177885d6d629930fd8bcbf6873f37fb3dc449e99563a79911884a": {
+          "evidence_id": "ev-46dbff83deb177885d6d629930fd8bcbf6873f37fb3dc449e99563a79911884a",
+          "source_id": "src-076f8b1b98c314f31c0625e901ef4408f0a1f8b237b215868a8dc5867af423fb",
+          "evidence_type": "other",
+          "location": {
+            "page_start": null,
+            "page_end": null,
+            "section": "论文笔记：An Empirical Evaluation of Generic Convolutional and Recurrent Networks for Sequence Modeling",
+            "table": null,
+            "file": null,
+            "commit": null,
+            "selector": null,
+            "line_start": 1189,
+            "line_end": 1208,
+            "chunk_id": null
+          },
+          "quote_or_raw_content": "但是，研究发现，一些特殊的卷积神经网络模型在音频合成、机器翻译等任务上效果比递归神经网络更好。",
+          "extraction_method": "parser:dr4a-html-v1:verified_range",
+          "content_hash": "685f68ba054b8aafb96e388a8399c28629957846c1e0513cadb9eacbbb8ad212"
+        },
+        "ev-47fafec4a76efc90b4222b38e820fdb2010fa5832394101086c45b444665b11d": {
+          "evidence_id": "ev-47fafec4a76efc90b4222b38e820fdb2010fa5832394101086c45b444665b11d",
+          "source_id": "src-076f8b1b98c314f31c0625e901ef4408f0a1f8b237b215868a8dc5867af423fb",
+          "evidence_type": "method",
+          "location": {
+            "page_start": null,
+            "page_end": null,
+            "section": "相关推荐",
+            "table": null,
+            "file": null,
+            "commit": null,
+            "selector": null,
+            "line_start": 1529,
+            "line_end": 1532,
+            "chunk_id": null
+          },
+          "quote_or_raw_content": "本文的方法名为TCN，本文没提出什么新的东西，主要是使用Causal Conv，Dilated Conv和residual block对时序序列进行预测，同时与传统的时序模型LSTM等循环和递归网络结构进行对比。",
+          "extraction_method": "parser:dr4a-html-v1:verified_range",
+          "content_hash": "685f68ba054b8aafb96e388a8399c28629957846c1e0513cadb9eacbbb8ad212"
+        },
+        "ev-695de7cac9e52b609803dea2d110c5d2d74c9f7ee3538ecb39e9d941ad85e741": {
+          "evidence_id": "ev-695de7cac9e52b609803dea2d110c5d2d74c9f7ee3538ecb39e9d941ad85e741",
+          "source_id": "src-64d74581287e597d2e21732bb911cf83bba62c4e0fa136af9b61408cf4c84ab2",
+          "evidence_type": "method",
+          "location": {
+            "page_start": null,
+            "page_end": null,
+            "section": "3.3. Dilated Convolutions",
+            "table": null,
+            "file": null,
+            "commit": null,
+            "selector": null,
+            "line_start": 624,
+            "line_end": 624,
+            "chunk_id": null
+          },
+          "quote_or_raw_content": "Paper employs diilated convolutions (van den Oord et al., 2016) to enable an exponentially large receptive field (Yu & Koltun, 2106)",
+          "extraction_method": "parser:dr4a-html-v1:verified_range",
+          "content_hash": "6fcd5c6805b5bf6b76e5898d56d627aeb1481daec0332bbb322a465e68fa8378"
+        },
+        "ev-6ed835fe570a9aeaa07a792a901e0f0a725614e03a57e624b294ca1c45e2fbd0": {
+          "evidence_id": "ev-6ed835fe570a9aeaa07a792a901e0f0a725614e03a57e624b294ca1c45e2fbd0",
+          "source_id": "src-5e45f90064f5324b2315d5037c3b146683422f81905d9ad98f790ced8ad0eb5f",
+          "evidence_type": "other",
+          "location": {
+            "page_start": null,
+            "page_end": null,
+            "section": "TCN：时域卷积网络",
+            "table": null,
+            "file": null,
+            "commit": null,
+            "selector": null,
+            "line_start": 261,
+            "line_end": 261,
+            "chunk_id": null
+          },
+          "quote_or_raw_content": "TCN（Temporal Convolutional Network，时间卷积网络）",
+          "extraction_method": "parser:dr4a-html-v1:verified_range",
+          "content_hash": "7bcedcecd8c13716769490b17b7fc96fc94da9fc5adf47c4a895ec243c502862"
+        },
+        "ev-7b54094b703a38c51d31ba2958b5647517a09efa58d105bfbabe608c996c3221": {
+          "evidence_id": "ev-7b54094b703a38c51d31ba2958b5647517a09efa58d105bfbabe608c996c3221",
+          "source_id": "src-5e45f90064f5324b2315d5037c3b146683422f81905d9ad98f790ced8ad0eb5f",
+          "evidence_type": "other",
+          "location": {
+            "page_start": null,
+            "page_end": null,
+            "section": null,
+            "table": null,
+            "file": null,
+            "commit": null,
+            "selector": null,
+            "line_start": 1,
+            "line_end": 102,
+            "chunk_id": null
+          },
+          "quote_or_raw_content": "机器学习补充内容 - AlexanderOscar - 博客园",
+          "extraction_method": "parser:dr4a-html-v1:verified_range",
+          "content_hash": "7bcedcecd8c13716769490b17b7fc96fc94da9fc5adf47c4a895ec243c502862"
+        },
+        "ev-832545acb2bd548aea8960499c0f7ac57d90c93fed1d47ae7a50632cfb037fb4": {
+          "evidence_id": "ev-832545acb2bd548aea8960499c0f7ac57d90c93fed1d47ae7a50632cfb037fb4",
+          "source_id": "src-076f8b1b98c314f31c0625e901ef4408f0a1f8b237b215868a8dc5867af423fb",
+          "evidence_type": "other",
+          "location": {
+            "page_start": null,
+            "page_end": null,
+            "section": "相关推荐",
+            "table": null,
+            "file": null,
+            "commit": null,
+            "selector": null,
+            "line_start": 1491,
+            "line_end": 1497,
+            "chunk_id": null
+          },
+          "quote_or_raw_content": "尽管循环神经网络具有长期记忆的能力，但是CNN架构（文中的TCN）表现出更加长期的记忆能力.",
+          "extraction_method": "parser:dr4a-html-v1:verified_range",
+          "content_hash": "685f68ba054b8aafb96e388a8399c28629957846c1e0513cadb9eacbbb8ad212"
+        },
+        "ev-9a51be670f49fb33b144f9ed2765f36fdcaf7aa857990de4a4bceafa66f63923": {
+          "evidence_id": "ev-9a51be670f49fb33b144f9ed2765f36fdcaf7aa857990de4a4bceafa66f63923",
+          "source_id": "src-5e45f90064f5324b2315d5037c3b146683422f81905d9ad98f790ced8ad0eb5f",
+          "evidence_type": "other",
+          "location": {
+            "page_start": null,
+            "page_end": null,
+            "section": "Deformable convolution 为什么确实元素关系建模机制？",
+            "table": null,
+            "file": null,
+            "commit": null,
+            "selector": null,
+            "line_start": 433,
+            "line_end": 433,
+            "chunk_id": null
+          },
+          "quote_or_raw_content": "虽然 Deformable Convolution 本身可能不直接包含全局元素关系建模的机制，但研究人员可以通过将其与其他注意力机制或全局建模方法结合使用，以满足任务的特定需求。例如，可以通过在网络中引入全局信息注意力机制（如Transformer中的自注意力机制）、多尺度特征融合、全局池化、位置编码的改进来更好地捕获元素之间的全局关系。",
+          "extraction_method": "parser:dr4a-html-v1:verified_range",
+          "content_hash": "7bcedcecd8c13716769490b17b7fc96fc94da9fc5adf47c4a895ec243c502862"
+        },
+        "ev-9f881d0dd861aed9449f47393db8c6b222ceb6c1806cfe7ff92e92ca166b81cf": {
+          "evidence_id": "ev-9f881d0dd861aed9449f47393db8c6b222ceb6c1806cfe7ff92e92ca166b81cf",
+          "source_id": "src-076f8b1b98c314f31c0625e901ef4408f0a1f8b237b215868a8dc5867af423fb",
+          "evidence_type": "other",
+          "location": {
+            "page_start": null,
+            "page_end": null,
+            "section": "An Empirical Evaluation of Generic Convolutional and Recurrent Networks for Sequence Modeling",
+            "table": null,
+            "file": null,
+            "commit": null,
+            "selector": null,
+            "line_start": 1430,
+            "line_end": 1445,
+            "chunk_id": null
+          },
+          "quote_or_raw_content": "确认TCN比RNN家族表现出更长的记忆保留，确认RNN的“无限记忆”几乎没有实验结果。",
+          "extraction_method": "parser:dr4a-html-v1:verified_range",
+          "content_hash": "685f68ba054b8aafb96e388a8399c28629957846c1e0513cadb9eacbbb8ad212"
+        },
+        "ev-a8e66603a2369134c055a4ebe08571441100e5a6f5b6e11996ab6c929269e4c1": {
+          "evidence_id": "ev-a8e66603a2369134c055a4ebe08571441100e5a6f5b6e11996ab6c929269e4c1",
+          "source_id": "src-5e45f90064f5324b2315d5037c3b146683422f81905d9ad98f790ced8ad0eb5f",
+          "evidence_type": "limitation",
+          "location": {
+            "page_start": null,
+            "page_end": null,
+            "section": "Deformable convolution 为什么确实元素关系建模机制？",
+            "table": null,
+            "file": null,
+            "commit": null,
+            "selector": null,
+            "line_start": 431,
+            "line_end": 431,
+            "chunk_id": null
+          },
+          "quote_or_raw_content": "2、元素关系建模： Deformable Convolution 的设计目标更倾向于处理空间局部的变形，而不是直接建模元素之间的全局关系。在某些任务中，特别是涉及全局上下文信息和元素之间长距离关系的任务，可能需要额外的机制来更好地捕捉元素之间的关系。",
+          "extraction_method": "parser:dr4a-html-v1:verified_range",
+          "content_hash": "7bcedcecd8c13716769490b17b7fc96fc94da9fc5adf47c4a895ec243c502862"
+        },
+        "ev-beaa8fd3f798ee7bc7bba01ec6f912ad4cfe317556fd3e832d353224c52c6524": {
+          "evidence_id": "ev-beaa8fd3f798ee7bc7bba01ec6f912ad4cfe317556fd3e832d353224c52c6524",
+          "source_id": "src-5e45f90064f5324b2315d5037c3b146683422f81905d9ad98f790ced8ad0eb5f",
+          "evidence_type": "limitation",
+          "location": {
+            "page_start": null,
+            "page_end": null,
+            "section": "Deformable convolution 为什么确实元素关系建模机制？",
+            "table": null,
+            "file": null,
+            "commit": null,
+            "selector": null,
+            "line_start": 430,
+            "line_end": 430,
+            "chunk_id": null
+          },
+          "quote_or_raw_content": "1、局部感受野： Deformable Convolution 主要关注局部区域内的特征建模，通过在卷积核内引入可变形采样点，可以提高模型对局部变形的适应性。然而，它的设计并没有直接引入全局元素关系建模的机制。",
+          "extraction_method": "parser:dr4a-html-v1:verified_range",
+          "content_hash": "7bcedcecd8c13716769490b17b7fc96fc94da9fc5adf47c4a895ec243c502862"
+        },
+        "ev-bff641dfebc692abe19e8f6bc25877c0b444d96662bcbff5050f23063fde6dff": {
+          "evidence_id": "ev-bff641dfebc692abe19e8f6bc25877c0b444d96662bcbff5050f23063fde6dff",
+          "source_id": "src-076f8b1b98c314f31c0625e901ef4408f0a1f8b237b215868a8dc5867af423fb",
+          "evidence_type": "limitation",
+          "location": {
+            "page_start": null,
+            "page_end": null,
+            "section": "论文笔记：An Empirical Evaluation of Generic Convolutional and Recurrent Networks for Sequence Modeling",
+            "table": null,
+            "file": null,
+            "commit": null,
+            "selector": null,
+            "line_start": 1189,
+            "line_end": 1208,
+            "chunk_id": null
+          },
+          "quote_or_raw_content": "传统的卷积网络（convolutional networks）由于卷积核大小的限制，对于长时间的依赖信息不能较好地抓取。",
+          "extraction_method": "parser:dr4a-html-v1:verified_range",
+          "content_hash": "685f68ba054b8aafb96e388a8399c28629957846c1e0513cadb9eacbbb8ad212"
+        },
+        "ev-cd3074b915158c24d350d5304f118d48f4ed3898fcb12d32524f292d5d8f562f": {
+          "evidence_id": "ev-cd3074b915158c24d350d5304f118d48f4ed3898fcb12d32524f292d5d8f562f",
+          "source_id": "src-5e45f90064f5324b2315d5037c3b146683422f81905d9ad98f790ced8ad0eb5f",
+          "evidence_type": "limitation",
+          "location": {
+            "page_start": null,
+            "page_end": null,
+            "section": "Deformable convolution 为什么确实元素关系建模机制？",
+            "table": null,
+            "file": null,
+            "commit": null,
+            "selector": null,
+            "line_start": 432,
+            "line_end": 432,
+            "chunk_id": null
+          },
+          "quote_or_raw_content": "3、任务特定性： Deformable Convolution 的使用通常取决于具体任务和应用场景。对于一些任务，例如目标检测，局部变形建模可能是更为关键的，而对于其他任务，例如图像分类，全局元素关系建模可能更为重要。",
+          "extraction_method": "parser:dr4a-html-v1:verified_range",
+          "content_hash": "7bcedcecd8c13716769490b17b7fc96fc94da9fc5adf47c4a895ec243c502862"
+        },
+        "ev-d67b6e033cdf950f3ea9324eaa55c2a8ce1357629dd070179148519c4fcb0728": {
+          "evidence_id": "ev-d67b6e033cdf950f3ea9324eaa55c2a8ce1357629dd070179148519c4fcb0728",
+          "source_id": "src-5e45f90064f5324b2315d5037c3b146683422f81905d9ad98f790ced8ad0eb5f",
+          "evidence_type": "method",
+          "location": {
+            "page_start": null,
+            "page_end": null,
+            "section": "Deformable convolution 为什么确实元素关系建模机制？",
+            "table": null,
+            "file": null,
+            "commit": null,
+            "selector": null,
+            "line_start": 428,
+            "line_end": 428,
+            "chunk_id": null
+          },
+          "quote_or_raw_content": "Deformable Convolution（可变形卷积）是一种卷积神经网络（CNN）中的卷积操作，通过允许卷积核内部的采样点位置进行变形，从而提高了模型对目标的建模能力。这种卷积操作的提出是为了更好地适应目标在图像中的非刚性形状和局部变形。",
+          "extraction_method": "parser:dr4a-html-v1:verified_range",
+          "content_hash": "7bcedcecd8c13716769490b17b7fc96fc94da9fc5adf47c4a895ec243c502862"
+        },
+        "ev-e3618d554715e0ce14aca80d9ed95db0e4f8a2e0768000e9132791121f23f20c": {
+          "evidence_id": "ev-e3618d554715e0ce14aca80d9ed95db0e4f8a2e0768000e9132791121f23f20c",
+          "source_id": "src-6d117a2c779b13ac98286cad3da3106fd342943b52a29bad082b7d088f91bf0b",
+          "evidence_type": "method",
+          "location": {
+            "page_start": null,
+            "page_end": null,
+            "section": "相关推荐",
+            "table": null,
+            "file": null,
+            "commit": null,
+            "selector": null,
+            "line_start": 1415,
+            "line_end": 1417,
+            "chunk_id": null
+          },
+          "quote_or_raw_content": "Transformer详解 1. 简介 Transformer是一个面向sequence to sequence任务的模型，在17年的论文《Attention is all you need》中首次提出。Transformer 是第一个完全依赖自注意力（self-attention）来计算输入和输出的表示，而不使用序列对齐的递归神经网络或卷积神经网络的转换模型。",
+          "extraction_method": "parser:dr4a-html-v1:verified_range",
+          "content_hash": "6794db19efc84473ff49200fb2197fe7ae5e867919dc5c2add5f8b9752f8f3b5"
+        },
+        "ev-e8a0f536756e030579b08ce5e70910ac8030a8f7cc969e5f48095e7aed85c739": {
+          "evidence_id": "ev-e8a0f536756e030579b08ce5e70910ac8030a8f7cc969e5f48095e7aed85c739",
+          "source_id": "src-5e45f90064f5324b2315d5037c3b146683422f81905d9ad98f790ced8ad0eb5f",
+          "evidence_type": "other",
+          "location": {
+            "page_start": null,
+            "page_end": null,
+            "section": "TCN：时域卷积网络",
+            "table": null,
+            "file": null,
+            "commit": null,
+            "selector": null,
+            "line_start": 262,
+            "line_end": 262,
+            "chunk_id": null
+          },
+          "quote_or_raw_content": "论文《An Empirical Evaluation of Generic Convolutional and Recurrent Networks for Sequence Modeling》",
+          "extraction_method": "parser:dr4a-html-v1:verified_range",
+          "content_hash": "7bcedcecd8c13716769490b17b7fc96fc94da9fc5adf47c4a895ec243c502862"
+        }
+      },
+      "claims": {
+        "cl-327f66a4ab526e2f988bfc1fc1a33aeb02fadb7a6e9eba17f0d126d8bb70e0a8": {
+          "claim_id": "cl-327f66a4ab526e2f988bfc1fc1a33aeb02fadb7a6e9eba17f0d126d8bb70e0a8",
+          "spec_ids": [
+            "claim_long_range_dependency",
+            "claim_receptive_field"
+          ],
+          "text": "所提供原文中的 Deformable Convolution 设计目标更倾向于处理空间局部变形，而不是直接建模元素之间的全局关系 空间局部变形与全局元素关系",
+          "claim_type": "factual",
+          "conditions": {
+            "scope_limit": "原文未直接比较 self-attention 与 convolution，也未提供序列建模性能结果",
+            "source_tier": "secondary_blog",
+            "source_object": "Deformable Convolution",
+            "hash_available": false,
+            "domain_in_source": "空间/图像任务",
+            "source_tier_requirement": "primary 或 peer_reviewed；本材料未满足"
+          },
+          "status": "insufficient",
+          "status_reason": "Missing support, required source tier, or explicit conditions"
+        },
+        "cl-42046e8720994264f5a8d220a10599bfd3458e67ccccc06d7dd6e2beb4b31f4e": {
+          "claim_id": "cl-42046e8720994264f5a8d220a10599bfd3458e67ccccc06d7dd6e2beb4b31f4e",
+          "spec_ids": [
+            "claim_applicability_limitations",
+            "claim_output_form",
+            "claim_positional_relation",
+            "claim_receptive_field"
+          ],
+          "text": "该CSDN论文总结 声称 TCN 主要使用 Causal Conv、Dilated Conv 和 residual block 对时序序列进行预测，并与 LSTM 等循环/递归网络对比",
+          "claim_type": "factual",
+          "conditions": {
+            "hash": "未提供；输出Schema无哈希字段，位置以block_index记录",
+            "missing": [
+              "核窗口、步长、填充、膨胀率、通道数等超参数",
+              "自注意力机制说明"
+            ],
+            "source_tier": "非primary/peer_reviewed",
+            "source_type": "二手论文总结",
+            "source_block": 63
+          },
+          "status": "insufficient",
+          "status_reason": "Missing support, required source tier, or explicit conditions"
+        },
+        "cl-42756e068fb9dd6a9ec012eb0eb56acf517db7a796febcb6a07c109b60749a0c": {
+          "claim_id": "cl-42756e068fb9dd6a9ec012eb0eb56acf517db7a796febcb6a07c109b60749a0c",
+          "spec_ids": [
+            "claim_applicability_limitations",
+            "claim_input_representation",
+            "claim_long_range_dependency",
+            "claim_output_form",
+            "claim_positional_relation",
+            "claim_receptive_field"
+          ],
+          "text": "本轮材料 不能支持 self-attention 与 convolution 在输入表示、位置信息注入、输出对齐和适用限制上的直接机制差分",
+          "claim_type": "factual",
+          "conditions": {
+            "reason": "材料仅涉及卷积/TCN 与 RNN 的二手笔记，没有 self-attention 原文或同协议机制对比",
+            "source_tier": "非primary/peer_reviewed",
+            "no_performance_ranking": "不跨数据集或协议推断性能排序"
+          },
+          "status": "insufficient",
+          "status_reason": "Missing support, required source tier, or explicit conditions"
+        },
+        "cl-436cfb39bdf2e1fafe42e27a21ed34c3a5037cbf29cd745e12c64b5ae9f8bcba": {
+          "claim_id": "cl-436cfb39bdf2e1fafe42e27a21ed34c3a5037cbf29cd745e12c64b5ae9f8bcba",
+          "spec_ids": [
+            "claim_applicability_limitations",
+            "claim_long_range_dependency"
+          ],
+          "text": "涉及全局上下文信息和元素之间长距离关系的任务 可能需要额外机制来更好地捕捉元素之间的关系 额外全局建模机制",
+          "claim_type": "hypothesis",
+          "conditions": {
+            "scope_limit": "原文为机制性推测与任务适配讨论，不是实验测量或性能排名",
+            "source_tier": "secondary_blog",
+            "source_object": "Deformable Convolution",
+            "hash_available": false,
+            "domain_in_source": "全局上下文和长距离关系任务",
+            "source_epistemic": "原文使用“可能需要”",
+            "source_tier_requirement": "primary 或 peer_reviewed；本材料未满足"
+          },
+          "status": "insufficient",
+          "status_reason": "Missing support, required source tier, or explicit conditions"
+        },
+        "cl-508a874234faed6ae251e6d1dcb4b1f6f5abcc7b6674cbbd2a1209bdb0951e92": {
+          "claim_id": "cl-508a874234faed6ae251e6d1dcb4b1f6f5abcc7b6674cbbd2a1209bdb0951e92",
+          "spec_ids": [
+            "claim_positional_relation",
+            "claim_receptive_field"
+          ],
+          "text": "Temporal Convolutional Networks (TCN)/原文所述 paper 采用膨胀卷积以 获得指数级增大的感受野",
+          "claim_type": "factual",
+          "conditions": {
+            "scope_note": "仅说明 TCN 的卷积感受野扩展机制；未涉及 self-attention，也未给出 kernel/stride/padding 的具体值。",
+            "source_section": "3.3. Dilated Convolutions",
+            "source_block_index": 150,
+            "citations_as_in_original": [
+              "van den Oord et al., 2016",
+              "Yu & Koltun, 2106 (原文如此)"
+            ]
+          },
+          "status": "limited",
+          "status_reason": "Supporting evidence also has refuting or limiting relations"
+        },
+        "cl-528a19bebaefae430047fea341c92c9227a7dc9b71836d8f2542c1d9bc6b3742": {
+          "claim_id": "cl-528a19bebaefae430047fea341c92c9227a7dc9b71836d8f2542c1d9bc6b3742",
+          "spec_ids": [
+            "claim_applicability_limitations"
+          ],
+          "text": "Convolutional networks 被原文建议作为 sequence modeling tasks 的自然起点",
+          "claim_type": "recommendation",
+          "conditions": {
+            "scope_note": "这是摘要中的建议/立场，不是性能测量；未比较 self-attention。",
+            "source_section": "Abstract",
+            "source_block_index": 122
+          },
+          "status": "limited",
+          "status_reason": "Supporting evidence also has refuting or limiting relations"
+        },
+        "cl-6c366534d3302e50682dc491c32d7f4d746e2061149623633207c958cbc69e40": {
+          "claim_id": "cl-6c366534d3302e50682dc491c32d7f4d746e2061149623633207c958cbc69e40",
+          "spec_ids": [
+            "claim_input_representation",
+            "claim_output_form",
+            "claim_positional_relation",
+            "claim_receptive_field"
+          ],
+          "text": "本轮 original_blocks 未包含 self-attention 的输入表示、位置编码、注意力掩码、单层/堆叠感受野或输出形式的原文机制说明",
+          "claim_type": "factual",
+          "conditions": {
+            "consequence": "相应机制差分无法由本轮材料验证",
+            "evidence_tier": "不满足 primary/peer_reviewed",
+            "material_scope": "original_blocks 0-125",
+            "included_material": "CSDN 论文笔记、相关推荐和重复标题，未含 Attention Is All You Need 或其他自注意力原文"
+          },
+          "status": "insufficient",
+          "status_reason": "Missing support, required source tier, or explicit conditions"
+        },
+        "cl-7d83fb4adeead8b13d95b2051c2fb184291aef4acd3cc1e605034d32a5a1e298": {
+          "claim_id": "cl-7d83fb4adeead8b13d95b2051c2fb184291aef4acd3cc1e605034d32a5a1e298",
+          "spec_ids": [
+            "claim_applicability_limitations",
+            "claim_long_range_dependency",
+            "claim_receptive_field"
+          ],
+          "text": "传统卷积网络 可能因卷积核大小限制而 难以较好抓取长时间依赖信息",
+          "claim_type": "hypothesis",
+          "conditions": {
+            "hash": "未提供；输出Schema无哈希字段，位置以block_index记录",
+            "status": "待验证差分；原文未直接支持 self-attention 对比",
+            "comparison": "卷积 vs 循环网络，不是 self-attention vs convolution",
+            "source_tier": "非primary/peer_reviewed，未追溯到原论文",
+            "source_type": "CSDN论文笔记/摘要式二手内容",
+            "source_block": 20
+          },
+          "status": "insufficient",
+          "status_reason": "Missing support, required source tier, or explicit conditions"
+        },
+        "cl-7f178ffeda41883d20e4f69e4390e41672863efdb829cdb361ac1d52d83f5827": {
+          "claim_id": "cl-7f178ffeda41883d20e4f69e4390e41672863efdb829cdb361ac1d52d83f5827",
+          "spec_ids": [
+            "claim_long_range_dependency"
+          ],
+          "text": "该CSDN论文阅读笔记 声称 CNN 架构（文中的 TCN）比循环神经网络表现出更长期的记忆能力",
+          "claim_type": "factual",
+          "conditions": {
+            "hash": "未提供；输出Schema无哈希字段，位置以block_index记录",
+            "comparison": "CNN/TCN vs RNN，非 self-attention vs convolution",
+            "source_tier": "非primary/peer_reviewed",
+            "source_type": "二手论文阅读笔记",
+            "source_block": 57
+          },
+          "status": "insufficient",
+          "status_reason": "Missing support, required source tier, or explicit conditions"
+        },
+        "cl-7fd5dccd60ecad1d9e8e38cc7ad0ce18d404866165a69901e42adbb5a7599b01": {
+          "claim_id": "cl-7fd5dccd60ecad1d9e8e38cc7ad0ce18d404866165a69901e42adbb5a7599b01",
+          "spec_ids": [
+            "claim_long_range_dependency",
+            "claim_receptive_field"
+          ],
+          "text": "所提供原文中的 Deformable Convolution 主要关注局部区域内的特征建模，且其设计没有直接引入全局元素关系建模机制 局部特征建模与全局元素关系建模",
+          "claim_type": "factual",
+          "conditions": {
+            "scope_limit": "未说明标准 convolution 或序列卷积；未给出单层感受野尺寸、堆叠有效范围或序列长度条件",
+            "source_tier": "secondary_blog",
+            "source_object": "Deformable Convolution",
+            "hash_available": false,
+            "domain_in_source": "图像中的非刚性形状和局部变形",
+            "source_tier_requirement": "primary 或 peer_reviewed；本材料未满足"
+          },
+          "status": "insufficient",
+          "status_reason": "Missing support, required source tier, or explicit conditions"
+        },
+        "cl-803e9babcdf1b3b7e5ab9763d42feac5b37d3102f03b8cc46df4b6a1f1aedf46": {
+          "claim_id": "cl-803e9babcdf1b3b7e5ab9763d42feac5b37d3102f03b8cc46df4b6a1f1aedf46",
+          "spec_ids": [
+            "claim_long_range_dependency"
+          ],
+          "text": "Transformer 中的自注意力机制 在原文中被列为一种全局信息注意力机制，可与 Deformable Convolution 结合以更好捕获元素之间的全局关系 Deformable Convolution 的全局关系建模补充",
+          "claim_type": "recommendation",
+          "conditions": {
+            "scope_limit": "这是研究者建议，不是自注意力机制的测量结果；未说明 self-attention 的位置编码、掩码、输出形式或复杂度",
+            "source_tier": "secondary_blog",
+            "source_object": "Deformable Convolution 与注意力/全局建模方法结合",
+            "hash_available": false,
+            "source_epistemic": "原文表述为“可以通过...例如...”",
+            "source_tier_requirement": "primary 或 peer_reviewed；本材料未满足"
+          },
+          "status": "insufficient",
+          "status_reason": "Missing support, required source tier, or explicit conditions"
+        },
+        "cl-ab157f878eda5fc0cc2076fe3d8c04898eabbc0701fe849174287f292c657b42": {
+          "claim_id": "cl-ab157f878eda5fc0cc2076fe3d8c04898eabbc0701fe849174287f292c657b42",
+          "spec_ids": [
+            "claim_applicability_limitations"
+          ],
+          "text": "Deformable Convolution 的适用性 取决于具体任务；局部变形建模与全局元素关系建模的重要性随任务不同 目标检测、图像分类等任务",
+          "claim_type": "factual",
+          "conditions": {
+            "scope_limit": "原文为任务特例讨论，不能外推为普遍性能优势；未涉及序列建模协议",
+            "source_tier": "secondary_blog",
+            "source_object": "Deformable Convolution",
+            "hash_available": false,
+            "examples_in_source": [
+              "目标检测",
+              "图像分类"
+            ],
+            "source_tier_requirement": "primary 或 peer_reviewed；本材料未满足",
+            "source_statement_strength": "原文使用“可能”“取决于”"
+          },
+          "status": "insufficient",
+          "status_reason": "Missing support, required source tier, or explicit conditions"
+        },
+        "cl-b77e581ffa38cb94981da008397b9db3e85d1a95592ce26979dd0b5b0831e76e": {
+          "claim_id": "cl-b77e581ffa38cb94981da008397b9db3e85d1a95592ce26979dd0b5b0831e76e",
+          "spec_ids": [
+            "claim_applicability_limitations",
+            "claim_long_range_dependency"
+          ],
+          "text": "该CSDN论文总结 声称 TCN 比 RNN 家族表现出更长记忆保留，RNN 的“无限记忆”几乎没有实验结果",
+          "claim_type": "factual",
+          "conditions": {
+            "hash": "未提供；输出Schema无哈希字段，位置以block_index记录",
+            "comparison": "TCN vs RNN，非 self-attention vs convolution",
+            "source_tier": "非primary/peer_reviewed",
+            "source_type": "二手论文总结",
+            "source_block": 47,
+            "performance_claim": "无同协议结果表，不做性能排名"
+          },
+          "status": "insufficient",
+          "status_reason": "Missing support, required source tier, or explicit conditions"
+        },
+        "cl-c3654aadbcde83c6561d3ec7d87e355ba8fd24235877e997fc24cf7d1dee4b78": {
+          "claim_id": "cl-c3654aadbcde83c6561d3ec7d87e355ba8fd24235877e997fc24cf7d1dee4b78",
+          "spec_ids": [
+            "claim_applicability_limitations",
+            "claim_long_range_dependency"
+          ],
+          "text": "该CSDN论文笔记 报告 一些特殊卷积神经网络模型在音频合成、机器翻译等任务上效果比递归神经网络更好",
+          "claim_type": "factual",
+          "conditions": {
+            "hash": "未提供；输出Schema无哈希字段，位置以block_index记录",
+            "source_tier": "非primary/peer_reviewed",
+            "source_type": "二手论文笔记",
+            "source_block": 20,
+            "performance_comparison": "卷积 vs 递归网络；无同协议结果表；非 self-attention vs convolution"
+          },
+          "status": "insufficient",
+          "status_reason": "Missing support, required source tier, or explicit conditions"
+        },
+        "cl-fd2d66df14dbbd8bf7fc6d565f1af1ec313d2d4180d045573cc06dd0778c9384": {
+          "claim_id": "cl-fd2d66df14dbbd8bf7fc6d565f1af1ec313d2d4180d045573cc06dd0778c9384",
+          "spec_ids": [
+            "claim_input_representation",
+            "claim_output_form",
+            "claim_positional_relation"
+          ],
+          "text": "所提供原文 未直接说明 self-attention 与 convolution 在序列输入表示、位置编码注入、核窗口/步长/填充和输出位置对齐上的机制差异 输入表示、位置关系、输出形式等 ClaimSpecs 的证据缺口",
+          "claim_type": "factual",
+          "conditions": {
+            "scope_limit": "这是材料覆盖范围陈述，不是对机制本身的否定",
+            "source_tier": "secondary_blog",
+            "source_scope": "所提供 original_blocks",
+            "hash_available": false,
+            "source_tier_requirement": "primary 或 peer_reviewed；本材料未满足"
+          },
+          "status": "insufficient",
+          "status_reason": "Missing support, required source tier, or explicit conditions"
+        },
+        "cl-fd5c4319cbf8b15349afafa210ca14bb309e6cf50a9dc5158bcbc46a1c6bfce3": {
+          "claim_id": "cl-fd5c4319cbf8b15349afafa210ca14bb309e6cf50a9dc5158bcbc46a1c6bfce3",
+          "spec_ids": [
+            "claim_applicability_limitations",
+            "claim_input_representation",
+            "claim_output_form",
+            "claim_positional_relation",
+            "claim_receptive_field"
+          ],
+          "text": "所提供原文中的 TCN 相关内容 仅提供名称与论文标题引用，未提供 TCN 的卷积核、膨胀、感受野或序列建模机制细节 TCN 机制证据缺口",
+          "claim_type": "factual",
+          "conditions": {
+            "scope_limit": "该断言只说明材料覆盖情况，不作为 TCN 机制结论",
+            "source_tier": "secondary_blog",
+            "source_scope": "所提供 original_blocks",
+            "hash_available": false,
+            "source_tier_requirement": "primary 或 peer_reviewed；本材料未满足"
+          },
+          "status": "insufficient",
+          "status_reason": "Missing support, required source tier, or explicit conditions"
+        }
+      },
+      "claim_evidence_links": [
+        {
+          "claim_id": "cl-508a874234faed6ae251e6d1dcb4b1f6f5abcc7b6674cbbd2a1209bdb0951e92",
+          "evidence_id": "ev-695de7cac9e52b609803dea2d110c5d2d74c9f7ee3538ecb39e9d941ad85e741",
+          "relation": "supports",
+          "rationale": "原文直接说明采用膨胀卷积来获得指数级大的感受野。"
+        },
+        {
+          "claim_id": "cl-508a874234faed6ae251e6d1dcb4b1f6f5abcc7b6674cbbd2a1209bdb0951e92",
+          "evidence_id": "ev-695de7cac9e52b609803dea2d110c5d2d74c9f7ee3538ecb39e9d941ad85e741",
+          "relation": "limits",
+          "rationale": "该证据只覆盖 TCN/膨胀卷积，不能证明 self-attention 与 convolution 的差分，也不提供具体核窗口、步长或填充。"
+        },
+        {
+          "claim_id": "cl-528a19bebaefae430047fea341c92c9227a7dc9b71836d8f2542c1d9bc6b3742",
+          "evidence_id": "ev-3c3c86ecf897e8dac3368bf26aff1a7d8a16ff58470a8afe0435eba8f6e6fdae",
+          "relation": "supports",
+          "rationale": "原文摘要直接给出该建议。"
+        },
+        {
+          "claim_id": "cl-528a19bebaefae430047fea341c92c9227a7dc9b71836d8f2542c1d9bc6b3742",
+          "evidence_id": "ev-3c3c86ecf897e8dac3368bf26aff1a7d8a16ff58470a8afe0435eba8f6e6fdae",
+          "relation": "limits",
+          "rationale": "该建议不构成适用限制的机制证据，也不提供 self-attention 与 convolution 的同协议比较。"
+        },
+        {
+          "claim_id": "cl-fd5c4319cbf8b15349afafa210ca14bb309e6cf50a9dc5158bcbc46a1c6bfce3",
+          "evidence_id": "ev-6ed835fe570a9aeaa07a792a901e0f0a725614e03a57e624b294ca1c45e2fbd0",
+          "relation": "limits",
+          "rationale": "第25 block 只有 TCN 名称，未展开机制细节。"
+        },
+        {
+          "claim_id": "cl-fd5c4319cbf8b15349afafa210ca14bb309e6cf50a9dc5158bcbc46a1c6bfce3",
+          "evidence_id": "ev-e8a0f536756e030579b08ce5e70910ac8030a8f7cc969e5f48095e7aed85c739",
+          "relation": "limits",
+          "rationale": "第26 block 只引用论文标题，未提供 TCN 的卷积核、膨胀、感受野或输出形式描述。"
+        },
+        {
+          "claim_id": "cl-7fd5dccd60ecad1d9e8e38cc7ad0ce18d404866165a69901e42adbb5a7599b01",
+          "evidence_id": "ev-beaa8fd3f798ee7bc7bba01ec6f912ad4cfe317556fd3e832d353224c52c6524",
+          "relation": "supports",
+          "rationale": "第117 block 明确称 Deformable Convolution 主要关注局部区域特征建模，且没有直接引入全局元素关系建模机制。"
+        },
+        {
+          "claim_id": "cl-7fd5dccd60ecad1d9e8e38cc7ad0ce18d404866165a69901e42adbb5a7599b01",
+          "evidence_id": "ev-d67b6e033cdf950f3ea9324eaa55c2a8ce1357629dd070179148519c4fcb0728",
+          "relation": "supports",
+          "rationale": "第115 block 说明其通过卷积核内采样点变形适应局部变形，支持其局部建模定位。"
+        },
+        {
+          "claim_id": "cl-327f66a4ab526e2f988bfc1fc1a33aeb02fadb7a6e9eba17f0d126d8bb70e0a8",
+          "evidence_id": "ev-a8e66603a2369134c055a4ebe08571441100e5a6f5b6e11996ab6c929269e4c1",
+          "relation": "supports",
+          "rationale": "第118 block 对比设计目标，指出其倾向局部变形而非全局关系。"
+        },
+        {
+          "claim_id": "cl-436cfb39bdf2e1fafe42e27a21ed34c3a5037cbf29cd745e12c64b5ae9f8bcba",
+          "evidence_id": "ev-a8e66603a2369134c055a4ebe08571441100e5a6f5b6e11996ab6c929269e4c1",
+          "relation": "supports",
+          "rationale": "第118 block 原文使用“可能需要额外的机制”表述，支持将其标为假设而非实测结论。"
+        },
+        {
+          "claim_id": "cl-ab157f878eda5fc0cc2076fe3d8c04898eabbc0701fe849174287f292c657b42",
+          "evidence_id": "ev-cd3074b915158c24d350d5304f118d48f4ed3898fcb12d32524f292d5d8f562f",
+          "relation": "supports",
+          "rationale": "第119 block 原文称其使用通常取决于具体任务，并给出目标检测与图像分类的对比。"
+        },
+        {
+          "claim_id": "cl-803e9babcdf1b3b7e5ab9763d42feac5b37d3102f03b8cc46df4b6a1f1aedf46",
+          "evidence_id": "ev-9a51be670f49fb33b144f9ed2765f36fdcaf7aa857990de4a4bceafa66f63923",
+          "relation": "supports",
+          "rationale": "第120 block 原文列出可将全局信息注意力机制（如 Transformer 自注意力）与 Deformable Convolution 结合。"
+        },
+        {
+          "claim_id": "cl-fd2d66df14dbbd8bf7fc6d565f1af1ec313d2d4180d045573cc06dd0778c9384",
+          "evidence_id": "ev-d67b6e033cdf950f3ea9324eaa55c2a8ce1357629dd070179148519c4fcb0728",
+          "relation": "limits",
+          "rationale": "该摘录只描述可变形卷积的局部采样点变形，未说明标准卷积序列建模的输入通道、位置对齐或输出形状。"
+        },
+        {
+          "claim_id": "cl-fd2d66df14dbbd8bf7fc6d565f1af1ec313d2d4180d045573cc06dd0778c9384",
+          "evidence_id": "ev-9a51be670f49fb33b144f9ed2765f36fdcaf7aa857990de4a4bceafa66f63923",
+          "relation": "limits",
+          "rationale": "第120 block 只建议结合自注意力，未描述自注意力的输入表示或输出形式。"
+        },
+        {
+          "claim_id": "cl-fd2d66df14dbbd8bf7fc6d565f1af1ec313d2d4180d045573cc06dd0778c9384",
+          "evidence_id": "ev-6ed835fe570a9aeaa07a792a901e0f0a725614e03a57e624b294ca1c45e2fbd0",
+          "relation": "limits",
+          "rationale": "TCN 仅有标题，未提供序列卷积机制细节。"
+        },
+        {
+          "claim_id": "cl-7d83fb4adeead8b13d95b2051c2fb184291aef4acd3cc1e605034d32a5a1e298",
+          "evidence_id": "ev-bff641dfebc692abe19e8f6bc25877c0b444d96662bcbff5050f23063fde6dff",
+          "relation": "supports",
+          "rationale": "该摘录直接包含网页笔记对传统卷积核大小限制与长时依赖困难的陈述，但仅支持该假设被提出，不支持其为原始论文结论。"
+        },
+        {
+          "claim_id": "cl-c3654aadbcde83c6561d3ec7d87e355ba8fd24235877e997fc24cf7d1dee4b78",
+          "evidence_id": "ev-46dbff83deb177885d6d629930fd8bcbf6873f37fb3dc449e99563a79911884a",
+          "relation": "supports",
+          "rationale": "摘录直接陈述该网页笔记称特殊卷积网络在若干任务上优于递归神经网络。"
+        },
+        {
+          "claim_id": "cl-42046e8720994264f5a8d220a10599bfd3458e67ccccc06d7dd6e2beb4b31f4e",
+          "evidence_id": "ev-47fafec4a76efc90b4222b38e820fdb2010fa5832394101086c45b444665b11d",
+          "relation": "supports",
+          "rationale": "摘录直接列出该二手总结对 TCN 所用 Causal Conv、Dilated Conv 和 residual block 及对比方法的描述。"
+        },
+        {
+          "claim_id": "cl-b77e581ffa38cb94981da008397b9db3e85d1a95592ce26979dd0b5b0831e76e",
+          "evidence_id": "ev-9f881d0dd861aed9449f47393db8c6b222ceb6c1806cfe7ff92e92ca166b81cf",
+          "relation": "supports",
+          "rationale": "摘录直接包含该二手总结关于 TCN 与 RNN 记忆保留差异的陈述。"
+        },
+        {
+          "claim_id": "cl-7f178ffeda41883d20e4f69e4390e41672863efdb829cdb361ac1d52d83f5827",
+          "evidence_id": "ev-832545acb2bd548aea8960499c0f7ac57d90c93fed1d47ae7a50632cfb037fb4",
+          "relation": "supports",
+          "rationale": "摘录直接陈述该网页笔记认为 CNN/TCN 比循环神经网络具有更长期记忆能力。"
+        }
+      ],
+      "quantitative_observations": {},
+      "comparable_metrics": {},
+      "comparison_sets": {},
+      "analysis_artifacts": {},
+      "section_coverage": {
+        "section_1": {
+          "section_id": "section_1",
+          "claim_spec_ids": [],
+          "claim_ids": [],
+          "evidence_ids": [],
+          "covered_claim_ids": [],
+          "gaps": [
+            {
+              "gap_id": "gap-cb39cf0fda6126a120185964437ae70664cadf62ffbd6e0d0c40c8ade20267a9",
+              "section_id": "section_1",
+              "claim_spec_id": null,
+              "claim_id": null,
+              "reason": "执行资源不足，已停止扩展；未完成检索或计算不代表该内容不存在",
+              "fillable": false,
+              "verification_action": "明确披露本次未完成部分；补齐原文或计算后另行验证，不扩大当前结论"
+            }
+          ],
+          "unresolved_items": []
+        },
+        "section_2": {
+          "section_id": "section_2",
+          "claim_spec_ids": [
+            "claim_applicability_limitations",
+            "claim_input_representation",
+            "claim_long_range_dependency",
+            "claim_output_form",
+            "claim_positional_relation",
+            "claim_receptive_field"
+          ],
+          "claim_ids": [
+            "cl-327f66a4ab526e2f988bfc1fc1a33aeb02fadb7a6e9eba17f0d126d8bb70e0a8",
+            "cl-42046e8720994264f5a8d220a10599bfd3458e67ccccc06d7dd6e2beb4b31f4e",
+            "cl-42756e068fb9dd6a9ec012eb0eb56acf517db7a796febcb6a07c109b60749a0c",
+            "cl-436cfb39bdf2e1fafe42e27a21ed34c3a5037cbf29cd745e12c64b5ae9f8bcba",
+            "cl-508a874234faed6ae251e6d1dcb4b1f6f5abcc7b6674cbbd2a1209bdb0951e92",
+            "cl-528a19bebaefae430047fea341c92c9227a7dc9b71836d8f2542c1d9bc6b3742",
+            "cl-6c366534d3302e50682dc491c32d7f4d746e2061149623633207c958cbc69e40",
+            "cl-7d83fb4adeead8b13d95b2051c2fb184291aef4acd3cc1e605034d32a5a1e298",
+            "cl-7f178ffeda41883d20e4f69e4390e41672863efdb829cdb361ac1d52d83f5827",
+            "cl-7fd5dccd60ecad1d9e8e38cc7ad0ce18d404866165a69901e42adbb5a7599b01",
+            "cl-803e9babcdf1b3b7e5ab9763d42feac5b37d3102f03b8cc46df4b6a1f1aedf46",
+            "cl-ab157f878eda5fc0cc2076fe3d8c04898eabbc0701fe849174287f292c657b42",
+            "cl-b77e581ffa38cb94981da008397b9db3e85d1a95592ce26979dd0b5b0831e76e",
+            "cl-c3654aadbcde83c6561d3ec7d87e355ba8fd24235877e997fc24cf7d1dee4b78",
+            "cl-fd2d66df14dbbd8bf7fc6d565f1af1ec313d2d4180d045573cc06dd0778c9384",
+            "cl-fd5c4319cbf8b15349afafa210ca14bb309e6cf50a9dc5158bcbc46a1c6bfce3"
+          ],
+          "evidence_ids": [
+            "ev-3c3c86ecf897e8dac3368bf26aff1a7d8a16ff58470a8afe0435eba8f6e6fdae",
+            "ev-46dbff83deb177885d6d629930fd8bcbf6873f37fb3dc449e99563a79911884a",
+            "ev-47fafec4a76efc90b4222b38e820fdb2010fa5832394101086c45b444665b11d",
+            "ev-695de7cac9e52b609803dea2d110c5d2d74c9f7ee3538ecb39e9d941ad85e741",
+            "ev-6ed835fe570a9aeaa07a792a901e0f0a725614e03a57e624b294ca1c45e2fbd0",
+            "ev-832545acb2bd548aea8960499c0f7ac57d90c93fed1d47ae7a50632cfb037fb4",
+            "ev-9a51be670f49fb33b144f9ed2765f36fdcaf7aa857990de4a4bceafa66f63923",
+            "ev-9f881d0dd861aed9449f47393db8c6b222ceb6c1806cfe7ff92e92ca166b81cf",
+            "ev-a8e66603a2369134c055a4ebe08571441100e5a6f5b6e11996ab6c929269e4c1",
+            "ev-beaa8fd3f798ee7bc7bba01ec6f912ad4cfe317556fd3e832d353224c52c6524",
+            "ev-bff641dfebc692abe19e8f6bc25877c0b444d96662bcbff5050f23063fde6dff",
+            "ev-cd3074b915158c24d350d5304f118d48f4ed3898fcb12d32524f292d5d8f562f",
+            "ev-d67b6e033cdf950f3ea9324eaa55c2a8ce1357629dd070179148519c4fcb0728",
+            "ev-e8a0f536756e030579b08ce5e70910ac8030a8f7cc969e5f48095e7aed85c739"
+          ],
+          "covered_claim_ids": [],
+          "gaps": [
+            {
+              "gap_id": "gap-fb07d7d7c72e88e979b1b7ab268f65bfd340126539867cbcadb24acd670e1375",
+              "section_id": "section_2",
+              "claim_spec_id": "claim_long_range_dependency",
+              "claim_id": "cl-327f66a4ab526e2f988bfc1fc1a33aeb02fadb7a6e9eba17f0d126d8bb70e0a8",
+              "reason": "Missing support, required source tier, or explicit conditions",
+              "fillable": true,
+              "verification_action": "Check original support, conflicting relations, and required conditions"
+            },
+            {
+              "gap_id": "gap-437c1755b119db24e15adbf806aa70145b42a3755b3a8b59c6143d7dc69adf40",
+              "section_id": "section_2",
+              "claim_spec_id": "claim_receptive_field",
+              "claim_id": "cl-327f66a4ab526e2f988bfc1fc1a33aeb02fadb7a6e9eba17f0d126d8bb70e0a8",
+              "reason": "Missing support, required source tier, or explicit conditions",
+              "fillable": true,
+              "verification_action": "Check original support, conflicting relations, and required conditions"
+            },
+            {
+              "gap_id": "gap-ce42dd32028b79c6d95fbd5dd24acd8a8d68ad99c7aa470cd0fa32192283a53c",
+              "section_id": "section_2",
+              "claim_spec_id": "claim_applicability_limitations",
+              "claim_id": "cl-42046e8720994264f5a8d220a10599bfd3458e67ccccc06d7dd6e2beb4b31f4e",
+              "reason": "Missing support, required source tier, or explicit conditions",
+              "fillable": true,
+              "verification_action": "Check original support, conflicting relations, and required conditions"
+            },
+            {
+              "gap_id": "gap-121ab277fa6e8e0581447a6db025618d7f212ec16de441af618f1f9e7993432f",
+              "section_id": "section_2",
+              "claim_spec_id": "claim_output_form",
+              "claim_id": "cl-42046e8720994264f5a8d220a10599bfd3458e67ccccc06d7dd6e2beb4b31f4e",
+              "reason": "Missing support, required source tier, or explicit conditions",
+              "fillable": true,
+              "verification_action": "Check original support, conflicting relations, and required conditions"
+            },
+            {
+              "gap_id": "gap-9de7550bbd0e4aa836ac5da5398ca6c86199726fed6065673237adde3b578839",
+              "section_id": "section_2",
+              "claim_spec_id": "claim_positional_relation",
+              "claim_id": "cl-42046e8720994264f5a8d220a10599bfd3458e67ccccc06d7dd6e2beb4b31f4e",
+              "reason": "Missing support, required source tier, or explicit conditions",
+              "fillable": true,
+              "verification_action": "Check original support, conflicting relations, and required conditions"
+            },
+            {
+              "gap_id": "gap-0756ae8d88218b5a8dfcc47ee141810b38d20bdde7bbb09854e5af89cfe6c688",
+              "section_id": "section_2",
+              "claim_spec_id": "claim_receptive_field",
+              "claim_id": "cl-42046e8720994264f5a8d220a10599bfd3458e67ccccc06d7dd6e2beb4b31f4e",
+              "reason": "Missing support, required source tier, or explicit conditions",
+              "fillable": true,
+              "verification_action": "Check original support, conflicting relations, and required conditions"
+            },
+            {
+              "gap_id": "gap-9a4177a1d1d23e46fbe84d9fc741ad8e49a821c221ada293bfc9b355fa3acd0e",
+              "section_id": "section_2",
+              "claim_spec_id": "claim_applicability_limitations",
+              "claim_id": "cl-42756e068fb9dd6a9ec012eb0eb56acf517db7a796febcb6a07c109b60749a0c",
+              "reason": "Missing support, required source tier, or explicit conditions",
+              "fillable": true,
+              "verification_action": "Check original support, conflicting relations, and required conditions"
+            },
+            {
+              "gap_id": "gap-d55c60f649f310ea000aef7c7efcbc277b51181aea1406776a697b4e4fbf5107",
+              "section_id": "section_2",
+              "claim_spec_id": "claim_input_representation",
+              "claim_id": "cl-42756e068fb9dd6a9ec012eb0eb56acf517db7a796febcb6a07c109b60749a0c",
+              "reason": "Missing support, required source tier, or explicit conditions",
+              "fillable": true,
+              "verification_action": "Check original support, conflicting relations, and required conditions"
+            },
+            {
+              "gap_id": "gap-a71a08d16488f3c16629f800a1cdaf26b21df1055c13ac7db110db27aae83501",
+              "section_id": "section_2",
+              "claim_spec_id": "claim_long_range_dependency",
+              "claim_id": "cl-42756e068fb9dd6a9ec012eb0eb56acf517db7a796febcb6a07c109b60749a0c",
+              "reason": "Missing support, required source tier, or explicit conditions",
+              "fillable": true,
+              "verification_action": "Check original support, conflicting relations, and required conditions"
+            },
+            {
+              "gap_id": "gap-38a9029386c80e805d5ac608512760bd85ef60e114512161af358bb6e4b81307",
+              "section_id": "section_2",
+              "claim_spec_id": "claim_output_form",
+              "claim_id": "cl-42756e068fb9dd6a9ec012eb0eb56acf517db7a796febcb6a07c109b60749a0c",
+              "reason": "Missing support, required source tier, or explicit conditions",
+              "fillable": true,
+              "verification_action": "Check original support, conflicting relations, and required conditions"
+            },
+            {
+              "gap_id": "gap-dd7b8d5a62c831aa52a8a6e93c995ab6d1b889bfe9063188f623af3ff3e324e5",
+              "section_id": "section_2",
+              "claim_spec_id": "claim_positional_relation",
+              "claim_id": "cl-42756e068fb9dd6a9ec012eb0eb56acf517db7a796febcb6a07c109b60749a0c",
+              "reason": "Missing support, required source tier, or explicit conditions",
+              "fillable": true,
+              "verification_action": "Check original support, conflicting relations, and required conditions"
+            },
+            {
+              "gap_id": "gap-63b926d9c15b902bb19ad0f9421d55251b139bcf9895aaa6b209b5130c2ca81b",
+              "section_id": "section_2",
+              "claim_spec_id": "claim_receptive_field",
+              "claim_id": "cl-42756e068fb9dd6a9ec012eb0eb56acf517db7a796febcb6a07c109b60749a0c",
+              "reason": "Missing support, required source tier, or explicit conditions",
+              "fillable": true,
+              "verification_action": "Check original support, conflicting relations, and required conditions"
+            },
+            {
+              "gap_id": "gap-8b5d6766ca19d940777719115fb9d20bb8eb1232500267a9ca94fc7787f5f9af",
+              "section_id": "section_2",
+              "claim_spec_id": "claim_applicability_limitations",
+              "claim_id": "cl-436cfb39bdf2e1fafe42e27a21ed34c3a5037cbf29cd745e12c64b5ae9f8bcba",
+              "reason": "Missing support, required source tier, or explicit conditions",
+              "fillable": true,
+              "verification_action": "Check original support, conflicting relations, and required conditions"
+            },
+            {
+              "gap_id": "gap-e812e11b3eb2e5b9fb1a92d82b84132e3dafc7a8aac5891a05614d93f90d6710",
+              "section_id": "section_2",
+              "claim_spec_id": "claim_long_range_dependency",
+              "claim_id": "cl-436cfb39bdf2e1fafe42e27a21ed34c3a5037cbf29cd745e12c64b5ae9f8bcba",
+              "reason": "Missing support, required source tier, or explicit conditions",
+              "fillable": true,
+              "verification_action": "Check original support, conflicting relations, and required conditions"
+            },
+            {
+              "gap_id": "gap-157421c405a61cb60874974cbb10d4e45dc2c0f74dc154c0153f8627416d9493",
+              "section_id": "section_2",
+              "claim_spec_id": "claim_positional_relation",
+              "claim_id": "cl-508a874234faed6ae251e6d1dcb4b1f6f5abcc7b6674cbbd2a1209bdb0951e92",
+              "reason": "Supporting evidence also has refuting or limiting relations",
+              "fillable": true,
+              "verification_action": "Check original support, conflicting relations, and required conditions"
+            },
+            {
+              "gap_id": "gap-fbe7ba2142f030c102812b58e475c5dcabd31ecd33d24a058b205bc1a430a091",
+              "section_id": "section_2",
+              "claim_spec_id": "claim_receptive_field",
+              "claim_id": "cl-508a874234faed6ae251e6d1dcb4b1f6f5abcc7b6674cbbd2a1209bdb0951e92",
+              "reason": "Supporting evidence also has refuting or limiting relations",
+              "fillable": true,
+              "verification_action": "Check original support, conflicting relations, and required conditions"
+            },
+            {
+              "gap_id": "gap-9450a2c5068a905d7e5c2b35473c26e4b91758254b2c67637ec426d0bfcc3b7c",
+              "section_id": "section_2",
+              "claim_spec_id": "claim_applicability_limitations",
+              "claim_id": "cl-528a19bebaefae430047fea341c92c9227a7dc9b71836d8f2542c1d9bc6b3742",
+              "reason": "Supporting evidence also has refuting or limiting relations",
+              "fillable": true,
+              "verification_action": "Check original support, conflicting relations, and required conditions"
+            },
+            {
+              "gap_id": "gap-ad39dab1dc5a51ba5c7066028a0c4cfcedbea6f02e7fc535119ec589b6e3f98c",
+              "section_id": "section_2",
+              "claim_spec_id": "claim_input_representation",
+              "claim_id": "cl-6c366534d3302e50682dc491c32d7f4d746e2061149623633207c958cbc69e40",
+              "reason": "Missing support, required source tier, or explicit conditions",
+              "fillable": true,
+              "verification_action": "Check original support, conflicting relations, and required conditions"
+            },
+            {
+              "gap_id": "gap-a4f3c70fc5eea8cd984c28601fd29ba3a8c36fd0fa7f3c92e53b934a1676cd63",
+              "section_id": "section_2",
+              "claim_spec_id": "claim_output_form",
+              "claim_id": "cl-6c366534d3302e50682dc491c32d7f4d746e2061149623633207c958cbc69e40",
+              "reason": "Missing support, required source tier, or explicit conditions",
+              "fillable": true,
+              "verification_action": "Check original support, conflicting relations, and required conditions"
+            },
+            {
+              "gap_id": "gap-e323f6c7a18b62ecc968f7232c0cc44dcba274490143ada23aa57b68038bf1d1",
+              "section_id": "section_2",
+              "claim_spec_id": "claim_positional_relation",
+              "claim_id": "cl-6c366534d3302e50682dc491c32d7f4d746e2061149623633207c958cbc69e40",
+              "reason": "Missing support, required source tier, or explicit conditions",
+              "fillable": true,
+              "verification_action": "Check original support, conflicting relations, and required conditions"
+            },
+            {
+              "gap_id": "gap-5cbcef272ef5ef502694f5ac45151a2255d747069f213d30aa5be25818953726",
+              "section_id": "section_2",
+              "claim_spec_id": "claim_receptive_field",
+              "claim_id": "cl-6c366534d3302e50682dc491c32d7f4d746e2061149623633207c958cbc69e40",
+              "reason": "Missing support, required source tier, or explicit conditions",
+              "fillable": true,
+              "verification_action": "Check original support, conflicting relations, and required conditions"
+            },
+            {
+              "gap_id": "gap-290edbaae966b81508a4a0e801dc3c859913aa8ee50b5d0c8b157761f53d2a6c",
+              "section_id": "section_2",
+              "claim_spec_id": "claim_applicability_limitations",
+              "claim_id": "cl-7d83fb4adeead8b13d95b2051c2fb184291aef4acd3cc1e605034d32a5a1e298",
+              "reason": "Missing support, required source tier, or explicit conditions",
+              "fillable": true,
+              "verification_action": "Check original support, conflicting relations, and required conditions"
+            },
+            {
+              "gap_id": "gap-34350f53641787f9b0d4eab891b433e9461c54df87c2e2826ba59a7b52942942",
+              "section_id": "section_2",
+              "claim_spec_id": "claim_long_range_dependency",
+              "claim_id": "cl-7d83fb4adeead8b13d95b2051c2fb184291aef4acd3cc1e605034d32a5a1e298",
+              "reason": "Missing support, required source tier, or explicit conditions",
+              "fillable": true,
+              "verification_action": "Check original support, conflicting relations, and required conditions"
+            },
+            {
+              "gap_id": "gap-23362a825dc27db40b14dd2d695af26b7618a7bd4ee6b398dbcce7f5d62dfec0",
+              "section_id": "section_2",
+              "claim_spec_id": "claim_receptive_field",
+              "claim_id": "cl-7d83fb4adeead8b13d95b2051c2fb184291aef4acd3cc1e605034d32a5a1e298",
+              "reason": "Missing support, required source tier, or explicit conditions",
+              "fillable": true,
+              "verification_action": "Check original support, conflicting relations, and required conditions"
+            },
+            {
+              "gap_id": "gap-9e324929fbeb72e5a670af62cded341ced51938afcb506db55f82d78f2e7d376",
+              "section_id": "section_2",
+              "claim_spec_id": "claim_long_range_dependency",
+              "claim_id": "cl-7f178ffeda41883d20e4f69e4390e41672863efdb829cdb361ac1d52d83f5827",
+              "reason": "Missing support, required source tier, or explicit conditions",
+              "fillable": true,
+              "verification_action": "Check original support, conflicting relations, and required conditions"
+            },
+            {
+              "gap_id": "gap-aa5bcbac07d9b513974d18c0064bd30052e6c478b490eef53ae6fab8edee2c31",
+              "section_id": "section_2",
+              "claim_spec_id": "claim_long_range_dependency",
+              "claim_id": "cl-7fd5dccd60ecad1d9e8e38cc7ad0ce18d404866165a69901e42adbb5a7599b01",
+              "reason": "Missing support, required source tier, or explicit conditions",
+              "fillable": true,
+              "verification_action": "Check original support, conflicting relations, and required conditions"
+            },
+            {
+              "gap_id": "gap-92e048e909b3542e711f9034de36e2e075fd9d2c38dcb6797acc66aad1788296",
+              "section_id": "section_2",
+              "claim_spec_id": "claim_receptive_field",
+              "claim_id": "cl-7fd5dccd60ecad1d9e8e38cc7ad0ce18d404866165a69901e42adbb5a7599b01",
+              "reason": "Missing support, required source tier, or explicit conditions",
+              "fillable": true,
+              "verification_action": "Check original support, conflicting relations, and required conditions"
+            },
+            {
+              "gap_id": "gap-cc8f4e687a3c70a0adfdbc9642a7a31c773befbc232cd560dacab791c9983c26",
+              "section_id": "section_2",
+              "claim_spec_id": "claim_long_range_dependency",
+              "claim_id": "cl-803e9babcdf1b3b7e5ab9763d42feac5b37d3102f03b8cc46df4b6a1f1aedf46",
+              "reason": "Missing support, required source tier, or explicit conditions",
+              "fillable": true,
+              "verification_action": "Check original support, conflicting relations, and required conditions"
+            },
+            {
+              "gap_id": "gap-faef67516ca4253be17dcbceac2404df0404d8321019b4980dff583d24aa488b",
+              "section_id": "section_2",
+              "claim_spec_id": "claim_applicability_limitations",
+              "claim_id": "cl-ab157f878eda5fc0cc2076fe3d8c04898eabbc0701fe849174287f292c657b42",
+              "reason": "Missing support, required source tier, or explicit conditions",
+              "fillable": true,
+              "verification_action": "Check original support, conflicting relations, and required conditions"
+            },
+            {
+              "gap_id": "gap-4ea5766396c585dfb01d487ca7c25a4c8cd4bb14373251f9b26c08af0ad2e008",
+              "section_id": "section_2",
+              "claim_spec_id": "claim_applicability_limitations",
+              "claim_id": "cl-b77e581ffa38cb94981da008397b9db3e85d1a95592ce26979dd0b5b0831e76e",
+              "reason": "Missing support, required source tier, or explicit conditions",
+              "fillable": true,
+              "verification_action": "Check original support, conflicting relations, and required conditions"
+            },
+            {
+              "gap_id": "gap-00a03fc10a3c5b08cd0eab3559be8b6032a770e7e3d38c1089bc7b39f0f0d3bd",
+              "section_id": "section_2",
+              "claim_spec_id": "claim_long_range_dependency",
+              "claim_id": "cl-b77e581ffa38cb94981da008397b9db3e85d1a95592ce26979dd0b5b0831e76e",
+              "reason": "Missing support, required source tier, or explicit conditions",
+              "fillable": true,
+              "verification_action": "Check original support, conflicting relations, and required conditions"
+            },
+            {
+              "gap_id": "gap-843e89bfd32f534fa2a7a9155e27a2a4e997a823250560170bf056bac13f2e4a",
+              "section_id": "section_2",
+              "claim_spec_id": "claim_applicability_limitations",
+              "claim_id": "cl-c3654aadbcde83c6561d3ec7d87e355ba8fd24235877e997fc24cf7d1dee4b78",
+              "reason": "Missing support, required source tier, or explicit conditions",
+              "fillable": true,
+              "verification_action": "Check original support, conflicting relations, and required conditions"
+            },
+            {
+              "gap_id": "gap-8b4c55318bd074f2405025ac51042ee29840561cd0a640b29cc8f4d46e2cba2c",
+              "section_id": "section_2",
+              "claim_spec_id": "claim_long_range_dependency",
+              "claim_id": "cl-c3654aadbcde83c6561d3ec7d87e355ba8fd24235877e997fc24cf7d1dee4b78",
+              "reason": "Missing support, required source tier, or explicit conditions",
+              "fillable": true,
+              "verification_action": "Check original support, conflicting relations, and required conditions"
+            },
+            {
+              "gap_id": "gap-c045ba956103483c55414391cbb30e91e3f0dc32b66f1fd0c202d97820bef6ef",
+              "section_id": "section_2",
+              "claim_spec_id": "claim_input_representation",
+              "claim_id": "cl-fd2d66df14dbbd8bf7fc6d565f1af1ec313d2d4180d045573cc06dd0778c9384",
+              "reason": "Missing support, required source tier, or explicit conditions",
+              "fillable": true,
+              "verification_action": "Check original support, conflicting relations, and required conditions"
+            },
+            {
+              "gap_id": "gap-58c49dec58ef972586da502207b85e3916752f7cf29d4150f7711cb2e1fb5563",
+              "section_id": "section_2",
+              "claim_spec_id": "claim_output_form",
+              "claim_id": "cl-fd2d66df14dbbd8bf7fc6d565f1af1ec313d2d4180d045573cc06dd0778c9384",
+              "reason": "Missing support, required source tier, or explicit conditions",
+              "fillable": true,
+              "verification_action": "Check original support, conflicting relations, and required conditions"
+            },
+            {
+              "gap_id": "gap-8ab77c9838c6cfa64b5dec7e5e94a01bf15271832f6ca2b676ff3b9f0f3fb93c",
+              "section_id": "section_2",
+              "claim_spec_id": "claim_positional_relation",
+              "claim_id": "cl-fd2d66df14dbbd8bf7fc6d565f1af1ec313d2d4180d045573cc06dd0778c9384",
+              "reason": "Missing support, required source tier, or explicit conditions",
+              "fillable": true,
+              "verification_action": "Check original support, conflicting relations, and required conditions"
+            },
+            {
+              "gap_id": "gap-1ad2007a2ea1bbcfb2967b50d3e4a02d536b3ad085af995ed3a6737823c2775c",
+              "section_id": "section_2",
+              "claim_spec_id": "claim_applicability_limitations",
+              "claim_id": "cl-fd5c4319cbf8b15349afafa210ca14bb309e6cf50a9dc5158bcbc46a1c6bfce3",
+              "reason": "Missing support, required source tier, or explicit conditions",
+              "fillable": true,
+              "verification_action": "Check original support, conflicting relations, and required conditions"
+            },
+            {
+              "gap_id": "gap-19cfa79cd7505cfd3ec876f678999d9baa8e35320166456a04f9846e9bffb47a",
+              "section_id": "section_2",
+              "claim_spec_id": "claim_input_representation",
+              "claim_id": "cl-fd5c4319cbf8b15349afafa210ca14bb309e6cf50a9dc5158bcbc46a1c6bfce3",
+              "reason": "Missing support, required source tier, or explicit conditions",
+              "fillable": true,
+              "verification_action": "Check original support, conflicting relations, and required conditions"
+            },
+            {
+              "gap_id": "gap-50639272c414959657070554a61874b81dbc56abbc91ab0cb901fee238e8c2bb",
+              "section_id": "section_2",
+              "claim_spec_id": "claim_output_form",
+              "claim_id": "cl-fd5c4319cbf8b15349afafa210ca14bb309e6cf50a9dc5158bcbc46a1c6bfce3",
+              "reason": "Missing support, required source tier, or explicit conditions",
+              "fillable": true,
+              "verification_action": "Check original support, conflicting relations, and required conditions"
+            },
+            {
+              "gap_id": "gap-0cb13d14dcd02436e5ab7fd95d97db5abae0a36dce4b022eba403875ced106ed",
+              "section_id": "section_2",
+              "claim_spec_id": "claim_positional_relation",
+              "claim_id": "cl-fd5c4319cbf8b15349afafa210ca14bb309e6cf50a9dc5158bcbc46a1c6bfce3",
+              "reason": "Missing support, required source tier, or explicit conditions",
+              "fillable": true,
+              "verification_action": "Check original support, conflicting relations, and required conditions"
+            },
+            {
+              "gap_id": "gap-d4532dd4efb94ad11c24595e3d969dcd4a52df5d5ec532181614510fbc7a6fe2",
+              "section_id": "section_2",
+              "claim_spec_id": "claim_receptive_field",
+              "claim_id": "cl-fd5c4319cbf8b15349afafa210ca14bb309e6cf50a9dc5158bcbc46a1c6bfce3",
+              "reason": "Missing support, required source tier, or explicit conditions",
+              "fillable": true,
+              "verification_action": "Check original support, conflicting relations, and required conditions"
+            },
+            {
+              "gap_id": "gap-b15ec85146130ac39d10c5d38b778666a19d913da49df950902fe49ec3c3d149",
+              "section_id": "section_2",
+              "claim_spec_id": null,
+              "claim_id": null,
+              "reason": "执行资源不足，已停止扩展；未完成检索或计算不代表该内容不存在",
+              "fillable": false,
+              "verification_action": "明确披露本次未完成部分；补齐原文或计算后另行验证，不扩大当前结论"
+            }
+          ],
+          "unresolved_items": [
+            "Missing support, required source tier, or explicit conditions",
+            "Missing support, required source tier, or explicit conditions",
+            "Missing support, required source tier, or explicit conditions",
+            "Missing support, required source tier, or explicit conditions",
+            "Missing support, required source tier, or explicit conditions",
+            "Missing support, required source tier, or explicit conditions",
+            "Missing support, required source tier, or explicit conditions",
+            "Missing support, required source tier, or explicit conditions",
+            "Missing support, required source tier, or explicit conditions",
+            "Missing support, required source tier, or explicit conditions",
+            "Missing support, required source tier, or explicit conditions",
+            "Missing support, required source tier, or explicit conditions",
+            "Missing support, required source tier, or explicit conditions",
+            "Missing support, required source tier, or explicit conditions",
+            "Supporting evidence also has refuting or limiting relations",
+            "Supporting evidence also has refuting or limiting relations",
+            "Supporting evidence also has refuting or limiting relations",
+            "Missing support, required source tier, or explicit conditions",
+            "Missing support, required source tier, or explicit conditions",
+            "Missing support, required source tier, or explicit conditions",
+            "Missing support, required source tier, or explicit conditions",
+            "Missing support, required source tier, or explicit conditions",
+            "Missing support, required source tier, or explicit conditions",
+            "Missing support, required source tier, or explicit conditions",
+            "Missing support, required source tier, or explicit conditions",
+            "Missing support, required source tier, or explicit conditions",
+            "Missing support, required source tier, or explicit conditions",
+            "Missing support, required source tier, or explicit conditions",
+            "Missing support, required source tier, or explicit conditions",
+            "Missing support, required source tier, or explicit conditions",
+            "Missing support, required source tier, or explicit conditions",
+            "Missing support, required source tier, or explicit conditions",
+            "Missing support, required source tier, or explicit conditions",
+            "Missing support, required source tier, or explicit conditions",
+            "Missing support, required source tier, or explicit conditions",
+            "Missing support, required source tier, or explicit conditions",
+            "Missing support, required source tier, or explicit conditions",
+            "Missing support, required source tier, or explicit conditions",
+            "Missing support, required source tier, or explicit conditions",
+            "Missing support, required source tier, or explicit conditions",
+            "Missing support, required source tier, or explicit conditions"
+          ]
+        },
+        "section_3": {
+          "section_id": "section_3",
+          "claim_spec_ids": [
+            "diff_applicability_limitations",
+            "diff_input_representation",
+            "diff_output_form",
+            "diff_positional_interaction",
+            "diff_receptive_field_long_range"
+          ],
+          "claim_ids": [],
+          "evidence_ids": [],
+          "covered_claim_ids": [],
+          "gaps": [
+            {
+              "gap_id": "gap-a6378911fa37a6436f9c03f2b9fd84bc65bfa9a2c02f69fa7c226c53ad8a2cde",
+              "section_id": "section_3",
+              "claim_spec_id": "diff_applicability_limitations",
+              "claim_id": null,
+              "reason": "No extracted claim for this ClaimSpec",
+              "fillable": true,
+              "verification_action": "Retrieve original evidence addressing this spec and its required conditions"
+            },
+            {
+              "gap_id": "gap-b51f89867a0ae2d05eae5149989e5537851d656da609ab394ab623ab43453133",
+              "section_id": "section_3",
+              "claim_spec_id": "diff_input_representation",
+              "claim_id": null,
+              "reason": "No extracted claim for this ClaimSpec",
+              "fillable": true,
+              "verification_action": "Retrieve original evidence addressing this spec and its required conditions"
+            },
+            {
+              "gap_id": "gap-350f1e3834e087c64e8e65a8455653abadf404703a91c750a6554b43031dbbdc",
+              "section_id": "section_3",
+              "claim_spec_id": "diff_output_form",
+              "claim_id": null,
+              "reason": "No extracted claim for this ClaimSpec",
+              "fillable": true,
+              "verification_action": "Retrieve original evidence addressing this spec and its required conditions"
+            },
+            {
+              "gap_id": "gap-ef9b97881049f3b7f6d846d916b7b1546876bc72229fe0fdf9dc352e268baec7",
+              "section_id": "section_3",
+              "claim_spec_id": "diff_positional_interaction",
+              "claim_id": null,
+              "reason": "No extracted claim for this ClaimSpec",
+              "fillable": true,
+              "verification_action": "Retrieve original evidence addressing this spec and its required conditions"
+            },
+            {
+              "gap_id": "gap-de3d6c2088df8a4773fedc0fc4baef23de59754a21601686d5f90865e3afb9d7",
+              "section_id": "section_3",
+              "claim_spec_id": "diff_receptive_field_long_range",
+              "claim_id": null,
+              "reason": "No extracted claim for this ClaimSpec",
+              "fillable": true,
+              "verification_action": "Retrieve original evidence addressing this spec and its required conditions"
+            },
+            {
+              "gap_id": "gap-bdb524847eb48649ed502624e2095e885c7449ed1cf65be6b2e62dbf97883e5b",
+              "section_id": "section_3",
+              "claim_spec_id": null,
+              "claim_id": null,
+              "reason": "执行资源不足，已停止扩展；未完成检索或计算不代表该内容不存在",
+              "fillable": false,
+              "verification_action": "明确披露本次未完成部分；补齐原文或计算后另行验证，不扩大当前结论"
+            }
+          ],
+          "unresolved_items": []
+        },
+        "section_4": {
+          "section_id": "section_4",
+          "claim_spec_ids": [],
+          "claim_ids": [],
+          "evidence_ids": [],
+          "covered_claim_ids": [],
+          "gaps": [
+            {
+              "gap_id": "gap-3efe178d97b8dfb8c1f28a163861e6743780c9e890ff04c56fa21504517720b9",
+              "section_id": "section_4",
+              "claim_spec_id": null,
+              "claim_id": null,
+              "reason": "执行资源不足，已停止扩展；未完成检索或计算不代表该内容不存在",
+              "fillable": false,
+              "verification_action": "明确披露本次未完成部分；补齐原文或计算后另行验证，不扩大当前结论"
+            }
+          ],
+          "unresolved_items": []
+        },
+        "section_5": {
+          "section_id": "section_5",
+          "claim_spec_ids": [],
+          "claim_ids": [],
+          "evidence_ids": [],
+          "covered_claim_ids": [],
+          "gaps": [
+            {
+              "gap_id": "gap-794507936ae415880e912635a67875dbde876c546274709e9bb94ea07ce5f06d",
+              "section_id": "section_5",
+              "claim_spec_id": null,
+              "claim_id": null,
+              "reason": "执行资源不足，已停止扩展；未完成检索或计算不代表该内容不存在",
+              "fillable": false,
+              "verification_action": "明确披露本次未完成部分；补齐原文或计算后另行验证，不扩大当前结论"
+            }
+          ],
+          "unresolved_items": []
+        }
+      },
+      "draft_sections": {},
+      "draft_claim_bindings": [],
+      "critic_feedback": [],
+      "draft_version": 0,
+      "reviewed_draft_version": null,
+      "review_verdict": null,
+      "final_report": null,
+      "run_metadata": {
+        "config": {
+          "versions": {
+            "llm_provider": "anthropic_compatible",
+            "llm_model": "deepseek-flash",
+            "llm_revision": "unconfigured",
+            "prompt_versions": {
+              "plan": "prompt-2e7e668ca559b503bcb4e2d27bd057bb33619e74be9eb1b899e95d8f9bf24f75",
+              "write": "prompt-182dfc08536d195e1aa33a0400fa666e9de1f35b9ecabb5712a01de1f184fcc8",
+              "review": "prompt-d7f998fd47b545ec96e7a1bfe5343eb84e7d9b75d5519e16ef978b458dac6231",
+              "analyze": "prompt-0477d33a1939ee4358f8759b7dc5862a2f3361f547dc77fd261d17f18902a237",
+              "clarify": "prompt-4f29687b195cbc94d885baf3e0c889c64b9811059b345c918413c12e6252a91a",
+              "research": "prompt-f10dd88642c187f4033534d03cdb04a7771ce364ce57bf7174f1dc5c1494741e"
+            },
+            "template_versions": {
+              "plot": "mono-v1",
+              "statistic": "mono-v1",
+              "aggregation": "mono-v1",
+              "pairwise_delta": "mono-v1",
+              "comparison_matrix": "mono-v1"
+            },
+            "parser_version": "dr4a-html-v1",
+            "chunker_version": "mono-v1",
+            "embedding_version": "unconfigured",
+            "reranker_version": "unconfigured",
+            "index_version": "dr4a_chunks_v1"
+          },
+          "source_policy": {
+            "categories": [
+              "web"
+            ],
+            "knowledge_base_ids": [],
+            "private_only": false
+          },
+          "limits": {
+            "deadline_s": 1800,
+            "search_calls": 60,
+            "fetch_calls": 30,
+            "llm_calls": 60,
+            "tokens": 120000,
+            "terminal_reserved_calls": 8,
+            "terminal_reserved_tokens": 12000,
+            "rework_rounds": 3,
+            "citation_depth": 2,
+            "gap_queries_per_spec": 2
+          },
+          "timeouts_s": {
+            "llm": 180,
+            "search": 20,
+            "fetch": 45,
+            "embedding": 120,
+            "rerank": 60,
+            "vector": 15,
+            "content": 30,
+            "parser": 600,
+            "sandbox": 30
+          },
+          "concurrency": {
+            "search": 4,
+            "fetch": 2,
+            "llm": 2,
+            "local_inference": 1
+          }
+        },
+        "budget_used": {
+          "llm_calls": 11,
+          "search_calls": 5,
+          "fetch_calls": 17,
+          "tokens": 83019,
+          "elapsed_s": 315.82255625000107
+        },
+        "rework_count": 0,
+        "rework_targets": [
+          {
+            "issue_ids": [],
+            "section_ids": [
+              "section_1",
+              "section_2",
+              "section_3",
+              "section_4",
+              "section_5"
+            ],
+            "claim_ids": [],
+            "action": "acknowledge_limit",
+            "reason": "执行资源不足，已停止扩展；未完成检索或计算不代表该内容不存在"
+          }
+        ],
+        "degraded_sources": [
+          {
+            "source": "research",
+            "reason": "Additional candidates remain unexamined beyond the bounded selection",
+            "operation": "candidate_selection",
+            "section_id": "section_2",
+            "occurred_at": "2026-10-08T11:04:54.332874Z"
+          },
+          {
+            "source": "src-7f0b2fa6f790176cce318638f55f6081f42e45cb2ef9c8741560d60f46cb9a2d",
+            "reason": "Some whole original blocks were not examined within extraction limits",
+            "operation": "block_selection",
+            "section_id": "section_2",
+            "occurred_at": "2026-10-08T11:04:55.357712Z"
+          },
+          {
+            "source": "https://m.blog.csdn.net/jokerwu192/article/details/125567174",
+            "reason": "fetch_http_error",
+            "operation": "fetch",
+            "section_id": "section_2",
+            "occurred_at": "2026-10-08T11:05:03.398088Z"
+          },
+          {
+            "source": "https://blog.csdn.net/qq_48278620/article/details/127930267",
+            "reason": "fetch_http_error",
+            "operation": "fetch",
+            "section_id": "section_2",
+            "occurred_at": "2026-10-08T11:05:03.612492Z"
+          },
+          {
+            "source": "https://m.blog.csdn.net/weixin_43687366/article/details/123316333",
+            "reason": "fetch_http_error",
+            "operation": "fetch",
+            "section_id": "section_2",
+            "occurred_at": "2026-10-08T11:05:03.896475Z"
+          },
+          {
+            "source": "research",
+            "reason": "Additional candidates remain unexamined beyond the bounded selection",
+            "operation": "candidate_selection",
+            "section_id": "section_2",
+            "occurred_at": "2026-10-08T11:05:04.177957Z"
+          },
+          {
+            "source": "src-ba72e89799f56d06b4dc4f9720e86b1b2372ba3c3cf6fe8217a6afafabb1aeaf",
+            "reason": "Some whole original blocks were not examined within extraction limits",
+            "operation": "block_selection",
+            "section_id": "section_2",
+            "occurred_at": "2026-10-08T11:05:05.074626Z"
+          },
+          {
+            "source": "https://arxiv.org/abs/2302.13752",
+            "reason": "fetch_unavailable",
+            "operation": "fetch",
+            "section_id": "section_2",
+            "occurred_at": "2026-10-08T11:05:19.004705Z"
+          },
+          {
+            "source": "https://download.csdn.net/download/weixin_38623009/14036775",
+            "reason": "fetch_http_error",
+            "operation": "fetch",
+            "section_id": "section_2",
+            "occurred_at": "2026-10-08T11:05:19.261534Z"
+          },
+          {
+            "source": "src-6d117a2c779b13ac98286cad3da3106fd342943b52a29bad082b7d088f91bf0b",
+            "reason": "Some whole original blocks were not examined within extraction limits",
+            "operation": "block_selection",
+            "section_id": "section_2",
+            "occurred_at": "2026-10-08T11:05:20.384950Z"
+          },
+          {
+            "source": "research",
+            "reason": "Additional candidates remain unexamined beyond the bounded selection",
+            "operation": "candidate_selection",
+            "section_id": "section_2",
+            "occurred_at": "2026-10-08T11:06:29.916765Z"
+          },
+          {
+            "source": "https://github.com/Theano/Theano/pull/6331/files",
+            "reason": "fetch_unavailable",
+            "operation": "fetch",
+            "section_id": "section_2",
+            "occurred_at": "2026-10-08T11:06:30.188638Z"
+          },
+          {
+            "source": "https://github.com/keras-team/keras/pull/5489/files",
+            "reason": "fetch_unavailable",
+            "operation": "fetch",
+            "section_id": "section_2",
+            "occurred_at": "2026-10-08T11:06:30.468448Z"
+          },
+          {
+            "source": "src-5c4ce18de8731d8025c5b62db903fdcd2c3db8c68db77709ca47fbc208d66740",
+            "reason": "Some whole original blocks were not examined within extraction limits",
+            "operation": "block_selection",
+            "section_id": "section_2",
+            "occurred_at": "2026-10-08T11:06:30.755087Z"
+          },
+          {
+            "source": "src-f4c934f6520d1ad594feb707b530c9f536fab864f5edcf40d80ecde2c62adff9",
+            "reason": "Some whole original blocks were not examined within extraction limits",
+            "operation": "block_selection",
+            "section_id": "section_2",
+            "occurred_at": "2026-10-08T11:06:39.024535Z"
+          },
+          {
+            "source": "research",
+            "reason": "Additional candidates remain unexamined beyond the bounded selection",
+            "operation": "candidate_selection",
+            "section_id": "section_2",
+            "occurred_at": "2026-10-08T11:06:46.622067Z"
+          },
+          {
+            "source": "src-64d74581287e597d2e21732bb911cf83bba62c4e0fa136af9b61408cf4c84ab2",
+            "reason": "Some whole original blocks were not examined within extraction limits",
+            "operation": "block_selection",
+            "section_id": "section_2",
+            "occurred_at": "2026-10-08T11:06:47.988955Z"
+          },
+          {
+            "source": "src-5e45f90064f5324b2315d5037c3b146683422f81905d9ad98f790ced8ad0eb5f",
+            "reason": "Some whole original blocks were not examined within extraction limits",
+            "operation": "block_selection",
+            "section_id": "section_2",
+            "occurred_at": "2026-10-08T11:07:31.938228Z"
+          },
+          {
+            "source": "src-2c183b690a708a8facba36d0b81a67232806ba5168ea799fda06e0b5d4831201",
+            "reason": "Some whole original blocks were not examined within extraction limits",
+            "operation": "block_selection",
+            "section_id": "section_2",
+            "occurred_at": "2026-10-08T11:08:22.875598Z"
+          },
+          {
+            "source": "src-076f8b1b98c314f31c0625e901ef4408f0a1f8b237b215868a8dc5867af423fb",
+            "reason": "Some whole original blocks were not examined within extraction limits",
+            "operation": "block_selection",
+            "section_id": "section_2",
+            "occurred_at": "2026-10-08T11:08:34.866703Z"
+          },
+          {
+            "source": "pipeline",
+            "reason": "Expansion stopped at the resource limit",
+            "operation": "budget_exhausted",
+            "section_id": null,
+            "occurred_at": "2026-10-08T11:09:15.785397Z"
+          }
+        ],
+        "unit_manifest": {
+          "unit-07f232d6796831148da5a81d8f2ab9a04ab13dc886e56efbb38072b94aa03687": {
+            "unit_id": "unit-07f232d6796831148da5a81d8f2ab9a04ab13dc886e56efbb38072b94aa03687",
+            "phase": "research",
+            "input_hash": "2809c782d81548e3fb82dded58d948959aea1d5ce57ae7a7d45da2a535d4c26f",
+            "result_hash": "3df7804c16278c9b39604be9dc4606cf8e2e774a363b2c236ed547699f20bb71",
+            "result_ref": {
+              "key": "phase-results/756d2f15-0059-402f-9e95-2f9e5eb3fa73/3df7804c16278c9b39604be9dc4606cf8e2e774a363b2c236ed547699f20bb71",
+              "sha256": "3df7804c16278c9b39604be9dc4606cf8e2e774a363b2c236ed547699f20bb71",
+              "size": 7218,
+              "media_type": "application/json"
+            },
+            "checkpoint_seq": 6,
+            "completed_at": "2026-10-08T11:06:29.654000Z",
+            "affected_ids": [
+              "section_2"
+            ]
+          },
+          "unit-6c1400e27b276981ce6ffcb44f1b7dd6bad6d7c9ed8a5c7644764a8b01d8cf7e": {
+            "unit_id": "unit-6c1400e27b276981ce6ffcb44f1b7dd6bad6d7c9ed8a5c7644764a8b01d8cf7e",
+            "phase": "research",
+            "input_hash": "dea1c426f61ec1956561ee6a816f94467e8ee6dbf3de57d990192810bcda85d3",
+            "result_hash": "ef65ff79848f70bbe94be36c01d4d3c790f5a6e2e536cc5fb9f30e985b64c448",
+            "result_ref": {
+              "key": "phase-results/756d2f15-0059-402f-9e95-2f9e5eb3fa73/ef65ff79848f70bbe94be36c01d4d3c790f5a6e2e536cc5fb9f30e985b64c448",
+              "sha256": "ef65ff79848f70bbe94be36c01d4d3c790f5a6e2e536cc5fb9f30e985b64c448",
+              "size": 793,
+              "media_type": "application/json"
+            },
+            "checkpoint_seq": 4,
+            "completed_at": "2026-10-08T11:04:54.015075Z",
+            "affected_ids": [
+              "section_1"
+            ]
+          },
+          "unit-84cda164ca21519ab4eb41b3641d86595e8eba305f12f2af699b6ad3cad6eba4": {
+            "unit_id": "unit-84cda164ca21519ab4eb41b3641d86595e8eba305f12f2af699b6ad3cad6eba4",
+            "phase": "plan",
+            "input_hash": "b7a7fcc81c365c95f49c6b2b338d778dc68ab5a205b1b72582937bcfe71314ca",
+            "result_hash": "8ed00ccfc1877cb9d95ff093142539dbee69c15847957d571cf56f01eebf5f42",
+            "result_ref": {
+              "key": "phase-results/756d2f15-0059-402f-9e95-2f9e5eb3fa73/8ed00ccfc1877cb9d95ff093142539dbee69c15847957d571cf56f01eebf5f42",
+              "sha256": "8ed00ccfc1877cb9d95ff093142539dbee69c15847957d571cf56f01eebf5f42",
+              "size": 11461,
+              "media_type": "application/json"
+            },
+            "checkpoint_seq": 2,
+            "completed_at": "2026-10-08T11:04:53.947689Z",
+            "affected_ids": [
+              "section_1",
+              "section_2",
+              "section_3",
+              "section_4",
+              "section_5"
+            ]
+          },
+          "unit-b5f3f0aac08f9cf0edb6922d5a0e6fffa876f451ad2d25e3fd30d9266d9bb10b": {
+            "unit_id": "unit-b5f3f0aac08f9cf0edb6922d5a0e6fffa876f451ad2d25e3fd30d9266d9bb10b",
+            "phase": "research",
+            "input_hash": "dccc9e8812b98b82838728fc854856fb0c83d600efee7700756e416eaad1a0b1",
+            "result_hash": "679b1976c0842a6619f1d70926bcc9c205cf139f7af409783bb9e940c38f9b34",
+            "result_ref": {
+              "key": "phase-results/756d2f15-0059-402f-9e95-2f9e5eb3fa73/679b1976c0842a6619f1d70926bcc9c205cf139f7af409783bb9e940c38f9b34",
+              "sha256": "679b1976c0842a6619f1d70926bcc9c205cf139f7af409783bb9e940c38f9b34",
+              "size": 36291,
+              "media_type": "application/json"
+            },
+            "checkpoint_seq": 9,
+            "completed_at": "2026-10-08T11:09:13.780796Z",
+            "affected_ids": [
+              "section_2"
+            ]
+          },
+          "unit-bb6a2e68c6bd739371727ce877e3475b81b9cb8bd26d2d3c6d21d114a97b0820": {
+            "unit_id": "unit-bb6a2e68c6bd739371727ce877e3475b81b9cb8bd26d2d3c6d21d114a97b0820",
+            "phase": "research",
+            "input_hash": "d8bc87457a3b8c9a727b4b9d8e6aa2ce5886a2c19d68d748c0292a3e67306c15",
+            "result_hash": "4c75b451cff978b8dae81f8c7e60fc41327007b11f583e9e5aa7c2c53eb29f6b",
+            "result_ref": {
+              "key": "phase-results/756d2f15-0059-402f-9e95-2f9e5eb3fa73/4c75b451cff978b8dae81f8c7e60fc41327007b11f583e9e5aa7c2c53eb29f6b",
+              "sha256": "4c75b451cff978b8dae81f8c7e60fc41327007b11f583e9e5aa7c2c53eb29f6b",
+              "size": 60050,
+              "media_type": "application/json"
+            },
+            "checkpoint_seq": 8,
+            "completed_at": "2026-10-08T11:09:13.686541Z",
+            "affected_ids": [
+              "section_2"
+            ]
+          },
+          "unit-bd192ee639ee02b7131c97d501f7697091e700f8d4bbaae3f5f919d95268ba09": {
+            "unit_id": "unit-bd192ee639ee02b7131c97d501f7697091e700f8d4bbaae3f5f919d95268ba09",
+            "phase": "research",
+            "input_hash": "c2ab8abd19754aca8ecb796f2de46ea15f52d0c605c1b5187098b332c30ec135",
+            "result_hash": "585d99fbb3c0acc723cb5aa9a49501ed045286c1687dc39f9aa13c4c98039c30",
+            "result_ref": {
+              "key": "phase-results/756d2f15-0059-402f-9e95-2f9e5eb3fa73/585d99fbb3c0acc723cb5aa9a49501ed045286c1687dc39f9aa13c4c98039c30",
+              "sha256": "585d99fbb3c0acc723cb5aa9a49501ed045286c1687dc39f9aa13c4c98039c30",
+              "size": 6181,
+              "media_type": "application/json"
+            },
+            "checkpoint_seq": 7,
+            "completed_at": "2026-10-08T11:06:46.341358Z",
+            "affected_ids": [
+              "section_2"
+            ]
+          },
+          "unit-fd5ecdf1801458255e5ea6cfd544daf8fa980bca19eb422bdcc2563205305b4d": {
+            "unit_id": "unit-fd5ecdf1801458255e5ea6cfd544daf8fa980bca19eb422bdcc2563205305b4d",
+            "phase": "research",
+            "input_hash": "92704c618e894f78f742ded9cf500255c8779eacb079239bae663f0c4a08c206",
+            "result_hash": "d33bacf6be3a7d433e91d0f4096e645b47b840ba6d910c9e7f9b6bf6258652e0",
+            "result_ref": {
+              "key": "phase-results/756d2f15-0059-402f-9e95-2f9e5eb3fa73/d33bacf6be3a7d433e91d0f4096e645b47b840ba6d910c9e7f9b6bf6258652e0",
+              "sha256": "d33bacf6be3a7d433e91d0f4096e645b47b840ba6d910c9e7f9b6bf6258652e0",
+              "size": 5237,
+              "media_type": "application/json"
+            },
+            "checkpoint_seq": 5,
+            "completed_at": "2026-10-08T11:05:03.924291Z",
+            "affected_ids": [
+              "section_2"
+            ]
+          }
+        },
+        "knowledge_snapshot": [],
+        "stop_reason": "budget_exhausted"
+      },
+      "errors": []
+    }
+  }
+}

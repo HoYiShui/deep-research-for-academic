@@ -59,7 +59,7 @@ async def serve(args):
         await check.close()
     app = create_app(settings=config)
     print(
-        f"Debug API http://127.0.0.1:{args.port} | database dr4a_debug | executor {'plan/research' if args.execute else 'manual'}",
+        f"Debug API http://127.0.0.1:{args.port} | database dr4a_debug | executor {'five-phase' if args.execute else 'manual'}",
         flush=True,
     )
     await uvicorn.Server(uvicorn.Config(app, host="127.0.0.1", port=args.port)).serve()
@@ -69,7 +69,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--port", type=int, default=8000)
     parser.add_argument(
-        "--execute", action="store_true", help="paid real plan/research; missing later workers fail"
+        "--execute", action="store_true", help="paid real five-phase public research workflow"
     )
     parser.add_argument("--parser", choices=["html", "pdf"], default="html")
     args = parser.parse_args()

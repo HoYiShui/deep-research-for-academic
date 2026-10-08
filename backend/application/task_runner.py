@@ -192,7 +192,12 @@ class TaskRunner:
             await asyncio.gather(work, return_exceptions=True)
             await self._record_failure(
                 claimed,
-                "dependency_unavailable",
+                # Known shape/usage failures are not network outages. Retain
+                # only controlled codes, never raw provider messages/codes.
+                exc.code
+                if exc.dependency == "llm"
+                and exc.code in {"model_output_invalid", "model_usage_invalid"}
+                else "dependency_unavailable",
                 resumable=exc.retryable,
                 dependency=exc.dependency,
             )

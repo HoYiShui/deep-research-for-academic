@@ -1,0 +1,12 @@
+{
+  "task_type": "method_differentiation",
+  "decision_goal": "辨析 Transformer self-attention 与 CNN convolution 用于序列建模时的机制区别，为后续学术研究选择验证问题",
+  "research_object": "self-attention 与 convolution 两类序列建模机制",
+  "scope": "公开可下载网页原文中的方法机制说明；不要求论文检索工具或新实验",
+  "comparison_scope": "输入表示、局部与全局信息交互、输出形式和适用限制；不跨数据集或协议排序性能",
+  "claims_to_verify": "两种机制如何关联序列位置、局部感受野与长程依赖；哪些差分有原文支持，哪些仍是假设",
+  "evidence_requirements": "关键事实须有真实网页原文摘录、位置、哈希与参考文献；搜索摘要不作为证据",
+  "conclusion_boundary": "不声称新颖性、SOTA或普遍性能优势；没有同协议结果不作性能排名；缺证据明确记录Gap",
+  "deliverable": "五章固定结构的方法辨析报告，含机制差分表、贡献边界、局限和参考文献",
+  "assumptions": "公开开发验证用冻结任务书；本轮验证执行链路，不接受研究质量、不执行训练或计时实验"
+}

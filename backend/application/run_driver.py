@@ -222,6 +222,7 @@ class RunDriver:
                 return
             claimed, point = await coordinator.load_owned(claimed)
             units = plan_units(point.state)
+            contracted = False
             for index, unit in enumerate(units):
                 if await self._stop_if_requested(claimed, stop):
                     return
@@ -237,6 +238,18 @@ class RunDriver:
                         claimed, stop
                     ):
                         return
+                    if (
+                        exc.code == "budget_exhausted"
+                        and point.state.run_metadata.stop_reason not in TERMINAL_REASONS
+                    ):
+                        if await self._stop_if_requested(claimed, stop):
+                            return
+                        transition = await coordinator.contract(
+                            claimed, self.phase_committed, "budget_exhausted"
+                        )
+                        claimed, point = transition.claimed, transition.checkpoint
+                        contracted = True
+                        break
                     raise
                 claimed, point = committed.claimed, committed.checkpoint
                 if not committed.skipped and unit.phase == "research":
@@ -250,6 +263,8 @@ class RunDriver:
                             index + 1,
                             len(units),
                         )
+            if contracted:
+                continue
             if await self._stop_if_requested(claimed, stop):
                 return
             try:

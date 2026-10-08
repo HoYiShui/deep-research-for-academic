@@ -1,0 +1,195 @@
+{
+  "scope": "real_frozen_cli_workflow",
+  "quality_accepted": false,
+  "brief": {
+    "task_type": "method_differentiation",
+    "decision_goal": "辨析 Transformer self-attention 与 CNN convolution 用于序列建模时的机制区别，为后续学术研究选择验证问题",
+    "research_object": "self-attention 与 convolution 两类序列建模机制",
+    "scope": "公开可下载网页原文中的方法机制说明；不要求论文检索工具或新实验",
+    "comparison_scope": "输入表示、局部与全局信息交互、输出形式和适用限制；不跨数据集或协议排序性能",
+    "claims_to_verify": "两种机制如何关联序列位置、局部感受野与长程依赖；哪些差分有原文支持，哪些仍是假设",
+    "evidence_requirements": "关键事实须有真实网页原文摘录、位置、哈希与参考文献；搜索摘要不作为证据",
+    "conclusion_boundary": "不声称新颖性、SOTA或普遍性能优势；没有同协议结果不作性能排名；缺证据明确记录Gap",
+    "deliverable": "五章固定结构的方法辨析报告，含机制差分表、贡献边界、局限和参考文献",
+    "assumptions": "公开开发验证用冻结任务书；本轮验证执行链路，不接受研究质量、不执行训练或计时实验"
+  },
+  "checks": {
+    "command_succeeded": false,
+    "checkpoint_readable": true,
+    "done": false,
+    "reviewed_current_version": false,
+    "five_chapters": false,
+    "published_report": false
+  },
+  "result": {
+    "status": "failed",
+    "error": {
+      "code": "tool_call_uncertain",
+      "message": "Run execution stopped before publication",
+      "details": null,
+      "retryable": false,
+      "request_id": "584a63cf-4b61-47a9-a0d4-002a6c64763e"
+    },
+    "session_id": "09134b85-89c5-4704-b18b-6488f960cf8b",
+    "run_id": "4583824e-5744-40ad-b175-5cdff9004ad6",
+    "final_report": null,
+    "checkpoint_seq": 1,
+    "phase": "plan",
+    "dependency_mode": "real",
+    "events": [
+      {
+        "event_id": "6a1298da-8af8-431e-b4db-dcf457a4a1a5",
+        "session_id": "09134b85-89c5-4704-b18b-6488f960cf8b",
+        "run_id": "4583824e-5744-40ad-b175-5cdff9004ad6",
+        "timestamp": "2026-10-08T10:38:09.853116Z",
+        "checkpoint_seq": 1,
+        "event": "done",
+        "status": "failed",
+        "review_verdict": null,
+        "final_report_url": null,
+        "failure": {
+          "code": "tool_call_uncertain",
+          "dependency": null,
+          "operation": "execute_run",
+          "phase": "plan",
+          "message": "Run execution stopped before publication",
+          "retryable": false,
+          "resume_allowed": true,
+          "attempt": 1,
+          "occurred_at": "2026-10-08T10:38:09.221531Z",
+          "details": null
+        }
+      }
+    ]
+  },
+  "snapshot": {
+    "status": "ok",
+    "error": null,
+    "session_id": "09134b85-89c5-4704-b18b-6488f960cf8b",
+    "run_id": "4583824e-5744-40ad-b175-5cdff9004ad6",
+    "checkpoint_seq": 1,
+    "phase": "plan",
+    "state": {
+      "schema_version": 1,
+      "session_id": "09134b85-89c5-4704-b18b-6488f960cf8b",
+      "run_id": "4583824e-5744-40ad-b175-5cdff9004ad6",
+      "brief_version": 1,
+      "brief_hash": "f150884e362759153f109a00494d79fde684afab43cebfa0b4787bd4fb8047f8",
+      "phase": "plan",
+      "research_brief": {
+        "task_type": "method_differentiation",
+        "decision_goal": "辨析 Transformer self-attention 与 CNN convolution 用于序列建模时的机制区别，为后续学术研究选择验证问题",
+        "research_object": "self-attention 与 convolution 两类序列建模机制",
+        "scope": "公开可下载网页原文中的方法机制说明；不要求论文检索工具或新实验",
+        "comparison_scope": "输入表示、局部与全局信息交互、输出形式和适用限制；不跨数据集或协议排序性能",
+        "claims_to_verify": "两种机制如何关联序列位置、局部感受野与长程依赖；哪些差分有原文支持，哪些仍是假设",
+        "evidence_requirements": "关键事实须有真实网页原文摘录、位置、哈希与参考文献；搜索摘要不作为证据",
+        "conclusion_boundary": "不声称新颖性、SOTA或普遍性能优势；没有同协议结果不作性能排名；缺证据明确记录Gap",
+        "deliverable": "五章固定结构的方法辨析报告，含机制差分表、贡献边界、局限和参考文献",
+        "assumptions": "公开开发验证用冻结任务书；本轮验证执行链路，不接受研究质量、不执行训练或计时实验"
+      },
+      "source_selection": {
+        "categories": [
+          "web"
+        ],
+        "knowledge_base_ids": []
+      },
+      "section_plans": [],
+      "sources": {},
+      "evidence": {},
+      "claims": {},
+      "claim_evidence_links": [],
+      "quantitative_observations": {},
+      "comparable_metrics": {},
+      "comparison_sets": {},
+      "analysis_artifacts": {},
+      "section_coverage": {},
+      "draft_sections": {},
+      "draft_claim_bindings": [],
+      "critic_feedback": [],
+      "draft_version": 0,
+      "reviewed_draft_version": null,
+      "review_verdict": null,
+      "final_report": null,
+      "run_metadata": {
+        "config": {
+          "versions": {
+            "llm_provider": "anthropic_compatible",
+            "llm_model": "deepseek-flash",
+            "llm_revision": "unconfigured",
+            "prompt_versions": {
+              "plan": "prompt-2e7e668ca559b503bcb4e2d27bd057bb33619e74be9eb1b899e95d8f9bf24f75",
+              "write": "prompt-182dfc08536d195e1aa33a0400fa666e9de1f35b9ecabb5712a01de1f184fcc8",
+              "review": "prompt-d7f998fd47b545ec96e7a1bfe5343eb84e7d9b75d5519e16ef978b458dac6231",
+              "analyze": "prompt-0477d33a1939ee4358f8759b7dc5862a2f3361f547dc77fd261d17f18902a237",
+              "clarify": "prompt-4f29687b195cbc94d885baf3e0c889c64b9811059b345c918413c12e6252a91a",
+              "research": "prompt-9c88093a764e931130b9313ab78f17996071118212d576b48d26cebfeaed4e10"
+            },
+            "template_versions": {
+              "plot": "mono-v1",
+              "statistic": "mono-v1",
+              "aggregation": "mono-v1",
+              "pairwise_delta": "mono-v1",
+              "comparison_matrix": "mono-v1"
+            },
+            "parser_version": "dr4a-html-v1",
+            "chunker_version": "mono-v1",
+            "embedding_version": "unconfigured",
+            "reranker_version": "unconfigured",
+            "index_version": "dr4a_chunks_v1"
+          },
+          "source_policy": {
+            "categories": [
+              "web"
+            ],
+            "knowledge_base_ids": [],
+            "private_only": false
+          },
+          "limits": {
+            "deadline_s": 1800,
+            "search_calls": 60,
+            "fetch_calls": 30,
+            "llm_calls": 60,
+            "tokens": 120000,
+            "terminal_reserved_calls": 8,
+            "terminal_reserved_tokens": 12000,
+            "rework_rounds": 3,
+            "citation_depth": 2,
+            "gap_queries_per_spec": 2
+          },
+          "timeouts_s": {
+            "llm": 60,
+            "search": 20,
+            "fetch": 45,
+            "embedding": 120,
+            "rerank": 60,
+            "vector": 15,
+            "content": 30,
+            "parser": 600,
+            "sandbox": 30
+          },
+          "concurrency": {
+            "search": 4,
+            "fetch": 2,
+            "llm": 2,
+            "local_inference": 1
+          }
+        },
+        "budget_used": {
+          "llm_calls": 0,
+          "search_calls": 0,
+          "fetch_calls": 0,
+          "tokens": 0,
+          "elapsed_s": 0
+        },
+        "rework_count": 0,
+        "rework_targets": [],
+        "degraded_sources": [],
+        "unit_manifest": {},
+        "knowledge_snapshot": [],
+        "stop_reason": null
+      },
+      "errors": []
+    }
+  }
+}

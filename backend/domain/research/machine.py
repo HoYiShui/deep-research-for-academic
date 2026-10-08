@@ -394,3 +394,99 @@ def apply_pipeline_decision(state: PipelineState, decision: PipelineDecision) ->
     if state.phase == "review":
         values |= {"reviewed_draft_version": None, "review_verdict": None}
     return PipelineState.model_validate(values)
+
+
+def contract_pipeline(state: PipelineState, reason: str):
+    """Stop expansion from a partial checkpoint; never fabricate unit completion.
+
+    A coordinator commits this exceptional route separately from normal phase
+    completion. Only a subsequent same-version review can permit publication.
+    Hard deadline/token limits still apply to the final write/review.
+    """
+    from domain.research.agents.coverage import planned_hypotheses, section_coverage
+    from domain.research.facts import ComparisonSet, Gap, SectionCoverage
+    from domain.research.ids import stable_id
+
+    state = PipelineState.model_validate(state)
+    if state.run_metadata.stop_reason in TERMINAL_REASONS:
+        raise ValueError("Terminal contraction already entered")
+    if reason not in {"budget_exhausted", "deadline_exhausted"} or state.phase == "done":
+        raise ValueError("Only expansion exhaustion can enter terminal contraction")
+    validate_plans(state.section_plans)  # No valid plan => fail, not a blank report.
+    claims = dict(state.claims)
+    groups, coverage = dict(state.comparison_sets), {}
+    specs = {spec.spec_id: spec for plan in state.section_plans for spec in plan.claim_specs}
+    message = "执行资源不足，已停止扩展；未完成检索或计算不代表该内容不存在"
+    for plan in state.section_plans:
+        claims.update(planned_hypotheses(plan, state.research_brief, claims))
+        updates, derived = section_coverage(
+            plan, claims, state.evidence, state.sources, state.claim_evidence_links, all_specs=specs
+        )
+        claims.update(updates)
+        old = state.section_coverage.get(plan.section_id)
+        gaps = {gap.gap_id: gap for gap in [*(old.gaps if old else []), *derived.gaps]}
+        gap = Gap(
+            gap_id=stable_id("gap", plan.section_id, reason),
+            section_id=plan.section_id,
+            claim_spec_id=None,
+            claim_id=None,
+            reason=message,
+            fillable=False,
+            verification_action="明确披露本次未完成部分；补齐原文或计算后另行验证，不扩大当前结论",
+        )
+        gaps[gap.gap_id] = gap
+        coverage[plan.section_id] = SectionCoverage.model_validate(
+            derived.model_dump()
+            | {
+                "gaps": list(gaps.values()),
+                "unresolved_items": old.unresolved_items if old else [],
+            }
+        )
+        for requirement in plan.analysis_requirements:
+            if any(group.requirement_id == requirement.requirement_id for group in groups.values()):
+                continue
+            identity = stable_id("comparison", requirement.requirement_id, reason)
+            groups[identity] = ComparisonSet(
+                comparison_set_id=identity,
+                section_id=plan.section_id,
+                requirement_id=requirement.requirement_id,
+                metric_ids=[],
+                required_context_fields=requirement.required_context_fields,
+                comparability="incompatible",
+                reasons=[message + "；该分析要求没有完成条件验证"],
+            )
+    targets = [
+        ReworkTarget(
+            issue_ids=[issue.issue_id for issue in state.critic_feedback if not issue.resolved],
+            section_ids=sorted(coverage),
+            claim_ids=[],
+            action="acknowledge_limit",
+            reason=message,
+        )
+    ]
+    decision = PipelineDecision(
+        next_phase="write",
+        deliver=False,
+        targets=targets,
+        withdraw_claim_ids=[],
+        rework_count=state.run_metadata.rework_count,
+        stop_reason=reason,
+    )
+    contracted = PipelineState.model_validate(
+        state.model_dump()
+        | {
+            "phase": "write",
+            "claims": claims,
+            "section_coverage": coverage,
+            "comparison_sets": groups,
+            "reviewed_draft_version": None,
+            "review_verdict": None,
+            "run_metadata": state.run_metadata.model_dump()
+            | {
+                "stop_reason": reason,
+                "rework_targets": targets,
+            },
+        }
+    )
+    PhaseInput.from_state(contracted)
+    return contracted, decision

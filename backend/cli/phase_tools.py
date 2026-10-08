@@ -13,6 +13,7 @@ from application.settings import Settings
 from cli import output
 from cli.research_tools import ResearchDebugTools
 from domain.ports import AdapterError
+from domain.research.agents import prompt_versions
 from infrastructure.llm.deepseek import DeepSeekLLM
 from infrastructure.parser.html import HTML_PARSER_VERSION
 from infrastructure.parser.mineru_output import MINERU_PARSER_VERSION
@@ -22,7 +23,7 @@ class DebugTools:
     def __init__(self, state, *, fake, seed=None):
         self.state, self.fake, self.seed = state, fake, 0 if seed is None else seed
         self.config = state.run_metadata.config
-        if self.config.versions.prompt_versions[state.phase] != "mono-v1":
+        if self.config.versions.prompt_versions[state.phase] != prompt_versions()[state.phase]:
             raise output.UsageError("State prompt version differs from configured worker")
         self.output_limit = min(16384, self.config.limits.tokens)
         self.usage = {
@@ -101,6 +102,23 @@ class DebugTools:
         if not isinstance(prompt, str):
             raise AppError("invalid_state", "Invalid debug model input")
         if self.fake:
+            if self.state.phase == "write":
+                return self.fake_draft(prompt)
+            if self.state.phase == "review":
+                return json.dumps(
+                    {
+                        "issues": [],
+                        "prior_issues": [
+                            {
+                                "issue_id": item.issue_id,
+                                "resolved": item.resolved,
+                                "resolution": item.resolution,
+                            }
+                            for item in self.state.critic_feedback
+                        ],
+                        "verdict": "needs_more_work",
+                    }
+                )
             return (
                 self.fake_plan()
                 if self.state.phase == "plan"
@@ -130,6 +148,80 @@ class DebugTools:
                 self.state.phase,
             )
         return response.text
+
+    def fake_draft(self, prompt):
+        context = json.loads(
+            prompt.split("<chapter_context>\n", 1)[1].split("\n</chapter_context>", 1)[0]
+        )
+        data = {
+            "title": "Controlled debugging draft",
+            "paragraphs": [
+                {
+                    "text": "受控调试样例；尚无可核验实证结论。",
+                    "kind": "limitation",
+                    "claim_ids": [],
+                    "evidence_ids": [],
+                    "artifact_ids": [],
+                }
+            ],
+            "task_payload": None,
+            "row_citations": [],
+        }
+        if context["plan"]["section_id"] == "section_3":
+            task = context["brief"]["task_type"]
+            if task == "idea_exploration":
+                data["task_payload"] = {
+                    "task_type": task,
+                    "candidate_questions": [
+                        {
+                            "question": "待验证研究问题",
+                            "hypothesis": "仅为调试假设",
+                            "resources": "数据待确认",
+                            "novelty_risk": "未完成新颖性查证",
+                            "feasibility": "需要最小验证",
+                        }
+                    ],
+                    "recommendation": "先查证原文",
+                    "minimal_validation": "先做小规模验证",
+                }
+                ids = []
+            elif task == "method_differentiation":
+                data["task_payload"] = {
+                    "task_type": task,
+                    "comparison_rows": [
+                        {
+                            "work": "待查证工作",
+                            "input_representation": "输入待查证",
+                            "mechanism": "机制待查证",
+                            "output": "输出待查证",
+                            "solved_limits": "尚无支持证据",
+                            "open_problems": "需要补查",
+                        }
+                    ],
+                    "differential_claims": ["仅提出差分假设"],
+                    "contribution_boundary": "未证明新颖性",
+                }
+                ids = []
+            else:
+                ids = [next(iter(context["claims"]))]
+                data["task_payload"] = {
+                    "task_type": task,
+                    "protocol_rows": [
+                        {
+                            "claim_id": ids[0],
+                            "protocol": "待执行的同协议测试",
+                            "controls": ["固定实验条件"],
+                            "metrics": ["指标定义待确认"],
+                            "supported_conclusions": "当前无实测结论",
+                            "unsupported_conclusions": "不声称模型更优",
+                        }
+                    ],
+                    "failure_modes": ["缺少可核验实证结果"],
+                }
+            data["row_citations"] = [
+                {"kind": "hypothesis", "claim_ids": ids, "evidence_ids": [], "artifact_ids": []}
+            ]
+        return json.dumps(data)
 
     def fake_plan(self):
         # Controlled schema fixture only. No invented sources or measured results.

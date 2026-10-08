@@ -7,11 +7,12 @@ from application.errors import AppError
 from application.fetch_tools import FetchBinding
 from application.phase_executor import PhaseExecutor
 from application.phase_tools import ModelBinding
-from application.phase_workers import plan_worker, research_worker
+from application.phase_workers import public_workers
 from application.report_serializer import ReportPublisher
 from application.run_driver import RunDriver
 from application.run_sse import RunEventStream
 from application.search_tools import SearchBinding, SearchProvider
+from domain.research.agents import prompt_versions
 from infrastructure.fetch.document import HTTPDocumentFetch
 from infrastructure.parser.html import HTML_PARSER_VERSION, HTMLDocumentParser
 from infrastructure.parser.mineru_output import MINERU_PARSER_VERSION
@@ -85,18 +86,19 @@ class PublicResearchExecution:
                 )
             )
 
-        # Missing analyze/write/review fail at their actual stage, preserving the
-        # last checkpoint for CLI. Never add fake stages to make the TUI green.
         self.driver = RunDriver(
             store=runtime.repository_store,
             cache=self.cache,
-            executor=PhaseExecutor({"plan": plan_worker, "research": research_worker}),
+            executor=PhaseExecutor(public_workers()),
             model=ModelBinding(
                 runtime.llm,
                 "anthropic_compatible",
                 config.llm_model,
                 config.llm_revision,
-                config.run_tokens - config.run_terminal_reserved_tokens,
+                # Per-call absolute bound, not the expansion allowance. The
+                # durable budget lock protects the terminal reserve; using
+                # the nonterminal ceiling here also denies reserved spend.
+                config.run_tokens,
                 output_token_limit=16384,
             ),
             model_slots=asyncio.Semaphore(config.llm_concurrency),
@@ -108,14 +110,14 @@ class PublicResearchExecution:
             diagnostic=diagnostic if diagnostic is not None else runtime.run_event_bus.emit,
             search=SearchBinding(
                 self.search,
-                (
-                    SearchProvider(name="bocha", category="web", revision="bocha-v1"),
-                ),
+                (SearchProvider(name="bocha", category="web", revision="bocha-v1"),),
             ),
             fetch=FetchBinding(fetch),
         )
 
     async def execute(self, claimed, stop):
+        if claimed.run.config_snapshot.versions.prompt_versions != prompt_versions():
+            raise AppError("config_unavailable", "Frozen prompts differ from registered workers")
         await self.driver.execute(claimed, stop)
 
     async def aclose(self):

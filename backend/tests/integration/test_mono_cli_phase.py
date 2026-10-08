@@ -75,7 +75,12 @@ async def test_fake_research_runs_all_units_and_preserves_empty_search_gaps_with
     code, body, _ = await invoke(path, "research")
     assert code == 0 and body["error"] is None
     assert body["state"]["phase"] == "research"
-    assert not body["state"]["evidence"] and not body["state"]["claims"]
+    assert not body["state"]["evidence"]
+    assert len(body["state"]["claims"]) == 1
+    assert all(
+        claim["claim_type"] == "hypothesis" and claim["status"] == "insufficient"
+        for claim in body["state"]["claims"].values()
+    )
     assert all(item["gaps"] for item in body["state"]["section_coverage"].values())
     assert len(body["events"]) == 10
     assert body["state"]["run_metadata"] == data["run_metadata"]

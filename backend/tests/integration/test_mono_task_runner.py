@@ -8,6 +8,7 @@ import pytest
 from application.errors import AppError
 from application.settings import Settings
 from application.task_runner import TaskRunner
+from domain.ports import AdapterError
 from tests.integration.test_mono_run_lifecycle import cancel, ready, resume
 from tests.integration.test_mono_transactions import setup_store
 
@@ -28,6 +29,35 @@ async def wait_for_status(store, owner, run_id, status):
             if current.status == status:
                 return current
             await asyncio.sleep(0.02)
+
+
+@pytest.mark.parametrize(
+    "adapter_code,expected",
+    [
+        ("model_output_invalid", "model_output_invalid"),
+        ("model_usage_invalid", "model_usage_invalid"),
+        ("untrusted-provider-detail", "dependency_unavailable"),
+    ],
+)
+async def test_model_schema_failure_is_not_misreported_as_network_outage(
+    pg_database, adapter_code, expected
+):
+    _, store, user = await setup_store(pg_database)
+    commit = await ready(store, user.user_id)
+
+    async def execute(claimed, stop):
+        raise AdapterError("llm", adapter_code, "private-provider-detail", False, "write")
+
+    worker = runner(store, execute)
+    try:
+        await worker.tick()
+        failed = await wait_for_status(store, user.user_id, commit.run.run_id, "failed")
+        assert failed.failure.code == expected
+        assert failed.failure.dependency == "llm" and not failed.resume_allowed
+        assert "private-provider-detail" not in failed.model_dump_json()
+        assert "untrusted-provider-detail" not in failed.model_dump_json()
+    finally:
+        await worker.aclose()
 
 
 async def test_scoped_cli_runner_neither_claims_nor_scans_other_runs(pg_database):

@@ -33,7 +33,9 @@ async def model_server(model, text, *, hold=False):
                     "content": [
                         {
                             "type": "text",
-                            "text": text[min(len(calls) - 1, len(text) - 1)]
+                            "text": text(calls[-1])
+                            if callable(text)
+                            else text[min(len(calls) - 1, len(text) - 1)]
                             if isinstance(text, list)
                             else text,
                         }

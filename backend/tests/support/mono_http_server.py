@@ -21,7 +21,9 @@ from tests.integration.test_mono_run_driver import controlled_worker
 
 class ControlledModel:
     async def complete(self, prompt):
-        context = json.loads(prompt.split("<research_context>\n", 1)[1].split("\n</research_context>", 1)[0])
+        context = json.loads(
+            prompt.split("<research_context>\n", 1)[1].split("\n</research_context>", 1)[0]
+        )
         patch = (
             {}
             if not context["history"]
@@ -41,6 +43,51 @@ class ControlledModel:
                 "field_reasons": {},
             }
         )
+
+
+def create_canonical_test_app():
+    """Actual registered workers and driver; only external model/search controlled."""
+    from cli.phase_tools import DebugTools
+    from domain.model_completion import ModelCompletion
+    from infrastructure.search.bocha import BochaSearch
+    from tests.unit.test_state import initial_state
+
+    settings = Settings.load()
+    database = urlsplit(settings.database_url.get_secret_value()).path.removeprefix("/")
+    if (
+        os.environ.get("DR4A_TEST_HTTP_MODE") != "controlled"
+        or not re.fullmatch(r"dr4a_test_[a-f0-9]{32}", database)
+        or not re.fullmatch(r"dr4a-test-[a-f0-9]{32}", settings.minio_bucket)
+    ):
+        raise RuntimeError("Canonical-worker test requires isolated PG and MinIO")
+
+    async def empty_search(self, query):
+        return []
+
+    BochaSearch.search = empty_search
+
+    class Model(ControlledModel):
+        async def complete_metered(self, prompt):
+            fake = DebugTools(initial_state(), fake=True)
+            if "<chapter_context>" in prompt:
+                text = fake.fake_draft(prompt)
+            elif "<review_context>" in prompt:
+                text = json.dumps({"issues": [], "prior_issues": [], "verdict": "needs_more_work"})
+            else:
+                text = fake.fake_plan()
+            return ModelCompletion(
+                response_id="controlled-canonical-response",
+                text=text,
+                input_tokens=20,
+                output_tokens=30,
+                stop_reason="end_turn",
+                model=settings.llm_model,
+            )
+
+    return create_app(
+        settings=settings,
+        container_factory=lambda config: HttpRuntime(settings=config, llm=Model()),
+    )
 
 
 def create_test_app():

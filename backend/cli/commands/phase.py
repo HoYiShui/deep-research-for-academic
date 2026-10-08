@@ -9,7 +9,7 @@ from datetime import UTC, datetime, timedelta
 from application.errors import AppError
 from application.phase_executor import ExecutionContext, PhaseExecutor
 from application.phase_units import plan_units
-from application.phase_workers import plan_worker, research_worker
+from application.phase_workers import public_workers
 from application.records import DEVELOPMENT_USER_ID
 from cli import output
 from cli.phase_state import load_phase_state, read_json, state_delta
@@ -20,7 +20,7 @@ from domain.research.phase_contracts import PhaseInput, merge_phase_result
 
 async def run(args) -> int:
     state = load_phase_state(read_json(args.state, "--state"), args.phase)
-    workers = {"plan": plan_worker, "research": research_worker}
+    workers = public_workers()
     if args.phase not in workers:
         raise output.EnvError(f"Formal {args.phase} worker is not configured")
     before = state.model_dump(mode="json")

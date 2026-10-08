@@ -12,6 +12,25 @@ from domain.research.facts import (
 from domain.research.ids import stable_id
 
 
+def planned_hypotheses(plan, brief, claims):
+    """Registered evaluation targets from the plan, not extracted facts."""
+    if plan.section_id != "section_3" or brief.task_type != "evaluation_design":
+        return {}
+    return {
+        stable_id("planned_hypothesis", spec.spec_id, spec.text): Claim(
+            claim_id=stable_id("planned_hypothesis", spec.spec_id, spec.text),
+            spec_ids=[spec.spec_id],
+            text=spec.text,
+            claim_type="hypothesis",
+            conditions={},
+            status="insufficient",
+            status_reason="研究计划中的待验证主张；尚无原始证据",
+        )
+        for spec in plan.claim_specs
+        if not any(spec.spec_id in claim.spec_ids for claim in claims.values())
+    }
+
+
 def section_coverage(
     plan: SectionPlan,
     claims: dict[str, Claim],
