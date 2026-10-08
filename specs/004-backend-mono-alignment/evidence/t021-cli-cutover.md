@@ -184,3 +184,11 @@ CLI ResearchDebugTools接收输入State的Sources只读副本；当前query授�
 4种真正CLI子进程反例采用显式create_pool拦截，不连接任何用户数据库：anonymous验证目标/dr4a_debug、原credential和sslmode保持、Parser不变/HTTP runner关闭后模拟不可用，安全退出3；authenticated/production/fake提前退出2、连接调用0次。异常正文带password canary，stdout单JSON且stdout/stderr无canary或stack。profile单测另验证输入Settings不变、幂等、默认HTML行为保留。这是路由/guard证据，不声称已向实际dr4a_debug收费运行。
 
 验证 `uv run --no-sync pytest -q tests/unit/test_cli_debug_database.py tests/unit/test_debug_backend.py tests/integration/test_mono_cli_run.py tests/unit/test_cli_output.py`：**30 passed in 17.49s**。既有real run测试使用真实fixture-owned PG/MinIO、本机受控模型HTTP和显式空搜索，检查预算/取消/外部Run隔离等；不访问付费模型。6个Python文件Ruff/format与diff检查通过。本批未运行全量；任务完整fake/后续worker与真实研究验收仍未完成，T021不勾选。用户.env/Agent分支/历史库及docs/implementation均不修改。
+
+## real run实时身份与单元诊断（2026-10-08）
+
+基线e3a1f9a。原real run的事件仅保留到最终JSON，verbose没有运行中身份/Checkpoint/query进度；长模型请求中无法从该进程得知session身份后运行dump。新增verbose stderr run_accepted，在start_frozen事务返回后且启动Runner前输出UUID身份/ready；committed回调输出PG checkpoint阶段/状态/seq，diagnostic回调仅将同Run合法ProgressFrame的三个已支持stage与canonical unit ID/章节/计数投影到日志。query_started明确uncommitted，query_completed/section_completed在原Driver提交后明确pg_checkpoint。不日志化message/results/chart或query，模型副本未验证的字段重验失败/外部Run/非标准unit ID不投影。stdout最终JSON及events保持原语义；quiet只省略最终events，不取消显式verbose。
+
+真实CLI子进程、实际隔离PG/MinIO与本机受控模型HTTP：在模型hold且子进程仍活时先读取run_accepted，再启动独立dump进程，核对同Run/seq=1/phase=plan，随后SIGINT只取消该Run且无query_completed；没有靠进程结束后的日志宣称实时。合法与修复两种plan输出后均有5条query_started/5条query_completed/5条section_completed，原预算/seq/dump断言不变。5项新增日志单测证明私密message/results/chart不打印、其它Run/非法unit/未校验phase或stage拒绝。测试调用受控SDK/空搜索，不是实际研究质量验收。
+
+首轮real CLI组 **9 passed in 22.03s**；补充字段重验后最终 `uv run --no-sync pytest -q tests/unit/test_cli_verbose.py tests/unit/test_cli_debug_database.py tests/integration/test_mono_cli_run.py tests/integration/test_mono_cli_dump.py`：**25 passed in 24.98s**。3个Python文件Ruff/format及diff检查通过。本批未跑全量，不把上批全量作为本批证据；T021仍未完成。用户Agent分支/.env/旧库/docs/implementation未修改，未推送。

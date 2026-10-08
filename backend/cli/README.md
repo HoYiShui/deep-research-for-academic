@@ -31,6 +31,8 @@ python -m cli dump <session-id> --json
 
 CLI只启动限定owner+本Run的扫描/执行器，不启动HTTP全库维护器；即使进程环境设置了`DR4A_DEBUG_RUNNER=true`也不会附带开启全库HTTP执行。其它Run的ready排队、失租或取消由其服务器/维护进程处理，不由此次CLI命令收尾。
 
+给real run加`--verbose`可在运行中观察安全元信息：冻结提交后，stderr立即输出`run_accepted`的session_id/run_id，可在另一个终端运行`dump`读取已提交状态；随后输出`run_checkpoint`及查询/章节`run_progress`。`query_started`标为`persistence=uncommitted`，`query_completed`/`section_completed`在PG单元提交后标为`pg_checkpoint`，不等同于研究结论已获支持。日志不含query、prompt、消息/结果正文；stdout仍在结束时输出单个JSON。`--quiet`只省略最终events，不关闭显式请求的verbose日志。
+
 与TUI调试后端使用同一独立数据库时，给real run加`--debug-db`：只将连接目标改为已有的`dr4a_debug`，保留显式Parser与其他运行配置，不创建数据库、不自动迁移。仅允许匿名development；fake模式不连接数据库，因此拒绝此选项。该命令仍会创建自己的Session/Run并调用付费模型/检索，不是只读检查；`doctor`和`dump`中的同名选项仍只读。示例：
 
 ```bash

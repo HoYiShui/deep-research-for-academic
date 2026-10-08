@@ -90,9 +90,13 @@ async def test_real_run_freezes_without_clarify_commits_plan_and_fails_missing_w
     async with model_server(
         Settings.load().llm_model, ["not JSON", response] if repair else response
     ) as (url, calls, _):
-        process = await command(path, database, object_cache.bucket, url)
+        process = await command(path, database, object_cache.bucket, url, "--verbose")
         code, body, stderr = await collect(process)
     assert code == 3 and body["error"]["code"] == "service_not_ready"
+    assert "run_accepted session_id=" in stderr
+    assert stderr.count("stage=query_started") == stderr.count("stage=query_completed") == 5
+    assert stderr.count("stage=section_completed") == 5
+    assert "persistence=uncommitted" in stderr and "persistence=pg_checkpoint" in stderr
     assert body["dependency_mode"] == "real" and body["final_report"] is None
     assert body["checkpoint_seq"] == 14 and body["phase"] == "analyze"
     assert len(calls) == expected_calls and "FROZEN" in calls[0]["messages"][0]["content"]
@@ -123,6 +127,41 @@ async def test_real_run_freezes_without_clarify_commits_plan_and_fails_missing_w
     dump_code, snapshot, _ = await collect(process)
     assert dump_code == 0 and snapshot["state"] == state
     assert snapshot["run_id"] == body["run_id"] and snapshot["checkpoint_seq"] == 14
+
+
+async def test_verbose_identity_is_available_while_model_waits_and_can_be_dumped(
+    pg_database, object_cache, tmp_path
+):
+    pool, database = pg_database
+    await run_migrations(pool)
+    state = initial_state()
+    path = tmp_path / "brief.json"
+    path.write_text(state.research_brief.model_dump_json())
+    async with model_server(Settings.load().llm_model, "unused", hold=True) as (
+        url,
+        calls,
+        entered,
+    ):
+        process = await command(path, database, object_cache.bucket, url, "--verbose", "--quiet")
+        try:
+            line = (await asyncio.wait_for(process.stderr.readline(), timeout=10)).decode()
+            assert "run_accepted session_id=" in line and "status=ready" in line
+            session = line.split("session_id=", 1)[1].split()[0]
+            run_id = line.split("run_id=", 1)[1].split()[0]
+            await asyncio.wait_for(entered.wait(), timeout=10)
+            assert process.returncode is None and len(calls) == 1
+            dump = await command(path, database, object_cache.bucket, url, session=session)
+            dump_code, snapshot, _ = await collect(dump)
+            assert dump_code == 0 and snapshot["run_id"] == run_id
+            assert snapshot["checkpoint_seq"] == 1 and snapshot["state"]["phase"] == "plan"
+            process.send_signal(signal.SIGINT)
+            code, body, stderr = await collect(process)
+            assert code == 1 and body["session_id"] == session and body["run_id"] == run_id
+            assert "events" not in body and "stage=query_completed" not in stderr
+        finally:
+            if process.returncode is None:
+                process.kill()
+                await process.wait()
 
 
 @pytest.mark.parametrize("signal_name", [signal.SIGINT, signal.SIGTERM])

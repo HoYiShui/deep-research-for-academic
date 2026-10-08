@@ -1,6 +1,7 @@
 """Frozen CLI intake and lease-scoped mono execution; no legacy fallback."""
 
 import asyncio
+import re
 import signal
 from uuid import UUID, uuid4
 
@@ -16,7 +17,32 @@ from application.task_runner import TaskRunner
 from cli import output
 from domain.ports import AdapterError
 from domain.research.models import ResearchBrief, SourceSelection
+from domain.research.run_events import ProgressFrame
 from infrastructure.storage.research_postgres import PostgresResearchStore
+
+
+def log_progress(event, run_id):
+    """Only coordinator-shaped metadata, never worker messages/results/queries."""
+    if not isinstance(event, ProgressFrame):
+        return
+    try:
+        # A worker diagnostic may use model_copy with unchecked nested fields.
+        event = ProgressFrame.model_validate_json(event.model_dump_json())
+    except ValueError:
+        return
+    if (
+        event.run_id != run_id
+        or not re.fullmatch(r"unit-[a-f0-9]{64}", event.unit_id)
+        or event.stage not in {"query_started", "query_completed", "section_completed"}
+    ):
+        return
+    persistence = "uncommitted" if event.stage == "query_started" else "pg_checkpoint"
+    output.log(
+        f"run_progress phase={event.phase} stage={event.stage} unit_id={event.unit_id} "
+        f"section={event.section_id or 'none'} checkpoint_seq={event.checkpoint_seq} "
+        f"completed_units={event.completed_units} total_units={event.total_units} "
+        f"persistence={persistence}"
+    )
 
 
 async def cancel_owned(worker, store, owner, run_id):
@@ -108,12 +134,22 @@ async def run(args, raw_brief):
                 }
             )
             events.append(frame.model_dump(mode="json"))
+            if getattr(args, "verbose", False):
+                output.log(
+                    f"run_checkpoint phase={point.phase} status={run.status} "
+                    f"checkpoint_seq={point.seq} persistence=pg_checkpoint"
+                )
+
+        def diagnostic(event):
+            events.append(event.model_dump(mode="json"))
+            if getattr(args, "verbose", False) and accepted_identity is not None:
+                log_progress(event, UUID(accepted_identity["run_id"]))
 
         try:
             execution = PublicResearchExecution(
                 runtime,
                 committed=committed,
-                diagnostic=lambda event: events.append(event.model_dump(mode="json")),
+                diagnostic=diagnostic,
             )
         except AppError as exc:
             if exc.code == "service_not_ready":
@@ -126,6 +162,10 @@ async def run(args, raw_brief):
             "run_id": str(run_id),
             "dependency_mode": "real",
         }
+        if getattr(args, "verbose", False):
+            output.log(
+                f"run_accepted session_id={session_id} run_id={run_id} persistence=pg status=ready"
+            )
         worker = TaskRunner(
             store=store, execute=execution.execute, settings=settings, owner=owner, run_id=run_id
         )
