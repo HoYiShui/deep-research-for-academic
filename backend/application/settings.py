@@ -35,6 +35,10 @@ class Settings(BaseModel):
     jwt_secret: SecretStr = SecretStr("")
     anthropic_api_key: SecretStr = SecretStr("")
     bocha_api_key: SecretStr = SecretStr("")
+    web_search_provider: Literal["search_router", "bocha"] = "search_router"
+    paper_search_provider: Literal["openalex", "arxiv", "none"] = "openalex"
+    search_router_url: str = "http://127.0.0.1:8080"
+    search_router_content: Literal["any", "body"] = "body"
     minio_access_key: SecretStr = SecretStr("")
     minio_secret_key: SecretStr = SecretStr("")
     anthropic_base_url: str = "https://api.deepseek.com/anthropic"
@@ -66,6 +70,8 @@ class Settings(BaseModel):
     gap_queries_per_spec: Annotated[int, Field(gt=0, le=2)] = 2
     clarify_rounds: Annotated[int, Field(ge=0, le=3)] = 3
     llm_timeout_s: Positive = 60
+    # Phases whose model calls disable provider reasoning (comma-separated).
+    llm_no_thinking_phases: str = "research,write"
     search_timeout_s: Positive = 20
     fetch_timeout_s: Positive = 45
     embedding_timeout_s: Positive = 120
@@ -150,7 +156,7 @@ class Settings(BaseModel):
                 raise ValueError("CORS origins must be explicit HTTP(S) origins")
         return list(dict.fromkeys(value))
 
-    @field_validator("anthropic_base_url", "milvus_uri")
+    @field_validator("anthropic_base_url", "milvus_uri", "search_router_url")
     @classmethod
     def validate_public_url(cls, value: str) -> str:
         """Keep embedded credentials and query secrets out of public configuration."""

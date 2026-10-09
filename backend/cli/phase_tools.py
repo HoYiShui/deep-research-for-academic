@@ -7,6 +7,7 @@ Physical debug model calls are reported separately from committed budget_used.
 import asyncio
 import json
 from pathlib import Path
+from time import monotonic
 
 from application.errors import AppError
 from application.settings import Settings
@@ -14,8 +15,9 @@ from cli import output
 from cli.research_tools import ResearchDebugTools
 from domain.ports import AdapterError
 from domain.research.agents import prompt_versions
+from domain.research.diagnostics import diagnostic, diagnostic_scope, input_summary, result_summary
 from infrastructure.llm.deepseek import DeepSeekLLM
-from infrastructure.parser.html import HTML_PARSER_VERSION
+from infrastructure.parser.html import PARSER_VERSIONS
 from infrastructure.parser.mineru_output import MINERU_PARSER_VERSION
 
 
@@ -25,7 +27,7 @@ class DebugTools:
         self.config = state.run_metadata.config
         if self.config.versions.prompt_versions[state.phase] != prompt_versions()[state.phase]:
             raise output.UsageError("State prompt version differs from configured worker")
-        self.output_limit = min(16384, self.config.limits.tokens)
+        self.output_limit = min(48000, self.config.limits.tokens)
         self.usage = {
             "llm_calls": 0,
             "input_tokens": 0,
@@ -40,11 +42,12 @@ class DebugTools:
             if self.config.source_policy.private_only or state.source_selection.knowledge_base_ids:
                 raise output.EnvError("Knowledge-base research debug is not configured")
             if not fake and self.config.versions.parser_version not in {
-                HTML_PARSER_VERSION,
+                *PARSER_VERSIONS,
                 MINERU_PARSER_VERSION,
             }:
                 raise output.EnvError(
-                    "Research debug requires parser_version=dr4a-html-v1 or dr4a-mineru-4.0.10-standard-v1"
+                    "Research debug requires parser_version=dr4a-html-v1, dr4a-light-v1 "
+                    "or dr4a-mineru-4.0.10-standard-v1"
                 )
             if (
                 not fake
@@ -83,6 +86,8 @@ class DebugTools:
                 model=settings.llm_model,
                 timeout_s=self.config.timeouts_s.llm,
                 max_tokens=self.output_limit,
+                thinking=state.phase
+                not in {item.strip() for item in settings.llm_no_thinking_phases.split(",")},
             )
         if state.phase == "research":
             self.research = ResearchDebugTools(
@@ -94,6 +99,37 @@ class DebugTools:
             self.research.for_unit(unit)
 
     async def invoke(self, operation, payload):
+        started = monotonic()
+        with diagnostic_scope(tool=operation, mode="fake" if self.fake else "isolated_real"):
+            diagnostic(
+                "tool_requested",
+                arguments=input_summary(operation, payload),
+                content={"arguments": payload},
+            )
+            try:
+                result = await self._invoke(operation, payload)
+            except BaseException as exc:
+                diagnostic(
+                    "tool_failed",
+                    code=getattr(
+                        exc,
+                        "code",
+                        "cancelled"
+                        if isinstance(exc, asyncio.CancelledError)
+                        else "execution_failed",
+                    ),
+                    elapsed_s=monotonic() - started,
+                )
+                raise
+            diagnostic(
+                "tool_finished",
+                result=result_summary(operation, result),
+                elapsed_s=monotonic() - started,
+                content={"result": result},
+            )
+            return result
+
+    async def _invoke(self, operation, payload):
         if operation in {"search", "fetch"} and self.research is not None:
             return await self.research.invoke(operation, payload)
         if operation != "llm" or payload.get("phase") != self.state.phase:
@@ -135,6 +171,11 @@ class DebugTools:
         self.usage["llm_calls"] += 1
         async with asyncio.timeout(self.config.timeouts_s.llm):
             response = await self.model.complete_metered(prompt)
+        diagnostic(
+            "provider_result",
+            result=result_summary("llm", response.model_dump(mode="json")),
+            content={"result": response.model_dump(mode="json")},
+        )
         self.usage["input_tokens"] += response.input_tokens
         self.usage["output_tokens"] += response.output_tokens
         if self.usage["input_tokens"] + self.usage["output_tokens"] > self.config.limits.tokens:

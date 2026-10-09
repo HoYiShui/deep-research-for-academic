@@ -13,6 +13,7 @@ import pytest
 from cli.phase_tools import DebugTools
 from domain.research.phase_contracts import PhaseInput
 from domain.research.state import PipelineState
+from tests.support.model_server import http_message
 from tests.unit.test_state import initial_state
 
 
@@ -308,23 +309,19 @@ async def test_real_sdk_plan_against_controlled_http_not_a_real_model_claim(tmp_
             )
             request = json.loads(await reader.readexactly(length))
             calls.append(request)
-            body = json.dumps(
-                {
-                    "id": "controlled-response",
-                    "type": "message",
-                    "role": "assistant",
-                    "model": state.run_metadata.config.versions.llm_model,
-                    "content": [{"type": "text", "text": response_text}],
-                    "stop_reason": "end_turn",
-                    "stop_sequence": None,
-                    "usage": {"input_tokens": 20, "output_tokens": 30},
-                }
-            ).encode()
             writer.write(
-                b"HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: "
-                + str(len(body)).encode()
-                + b"\r\nConnection: close\r\n\r\n"
-                + body
+                http_message(
+                    {
+                        "id": "controlled-response",
+                        "type": "message",
+                        "role": "assistant",
+                        "model": state.run_metadata.config.versions.llm_model,
+                        "content": [{"type": "text", "text": response_text}],
+                        "stop_reason": "end_turn",
+                        "stop_sequence": None,
+                        "usage": {"input_tokens": 20, "output_tokens": 30},
+                    }
+                )
             )
             await writer.drain()
         finally:

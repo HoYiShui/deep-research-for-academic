@@ -30,6 +30,7 @@ class DeepSeekLLM:
         model: str | None = None,
         timeout_s: float = 60,
         max_tokens: int = 4096,
+        thinking: bool = True,
     ) -> None:
         if type(max_tokens) is not int or max_tokens <= 0:
             raise ValueError("Output token limit must be a positive integer")
@@ -44,6 +45,9 @@ class DeepSeekLLM:
         self._retries = retries
         self._backoff = backoff
         self._max_tokens = max_tokens
+        # Reasoning tokens share max_tokens with the answer. Mechanical
+        # extraction gains nothing from them and can be truncated to no text.
+        self._extra = {} if thinking else {"thinking": {"type": "disabled"}}
 
     async def aclose(self) -> None:
         await self._client.close()
@@ -88,11 +92,15 @@ class DeepSeekLLM:
         return "".join(getattr(block, "text", "") for block in response.content)
 
     async def _request(self, prompt: str):
-        return await self._client.messages.create(
+        # Streaming lifts the SDK's non-streaming output ceiling (~21k tokens);
+        # reasoning shares max_tokens with the answer, so long outputs need it.
+        async with self._client.messages.stream(
             model=self._model,
             max_tokens=self._max_tokens,
             messages=[{"role": "user", "content": prompt}],
-        )
+            **self._extra,
+        ) as stream:
+            return await stream.get_final_message()
 
     async def complete_metered(self, prompt: str) -> ModelCompletion:
         """Exactly one attempt; coordinator owns reservations and retries.

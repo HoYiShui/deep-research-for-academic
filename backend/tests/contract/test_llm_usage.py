@@ -8,6 +8,7 @@ import pytest
 
 from domain.ports import AdapterError
 from infrastructure.llm.deepseek import DeepSeekLLM
+from tests.support.llm_stream import stream_via_create
 
 
 def message(index=1, **changes):
@@ -25,6 +26,7 @@ def message(index=1, **changes):
 
 async def test_metered_single_attempt_keeps_usage_even_if_truncated():
     with patch("infrastructure.llm.deepseek.AsyncAnthropic") as sdk:
+        stream_via_create(sdk)
         sdk.return_value.messages.create = AsyncMock(return_value=message(stop_reason="max_tokens"))
         llm = DeepSeekLLM(retries=2)
         result = await llm.complete_metered("question")
@@ -44,6 +46,7 @@ async def test_metered_single_attempt_keeps_usage_even_if_truncated():
 )
 async def test_missing_or_invalid_usage_is_not_zero_spend(usage):
     with patch("infrastructure.llm.deepseek.AsyncAnthropic") as sdk:
+        stream_via_create(sdk)
         sdk.return_value.messages.create = AsyncMock(return_value=message(usage=usage))
         with pytest.raises(AdapterError) as failure:
             await DeepSeekLLM().complete_metered("question")
@@ -53,6 +56,7 @@ async def test_missing_or_invalid_usage_is_not_zero_spend(usage):
 
 async def test_concurrent_results_have_request_local_usage():
     with patch("infrastructure.llm.deepseek.AsyncAnthropic") as sdk:
+        stream_via_create(sdk)
 
         async def complete(**args):
             index = int(args["messages"][0]["content"])
@@ -68,6 +72,7 @@ async def test_concurrent_results_have_request_local_usage():
 
 async def test_metered_error_has_no_adapter_retry():
     with patch("infrastructure.llm.deepseek.AsyncAnthropic") as sdk:
+        stream_via_create(sdk)
         sdk.return_value.messages.create = AsyncMock(side_effect=TimeoutError())
         with pytest.raises(TimeoutError):
             await DeepSeekLLM(retries=2).complete_metered("question")
@@ -76,6 +81,7 @@ async def test_metered_error_has_no_adapter_retry():
 
 async def test_metered_cancellation_propagates():
     with patch("infrastructure.llm.deepseek.AsyncAnthropic") as sdk:
+        stream_via_create(sdk)
         sdk.return_value.messages.create = AsyncMock(side_effect=asyncio.CancelledError())
         with pytest.raises(asyncio.CancelledError):
             await DeepSeekLLM().complete_metered("question")

@@ -10,6 +10,7 @@ from domain.ports import AdapterError
 from domain.research.agents import architect, structured
 from domain.research.models import PartialResearchBrief, SourceSelection
 from infrastructure.llm.deepseek import DeepSeekLLM
+from tests.support.llm_stream import stream_via_create
 from tests.unit.test_mono_clarify import assessment, core
 
 
@@ -78,6 +79,7 @@ async def test_truncated_sdk_response_is_rejected_even_if_text_looks_valid():
         content=[SimpleNamespace(text=json.dumps(assessment()))],
     )
     with patch("infrastructure.llm.deepseek.AsyncAnthropic") as sdk:
+        stream_via_create(sdk)
         sdk.return_value.messages.create = AsyncMock(return_value=response)
         model = DeepSeekLLM(retries=2, max_tokens=16384)
         with pytest.raises(AdapterError, match="model_output_invalid"):

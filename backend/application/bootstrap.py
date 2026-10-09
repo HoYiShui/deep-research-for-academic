@@ -28,6 +28,7 @@ from application.session_service import LegacySessionService, SessionService
 from application.settings import Settings
 from application.sse import EventBus
 from application.task_runner import TaskRunner
+from application.web_search import web_search_binding
 from infrastructure.clock import SystemClock
 from infrastructure.embedding.bge_m3 import BGEM3Embedding
 from infrastructure.embedding.bge_reranker import BGEReranker
@@ -35,8 +36,6 @@ from infrastructure.llm.deepseek import DeepSeekLLM
 from infrastructure.parser.pdf import MinerUParser
 from infrastructure.retrieval.local import LocalRetrieval
 from infrastructure.sandbox.docker import DockerExecution
-from infrastructure.search.bocha import BochaSearch
-from infrastructure.search.composite import CompositeSearch
 from infrastructure.storage.artifacts import MinioArtifactStore
 from infrastructure.storage.content import MinioContentStore
 from infrastructure.storage.memory import InMemoryCancel, InMemoryDocumentStore, InMemoryUserStore
@@ -87,18 +86,7 @@ class Container:
             model=config.llm_model,
             timeout_s=config.llm_timeout_s,
         )
-        self.search = search or CompositeSearch(
-            [
-                (
-                    "bocha",
-                    BochaSearch(
-                        api_key=config.bocha_api_key.get_secret_value(),
-                        timeout_s=config.search_timeout_s,
-                    ),
-                ),
-            ],
-            timeout_s=config.search_timeout_s,
-        )
+        self.search = search or web_search_binding(config).adapter
         self.embedding = embedding or BGEM3Embedding(config.bge_m3_model_path)
         self.vector = vector or MilvusStore(config.milvus_uri)
         self.reranker = reranker or BGEReranker(config.bge_reranker_model_path)
@@ -202,7 +190,7 @@ class HttpRuntime:
                 base_url=settings.anthropic_base_url,
                 model=settings.llm_model,
                 timeout_s=settings.llm_timeout_s,
-                max_tokens=16384,
+                max_tokens=48000,
             )
         )
         self.clock = SystemClock()
