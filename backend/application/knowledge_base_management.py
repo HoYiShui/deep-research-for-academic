@@ -1,6 +1,6 @@
 """Owner-scoped PG management; index I/O never runs inside a database transaction.
 
-Deletion/upload/retrieval stay explicitly unavailable until their workers are
+Upload/retrieval stay explicitly unavailable until their workers are
 composed. A successful creation proves the Standalone partition exists, not that
 Parser/BGE/ingestion are ready.
 """
@@ -14,7 +14,12 @@ from uuid import UUID, uuid4
 from pydantic import ValidationError
 
 from application.errors import AppError
-from application.knowledge_models import KnowledgeBase, KnowledgeBaseCreate, KnowledgeBaseView
+from application.knowledge_models import (
+    DocumentView,
+    KnowledgeBase,
+    KnowledgeBaseCreate,
+    KnowledgeBaseView,
+)
 from application.ports import (
     KnowledgeManagementRepositoryPort,
     RequestStorePort,
@@ -81,6 +86,7 @@ class KnowledgeBaseManagementService:
         *,
         index_version: str,
         ingestion=None,
+        cleanup=None,
         lease_s=90,
         heartbeat_s=20,
     ):
@@ -89,6 +95,7 @@ class KnowledgeBaseManagementService:
         self.uow, self.knowledge, self.requests = uow, knowledge, requests
         self.index, self.clock, self.index_version = index, clock, index_version
         self.ingestion, self.lease_s, self.heartbeat_s = ingestion, lease_s, heartbeat_s
+        self.cleanup = cleanup
 
     async def _kb(self, owner, kb_id, tx):
         value = await self.knowledge.get_kb(owner, kb_id, tx)
@@ -428,6 +435,49 @@ class KnowledgeBaseManagementService:
                 await self._kb(owner, kb_id, tx)
             else:
                 await self._document(owner, kb_id, document_id, tx)
-        raise AppError(
-            "service_not_ready", "Knowledge cleanup worker is not configured", retryable=True
-        )
+            if self.cleanup is None or not self.cleanup.available:
+                raise AppError(
+                    "service_not_ready",
+                    "Knowledge cleanup worker is not configured",
+                    retryable=True,
+                )
+            identity = document_id or kb_id
+            reservation = await self.requests.reserve(
+                owner,
+                f"knowledge:{kb_id}:delete:{document_id or 'kb'}",
+                key,
+                canonical_hash({}),
+                tx,
+            )
+            if reservation.state == "completed":
+                try:
+                    cached = (DocumentView if document_id else KnowledgeBaseView).model_validate(
+                        reservation.response_body
+                    )
+                    if (
+                        reservation.response_status != (200 if cached.status == "deleted" else 202)
+                        or cached.status not in {"deleting", "deleted"}
+                        or reservation.resource_id != identity
+                        or cached.kb_id != kb_id
+                        or (document_id is not None and cached.document_id != document_id)
+                    ):
+                        raise ValueError("Cached deletion identity or status differs")
+                    if cached.failure is not None:
+                        if "details" in cached.failure:
+                            raise ValueError("Private failure details are not public")
+                        Failure.model_validate(cached.failure | {"details": None})
+                except (ValueError, ValidationError):
+                    raise AppError(
+                        "content_unavailable", "Cached deletion is unavailable", retryable=True
+                    ) from None
+                return reservation.response_status, cached.model_dump(mode="json")
+            value = (
+                await self.knowledge.mark_document_deleting(owner, kb_id, document_id, tx)
+                if document_id
+                else await self.knowledge.mark_kb_deleting(owner, kb_id, tx)
+            )
+            status = 200 if value.status == "deleted" else 202
+            body = public_entity(value, identity="document" if document_id else "kb")
+            await self.requests.complete(reservation, status, body, tx, resource_id=identity)
+        self.cleanup.wake()
+        return status, body

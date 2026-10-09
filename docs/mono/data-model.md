@@ -230,6 +230,8 @@ RetrievalResult.content 是非空 string，score 为有限 number。`source_meta
 
 Document 初始 active 但 active_version_id=null 时可管理不可检索。一个 Document 只有一个 active 版本；新 staging 不覆盖旧 active。completed Job 的版本**曾成功提交**，后来可 retired；不能要求所有历史 completed 永远 active。failed/cancelled Job 的新版本不可见。
 
+KnowledgeBase/Document 另存私有清理调度字段 `cleanup_not_before: timestamptz?` 与 `cleanup_verified_at: timestamptz?`，不出现在 HTTP 公有视图中。前者保存删除屏障时旧租约的最大到期时间加有界外部 I/O 静默窗口，后者记录墓碑最近一次外部缺失核验时间；二者不替代 status/revision/token 校验。物理删除后清除 active_version_id 和 PG Chunk，active Version 改 retired，保留其历史 chunk_count/activated_at 及 completed Job；未发布版本改 failed、未完成 Job 改 cancelled。Version/Job/Document/KB 元数据与 Research 冻结引用不删除。
+
 唯一内容身份 (kb_id,content_hash,ingestion_version)，ingestion_version 包括 parser/chunker/embedding/index profile hash。重复内容返回已有 version/job；显式 document_id 与已有内容归属冲突返回 409，不能复制版本到另一 Document。一个 Document 同时最多一个 accepted/processing/cancelling Job；重试沿用同 Job/Version，稳定 chunk_id = hash(version_id+parser/chunker version+ordinal+content_hash)。
 
 MinIO 键使用 owner/KB/version 前缀，由服务生成；PG 存 Chunk 到 object_key 的映射。Milvus 使用 `dr4a_chunks_v1` collection、`kb_<uuid_without_hyphens>` partition；同一 index_version 的 schema 固定：chunk_id VARCHAR 主键 auto_id=false，kb_id/document_id/document_version_id/index_version、chunk_type、page_start/year（可空字段由 Adapter 明确编码），dense_vector float[1024]、sparse_vector sparse<int,float>。动态字段关闭；正文唯一副本在 MinIO。BM25 不属于该 profile。

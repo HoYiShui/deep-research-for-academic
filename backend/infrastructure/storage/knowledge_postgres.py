@@ -13,11 +13,12 @@ from application.knowledge_models import (
     KnowledgeBase,
 )
 from infrastructure.storage.knowledge_cleanup import KnowledgeCleanup
+from infrastructure.storage.knowledge_deletion import KnowledgeDeletion
 from infrastructure.storage.knowledge_jobs import KnowledgeJobs
 from infrastructure.storage.knowledge_management import KnowledgeManagement
 
 
-class KnowledgeRepository(KnowledgeJobs, KnowledgeManagement, KnowledgeCleanup):
+class KnowledgeRepository(KnowledgeJobs, KnowledgeManagement, KnowledgeCleanup, KnowledgeDeletion):
     def __init__(self, store):
         self.store = store
 

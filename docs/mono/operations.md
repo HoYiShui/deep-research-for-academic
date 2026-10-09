@@ -117,6 +117,8 @@ Run取消保留已提交成果与快照，无Report。Job取消停止新写入�
 
 creating 与 deleting 使用同一 KB 租约，创建完成前再次检验 status/revision/token，不能把 deleting 改回 active。旧 Worker 的外部写入无法由 PG token 直接阻断：失租停止后续 I/O；删除等待已发起操作结束或其超时，再清理。若进程失联或上游迟到写入，PG 删除屏障始终阻止可见性，周期清理器对 deleted 墓碑范围重复核对并清除迟到 partition/对象/向量；不能承诺跨存储瞬间物理原子删除。
 
+HTTP DELETE 与幂等响应在同一短事务提交屏障，返回202；物理清理由 TaskRunner 的持有任务扫描 PG 库存，不由 HTTP 请求携带 SDK 操作。清理顺序为 wait_jobs → index → objects → metadata；旧 Job 收到取消信号，活租约和 `cleanup_not_before` 未结束时不做外部删除。默认静默窗口60秒；无旧租约的资源无需等待。清理租约90秒、续租20秒，外部依赖失败保留当前游标和租约直至到期，避免与仍在飞行的 native 请求竞争。MinIO 每前缀清理限时30秒，取消后停止发起下一 SDK 请求，并在成功前重新列举核验空前缀；恢复时重复核验已清索引和对象。默认每60秒将 deleted 墓碑重新纳入扫描，每 tick 至多一个删除资源和一个墓碑；只清授权 KB/version 前缀与 Milvus partition/version，不清报告或 research-content。配置了不启动全局 Runner 的 CLI 组合根不能接受资源 DELETE。
+
 退役版本保留直到未被活动Run引用；Research冻结版本供本Run复用，publicsearch仅取当前active。删除明确覆盖所有版本，执行中Research遇删来源写Gap；已经保存的引用摘录/Report不随KB删除消失。附件和内容缓存的保留须跟成果策略一致。
 
 ### 5.2 模型与索引固定

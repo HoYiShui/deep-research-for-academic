@@ -44,9 +44,10 @@ async def test_empty_database_and_repeat_migration(pg_database):
         "0003_tool_call_attempts",
         "0004_staged_tool_results",
         "0005_mono_knowledge",
+        "0006_mono_cleanup_schedule",
     ]
     await run_migrations(pool)
-    assert await pool.fetchval("SELECT count(*) FROM schema_migrations") == 5
+    assert await pool.fetchval("SELECT count(*) FROM schema_migrations") == 6
     assert (
         await pool.fetchval(
             "SELECT data_type FROM information_schema.columns WHERE table_name='sessions' AND column_name='session_id'"
@@ -163,7 +164,7 @@ async def test_pending_migration_failure_rolls_back_ddl_and_version(pg_database,
     assert await pool.fetchval("SELECT to_regclass('public.legacy_users')") is None
     assert await pool.fetchval("SELECT count(*) FROM schema_migrations") == 1
     await run_migrations(pool, backup_dir=tmp_path / "backups")
-    assert await pool.fetchval("SELECT count(*) FROM schema_migrations") == 5
+    assert await pool.fetchval("SELECT count(*) FROM schema_migrations") == 6
 
 
 @pytest.mark.asyncio
@@ -198,7 +199,7 @@ asyncio.run(main())
     assert [process.returncode for process in processes] == [0, 0], [
         error.decode() for _, error in outputs
     ]
-    assert await pool.fetchval("SELECT count(*) FROM schema_migrations") == 5
+    assert await pool.fetchval("SELECT count(*) FROM schema_migrations") == 6
     assert await pool.fetchval("SELECT count(*) FROM sessions") == 0
 
 

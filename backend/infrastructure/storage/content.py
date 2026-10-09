@@ -11,6 +11,8 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import re
+import threading
+import time
 from collections.abc import AsyncIterable
 from uuid import UUID
 
@@ -142,10 +144,51 @@ class MinioContentStore(MinioObjectIO):
         await self._io(self._client.remove_object, self.bucket, content_key(key))
 
     async def delete_prefix(self, prefix: str) -> None:
-        await self._io(self._delete_prefix, content_prefix(prefix))
+        prefix = content_prefix(prefix)
+        stop = threading.Event()
+        try:
+            async with asyncio.timeout(self._stream_timeout):
+                await self._io(
+                    self._delete_prefix, prefix, stop, time.monotonic() + self._stream_timeout
+                )
+        finally:
+            # Cancellation cannot recall an issued SDK request. Prevent any NEXT request.
+            # The I/O driver retains capacity until that actual native request finishes.
+            stop.set()
 
-    def _delete_prefix(self, prefix):
-        for item in self._client.list_objects(self.bucket, prefix=prefix, recursive=True):
+    def _delete_prefix(self, prefix, stop, deadline):
+        def check():
+            if stop.is_set() or time.monotonic() >= deadline:
+                raise AdapterError(
+                    "minio",
+                    "dependency_unavailable",
+                    "Content cleanup was interrupted",
+                    True,
+                    "content_store",
+                )
+
+        check()
+        items = iter(self._client.list_objects(self.bucket, prefix=prefix, recursive=True))
+        while True:
+            check()
+            item = next(items, None)
+            if item is None:
+                break
+            check()
             if not item.object_name.startswith(prefix):
                 raise ValueError("S3 listing escaped the authorized resource prefix")
             self._client.remove_object(self.bucket, item.object_name)
+        check()
+        # A successful response means absence was verified, not merely that DELETEs were issued.
+        remaining = next(
+            iter(self._client.list_objects(self.bucket, prefix=prefix, recursive=True)), None
+        )
+        check()
+        if remaining is not None:
+            raise AdapterError(
+                "minio",
+                "dependency_unavailable",
+                "Content cleanup is not verified",
+                True,
+                "content_store",
+            )

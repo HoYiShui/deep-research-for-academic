@@ -39,6 +39,8 @@ class KnowledgeBase(LeasedRecord):
     index_version: Text
     cleanup_cursor: Text | None
     failure: Failure | None
+    cleanup_not_before: UTC | None = None
+    cleanup_verified_at: UTC | None = None
     created_at: UTC
     updated_at: UTC
 
@@ -86,6 +88,8 @@ class Document(LeasedRecord):
     revision: Positive
     cleanup_cursor: Text | None
     failure: Failure | None
+    cleanup_not_before: UTC | None = None
+    cleanup_verified_at: UTC | None = None
     created_at: UTC
     updated_at: UTC
 
@@ -111,6 +115,43 @@ class DocumentVersion(Record):
             self.activated_at is None or self.chunk_count == 0
         ):
             raise ValueError("Published versions require chunks and activation time")
+        return self
+
+
+class DocumentView(Record):
+    document_id: UUID
+    kb_id: UUID
+    filename: Text
+    media_type: Literal["application/pdf"]
+    status: Literal["active", "deleting", "deleted"]
+    active_version_id: UUID | None
+    revision: Positive
+    failure: dict | None
+    created_at: UTC
+    updated_at: UTC
+
+
+class CleanupCandidate(Record):
+    owner_id: UUID
+    kb_id: UUID
+    document_id: UUID | None
+
+
+class DeletionContext(Record):
+    kb: KnowledgeBase
+    document: Document | None
+    versions: list[DocumentVersion]
+
+    @model_validator(mode="after")
+    def scope(self):
+        if self.document is not None and self.document.kb_id != self.kb.kb_id:
+            raise ValueError("Cleanup document differs from its knowledge base")
+        if any(
+            item.kb_id != self.kb.kb_id
+            or (self.document is not None and item.document_id != self.document.document_id)
+            for item in self.versions
+        ):
+            raise ValueError("Cleanup version differs from its authorized scope")
         return self
 
 

@@ -12,6 +12,8 @@ from typing import Protocol
 from uuid import UUID
 
 from application.knowledge_models import (
+    CleanupCandidate,
+    DeletionContext,
     Document,
     DocumentVersion,
     IngestionJob,
@@ -212,6 +214,7 @@ class KnowledgeManagementRepositoryPort(Protocol):
         *,
         document_id: UUID | None = None,
         lease_s: int = 90,
+        tombstone: bool = False,
     ) -> KnowledgeBase | Document: ...
 
     async def renew_lifecycle(
@@ -247,6 +250,96 @@ class KnowledgeManagementRepositoryPort(Protocol):
         *,
         partition_verified: bool = False,
     ) -> KnowledgeBase: ...
+
+    async def mark_kb_deleting(
+        self, owner: UUID, kb_id: UUID, tx: TransactionPort, *, io_grace_s: int = 60
+    ) -> KnowledgeBase: ...
+
+    async def mark_document_deleting(
+        self,
+        owner: UUID,
+        kb_id: UUID,
+        document_id: UUID,
+        tx: TransactionPort,
+        *,
+        io_grace_s: int = 60,
+    ) -> Document: ...
+
+
+class KnowledgeCleanupRepositoryPort(KnowledgeManagementRepositoryPort, Protocol):
+    async def scan_deletion(
+        self, tx: TransactionPort, *, tombstone: bool = False, interval_s: int = 60, limit: int = 1
+    ) -> list[CleanupCandidate]: ...
+
+    async def check_deletion(
+        self,
+        owner: UUID,
+        kb_id: UUID,
+        token: int,
+        revision: int,
+        tx: TransactionPort,
+        *,
+        document_id: UUID | None = None,
+    ) -> KnowledgeBase | Document: ...
+
+    async def deletion_context(
+        self,
+        owner: UUID,
+        kb_id: UUID,
+        token: int,
+        revision: int,
+        tx: TransactionPort,
+        *,
+        document_id: UUID | None = None,
+    ) -> DeletionContext: ...
+
+    async def prepare_deletion(
+        self,
+        owner: UUID,
+        kb_id: UUID,
+        token: int,
+        revision: int,
+        tx: TransactionPort,
+        *,
+        document_id: UUID | None = None,
+    ) -> bool: ...
+
+    async def commit_cleanup_cursor(
+        self,
+        owner: UUID,
+        kb_id: UUID,
+        token: int,
+        revision: int,
+        cursor: str,
+        tx: TransactionPort,
+        *,
+        document_id: UUID | None = None,
+    ) -> KnowledgeBase | Document: ...
+
+    async def record_deletion_failure(
+        self,
+        owner: UUID,
+        kb_id: UUID,
+        token: int,
+        revision: int,
+        failure: Failure,
+        tx: TransactionPort,
+        *,
+        document_id: UUID | None = None,
+    ) -> None: ...
+
+    async def finish_deletion(
+        self,
+        owner: UUID,
+        kb_id: UUID,
+        token: int,
+        revision: int,
+        tx: TransactionPort,
+        *,
+        document_id: UUID | None = None,
+        index_verified: bool = False,
+        objects_verified: bool = False,
+    ) -> KnowledgeBase | Document: ...
 
 
 class UserRepositoryPort(Protocol):

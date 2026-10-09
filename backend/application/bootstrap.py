@@ -18,6 +18,7 @@ from application.errors import AppError
 from application.identity import ensure_development_identity
 from application.knowledge_base_management import KnowledgeBaseManagementService
 from application.knowledge_base_service import KnowledgeBaseService
+from application.knowledge_cleanup import KnowledgeCleanupService
 from application.orchestrator import Orchestrator
 from application.research_artifacts import ResearchArtifacts
 from application.research_queries import ResearchQueries
@@ -240,6 +241,15 @@ class HttpRuntime:
         self.ingestion = DocumentIngestionService(
             store, store.knowledge, store.requests, self.knowledge_content
         )
+        self.knowledge_cleanup = KnowledgeCleanupService(
+            store,
+            store.knowledge,
+            self.knowledge_index,
+            self.knowledge_content,
+            self.clock,
+            lease_s=self.settings.lease_s,
+            heartbeat_s=self.settings.heartbeat_s,
+        )
         self.knowledge_management = KnowledgeBaseManagementService(
             store,
             store.knowledge,
@@ -248,6 +258,7 @@ class HttpRuntime:
             self.clock,
             index_version=self.settings.index_version,
             ingestion=self.ingestion,
+            cleanup=self.knowledge_cleanup,
             lease_s=self.settings.lease_s,
             heartbeat_s=self.settings.heartbeat_s,
         )
@@ -270,15 +281,22 @@ class HttpRuntime:
 
             self.debug_execution = DebugExecution(self)
             self.run_executor_factory = lambda runtime: self.debug_execution.execute
+
+        async def knowledge_maintenance():
+            await self.knowledge_management.recover_creating()
+            await self.knowledge_cleanup.tick()
+
         self.runner = TaskRunner(
             store=store,
             execute=self.run_executor_factory(self) if self.run_executor_factory else None,
             settings=self.settings,
             claim_ready=self.run_executor_factory is not None,
-            maintenance=self.knowledge_management.recover_creating,
+            maintenance=knowledge_maintenance,
         )
         self.research.wake = self.runner.wake
         await self.runner.start()
+        self.knowledge_cleanup.wake = self.runner.wake
+        self.knowledge_cleanup.available = True
 
     @property
     def knowledge_base(self):
@@ -289,6 +307,8 @@ class HttpRuntime:
         raise AppError("service_not_ready", "Knowledge retrieval is not ready")
 
     async def aclose(self):
+        if hasattr(self, "knowledge_cleanup"):
+            self.knowledge_cleanup.available = False
         try:
             try:
                 # Keep the model and PG available until held work is stopped

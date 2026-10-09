@@ -124,7 +124,7 @@ class KnowledgeManagement:
             raise AppError("stale_resource", "Knowledge base revision has changed")
         return decode(KnowledgeBase, row, {"failure"})
 
-    async def mark_kb_deleting(self, owner, kb_id, tx):
+    async def mark_kb_deleting(self, owner, kb_id, tx, *, io_grace_s=60):
         from infrastructure.storage.research_postgres import decode
 
         kb = await self.get_kb(owner, kb_id, tx, for_update=True)
@@ -132,19 +132,25 @@ class KnowledgeManagement:
             raise AppError("knowledge_base_not_found", "Knowledge base not found")
         if kb.status in {"deleting", "deleted"}:
             return kb
+        if type(io_grace_s) is not int or not 1 <= io_grace_s <= 300:
+            raise ValueError("Invalid external I/O grace")
         row = await self.store.connection(tx).fetchrow(
             "UPDATE knowledge_bases SET status='deleting',revision=revision+1,"
-            "cleanup_cursor='wait_jobs',updated_at=clock_timestamp() "
+            "cleanup_cursor='wait_jobs',cleanup_not_before=GREATEST(lease_expires_at,"
+            "(SELECT max(lease_expires_at) FROM ingestion_jobs WHERE kb_id=$2),"
+            "(SELECT max(lease_expires_at) FROM documents WHERE kb_id=$2))"
+            "+make_interval(secs=>$4),updated_at=clock_timestamp() "
             "WHERE owner_id=$1 AND kb_id=$2 AND revision=$3 RETURNING *",
             owner,
             kb_id,
             kb.revision,
+            io_grace_s,
         )
         if row is None:
             raise AppError("stale_resource", "Knowledge base revision has changed")
         return decode(KnowledgeBase, row, {"failure"})
 
-    async def mark_document_deleting(self, owner, kb_id, document_id, tx):
+    async def mark_document_deleting(self, owner, kb_id, document_id, tx, *, io_grace_s=60):
         from infrastructure.storage.research_postgres import decode
 
         # Match ingestion lock order: parent KB before Document, never inverse.
@@ -167,13 +173,18 @@ class KnowledgeManagement:
             return document
         if kb.status != "active":
             raise AppError("resource_not_active", "Knowledge base is not active")
+        if type(io_grace_s) is not int or not 1 <= io_grace_s <= 300:
+            raise ValueError("Invalid external I/O grace")
         row = await conn.fetchrow(
             "UPDATE documents SET status='deleting',revision=revision+1,"
-            "cleanup_cursor='wait_jobs',updated_at=clock_timestamp() "
+            "cleanup_cursor='wait_jobs',cleanup_not_before=GREATEST(lease_expires_at,"
+            "(SELECT max(lease_expires_at) FROM ingestion_jobs WHERE document_id=$2))"
+            "+make_interval(secs=>$4),updated_at=clock_timestamp() "
             "WHERE kb_id=$1 AND document_id=$2 AND revision=$3 RETURNING *",
             kb_id,
             document_id,
             document.revision,
+            io_grace_s,
         )
         if row is None:
             raise AppError("stale_resource", "Document revision has changed")

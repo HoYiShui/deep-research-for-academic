@@ -121,3 +121,31 @@ TaskRunner新增可选维护回调：仅持一条有强引用、完成异常观�
 首次最终工作区全量 **1207 passed, 1 failed in 297.37s**。失败是已有 `test_mono_run_tcp.py::test_probe_cli_creates_answers_then_requires_explicit_approval` 子进程20秒观察超时，没有完整终态诊断，不能断言确切根因。原文件2项单独补跑 **2 passed in 25.91s**，没有放宽deadline或改业务/Prompt。此时仍不是一次完整全绿，继续独立重跑全量并记录结果。全量期间除一个旧测试文件的纯格式化外，未改受测行为。
 
 第二次完整工作区回归 **1206 passed, 2 failed in 302.73s**，此次CLI probe通过，另两项分别在活HTTP SSE 15秒观察与TUI等待query_completed 10秒超时：`test_confirm_live_driver_report_and_reconnect_after_process_restart`、`test_actual_tui_renders_live_progress_and_controlled_report`。原文件组合再跑 `pytest -q tests/integration/test_mono_run_tcp.py tests/integration/test_tui_terminal.py --tb=short`，**4 passed in 38.59s**，仍未改任何deadline/业务/Prompt。Docker五个原Compose服务healthy、Milvus复核仅_default；没有遗留本轮测试容器/分区。**全量不记为通过，根因尚未确认**；本批提交基于独立暂存快照130项与目标真实依赖证据，不能用补跑绿色消除这两次完整回归的失败留痕。临时提交快照已删除，原工作区及未提交trace/search-router均保留。Ruff/format和暂存diff检查通过。
+
+## 2026-10-09：物理删除、恢复与墓碑复核
+
+基线8cfee6c。Research工作流与Agent Prompt调优仍暂停；只推进T049外围生命周期。先加正式HttpRuntime DELETE验收，因缺少清理Worker得到503（1 failed in 2.34s），再接执行器，不把删除PG登记当成物理删除。第一轮邻接27通过、3失败是迁移计数仍为5；追加0006后更新为6，未降低资源隔离或删除断言。
+
+新增 `application/knowledge_cleanup.py`、Repository组合 `knowledge_deletion.py`，不增加独立内存事实源/可写队列。HttpRuntime的TaskRunner持有并观察maintenance任务，扫描PG deleting与deleted库存；不启动全局Runner的CLI组合根不可接受删除。DELETE在短事务保存屏障及原202响应，重复同key重放原响应；新key对deleted返回200。缓存经过公有Schema、资源/父子/HTTP码/状态及Failure检查，不返回损坏缓存的私有字段。
+
+wait_jobs给accepted/processing Job发取消信号，保留旧lease直到任务退出/到期；有旧租约时保存其最大到期时间+60秒静默窗口（无旧租约不等）。共用生命周期租约、心跳及revision/token/SQL时钟fence。索引清理是真Standalone drop_partition或逐version删除；对象仅清owner/KB或owner/KB/version前缀，MinIO每前缀30秒上限、取消停止下一SDK请求、原生请求未退出前不释放I/O容量，并重新列举核验缺失。index/objects完成才提交下一cursor；恢复时重复核查已完成索引/对象。依赖失败脱敏保存Failure，保持deleting/cursor和lease直到到期，不能与不确定的在飞行请求竞争。
+
+最后事务移除对应PG Chunks、清active pointer，active Version改retired并保留历史chunk_count/activated_at、completed Job原样保留；未发布版本failed、未完成Job cancelled，保留全部资源和Job历史。最终SQL-clock CAS过期会回滚所有此前metadata写入。每60秒重新纳入deleted墓碑核验；每tick最多一个删除和一个墓碑，清迟到partition/向量/对象但不复活资源。私有cleanup_not_before/cleanup_verified_at不泄漏公有响应；成功GC无Failure时不变公有revision，GC故障/故障清除作为公有Failure变更递增revision。
+
+独立暂存快照（仅HEAD+本批删除改动，不含未提交search-router/trace）使用原.venv、原Compose依赖执行：
+
+```sh
+python -m pytest -q tests/integration/test_mono_kb_delete.py tests/unit/test_content_cleanup.py tests/integration/test_mono_knowledge_cleanup.py tests/integration/test_mono_kb_http.py tests/integration/test_mono_knowledge_management.py tests/integration/test_mono_kb_lifecycle.py tests/integration/test_mono_ingestion.py tests/integration/test_mono_ingestion_http.py tests/integration/test_mono_migrations.py tests/integration/test_mono_document_content.py tests/integration/test_mono_milvus.py tests/unit/test_knowledge_models.py tests/unit/test_vector_models.py --tb=short
+```
+
+**187 passed in 58.09s**，包含新增21项PG/真实依赖测试及2项原生线程单测；此前开发阶段同目标180项通过、删除首批7项通过、SIGKILL/原生取消11项通过。不是有效PDF/MinerU/BGE或研究质量验收：metadata/原始字节/向量为明确受控fixture，PG/MinIO/Milvus真实。
+
+覆盖KB与Document全部active/retired/staging版本源/解析/manifest/chunk/index删除；同KB其他Document与其他KB不受影响；research-content冻结摘录仍可读；completed Job完全相同、历史版本保留、未完成Job取消。删除前活Job不会提前物理清理，迟到activate拒绝；真实静默窗口只在隔离fixture中提前时间，避免90+60秒测试睡眠，不假称生产静默期已实际等待。真实TCP进程分别在index外部成功但cursor未提交、objects外部成功但metadata未提交时SIGSTOP→SIGKILL(-9)，新独立进程接管同身份/原幂等响应并完成清理。独立lease SQL时间提前只在test库；SIGKILL不是graceful shutdown替代。
+
+删除后实际再建partition/写向量与MinIO对象，提前隔离墓碑复核时间，扫描再次物理清除；GC依赖故障维持deleted与诊断，重试清除Failure不复活。测试另验证持续续租的排他、失租取消停止下一I/O、metadata事务内pg_sleep使租约过期后整个发布回滚、错误owner/父子/key/body无副作用、私有/损坏幂等缓存返回503。
+
+阶段中完整工作区回归 **1231 passed, 2 failed in 341.44s**（包含既有未提交search-router/trace；最终GC故障revision细化和追加GC用例随后由上述独立187项验证，因此不宣称这是最终提交全量）。失败是 `test_mono_run_tcp.py::test_probe_cli_creates_answers_then_requires_explicit_approval` 的20秒观察与 `test_tui_live_http.py::test_tui_default_workers_clarify_confirm_sse_and_report` 的25秒观察。未改deadline/Prompt/业务输出以换取通过。前者失败时诊断：Session ready/revision3；Run `717607f0-d1a9-42bb-99c5-919fe406a680` ready/phase plan/checkpoint_seq1/attempt_count0/lease_token0，只有初始checkpoint，无ToolAttempt，PG连接3个idle/ClientRead。这只能说明当时已冻结Brief但Run尚未被领取，不能证明具体卡点。TUI该用例尚无同等失败快照，根因仍待查；T056不勾选。
+
+只复用五个已有healthy Compose服务；fixture清理本轮独立PG数据库/bucket/UUID partition，无新测试容器或用户数据卷操作。未修改用户.env、Agent Prompt、共享ResearchBrief/PipelineState、报告结构或docs/implementation。仅T049验收，不把T040/T042/T047/T048/T052/T055的完整入库/检索/真实模型/部署闭环提前勾选。
+
+原HTTP/TUI文件组合补跑 `pytest -q tests/integration/test_mono_run_tcp.py tests/integration/test_tui_live_http.py --tb=short`：**5 passed, 1 failed in 57.87s**。本次原CLI与TUI两项通过，另一个SSE15秒用例超时；PG诊断却显示Run `5fb6a7b0-a337-4032-88c4-91d772fb7c22` 已completed/done/seq20，1次LLM ToolAttempt成功。创建于01:53:51.158878 UTC，首次领取01:54:01.212766，结束01:54:01.699965；没有失败或expired lease。直接证据将本次问题缩小到领取延迟/终态观察窗口，而非材料/Prompt失败；为什么约10秒后才领取、为何终态未在该窗口被观察到仍未确定，不把补跑叫作修复。删除提交依据是独立最终快照187项，不改变这些HTTP/SSE门禁。

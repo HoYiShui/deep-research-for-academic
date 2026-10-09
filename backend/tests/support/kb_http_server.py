@@ -36,4 +36,21 @@ def create_test_app():
             os.kill(os.getpid(), signal.SIGSTOP)
 
         runtime.knowledge_index.ensure_partition = pause
+    if os.environ.get("DR4A_TEST_PAUSE") in {"kb_delete_index", "kb_delete_objects"}:
+        boundary = os.environ["DR4A_TEST_PAUSE"]
+        original = (
+            runtime.knowledge_index.drop_partition
+            if boundary == "kb_delete_index"
+            else runtime.knowledge_content.delete_prefix
+        )
+
+        async def pause_cleanup(identity):
+            await original(identity)
+            print("KB_DELETE_WRITTEN", flush=True)
+            os.kill(os.getpid(), signal.SIGSTOP)
+
+        if boundary == "kb_delete_index":
+            runtime.knowledge_index.drop_partition = pause_cleanup
+        else:
+            runtime.knowledge_content.delete_prefix = pause_cleanup
     return create_app(settings=settings, container_factory=lambda config: runtime)

@@ -78,7 +78,7 @@ class KnowledgeCleanup:
         )
         if document is None:
             raise AppError("document_not_found", "Document not found")
-        if kb.status == "deleted":
+        if kb.status == "deleted" and document.status != "deleted":
             raise AppError("resource_not_active", "Knowledge base is deleted")
         return conn, "documents", "document_id", Document, document
 
@@ -98,14 +98,18 @@ class KnowledgeCleanup:
         if type(token) is not int or token < 1 or type(revision) is not int or revision < 1:
             raise ValueError("Invalid lifecycle fence")
 
-    async def claim_lifecycle(self, owner, kb_id, worker, tx, *, document_id=None, lease_s=30):
+    async def claim_lifecycle(
+        self, owner, kb_id, worker, tx, *, document_id=None, lease_s=30, tombstone=False
+    ):
         from infrastructure.storage.research_postgres import decode
 
         self._lease_parameters(worker, lease_s)
         conn, table, identity, model, resource = await self._lifecycle_resource(
             owner, kb_id, document_id, tx
         )
-        if resource.status not in {"creating", "deleting"}:
+        if type(tombstone) is not bool:
+            raise TypeError("Tombstone mode must be explicit")
+        if resource.status not in ({"deleted"} if tombstone else {"creating", "deleting"}):
             raise AppError("resource_not_active", "Resource is not awaiting lifecycle work")
         now = await conn.fetchval("SELECT clock_timestamp()")
         if resource.lease_expires_at is not None and resource.lease_expires_at > now:
@@ -136,7 +140,7 @@ class KnowledgeCleanup:
         row = await conn.fetchrow(
             f"UPDATE {table} SET lease_owner=NULL,lease_expires_at=NULL WHERE {identity}=$1 "
             "AND lease_owner=$2 AND lease_token=$3 AND lease_expires_at>clock_timestamp() "
-            "AND status IN ('creating','deleting') RETURNING *",
+            "AND status IN ('creating','deleting','deleted') RETURNING *",
             getattr(resource, identity),
             worker,
             token,
@@ -160,7 +164,7 @@ class KnowledgeCleanup:
             f"UPDATE {table} SET lease_expires_at=GREATEST(lease_expires_at,"
             f"clock_timestamp()+make_interval(secs=>$4)) WHERE {identity}=$1 "
             "AND lease_owner=$2 AND lease_token=$3 AND lease_expires_at>clock_timestamp() "
-            "AND status IN ('creating','deleting') RETURNING *",
+            "AND status IN ('creating','deleting','deleted') RETURNING *",
             getattr(resource, identity),
             worker,
             token,
