@@ -22,6 +22,7 @@ from application.search_tools import SearchBinding
 from application.tool_calls import ToolCallService
 from domain.content import ResultCachePort
 from domain.ports import ClockPort
+from domain.research.diagnostics import diagnostic_scope
 from domain.research.machine import TERMINAL_REASONS
 from domain.research.models import ResearchRun
 from domain.research.run_events import ProgressFrame
@@ -232,7 +233,14 @@ class RunDriver:
                 ):
                     self._progress(claimed, point, unit, "query_started", index, len(units))
                 try:
-                    committed = await coordinator.execute_unit(claimed, unit, context)
+                    with diagnostic_scope(
+                        run_id=str(claimed.run.run_id),
+                        session_id=str(claimed.run.session_id),
+                        phase=unit.phase,
+                        unit_id=unit.unit_id,
+                        section_ids=unit.section_ids,
+                    ):
+                        committed = await coordinator.execute_unit(claimed, unit, context)
                 except AppError as exc:
                     if exc.code == "invalid_session_state" and await self._stop_if_requested(
                         claimed, stop

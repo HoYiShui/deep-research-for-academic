@@ -77,3 +77,9 @@ Writer示例分别展示受支持的机制与未知性能、原文存在但主�
 真实试验使用上一轮失败Checkpoint的**本地副本**，只把Prompt版本换为新hash、Write目标限定到section_2；其余Brief/事实不改。运行 `uv run --no-sync python -m cli phase write --state LOCAL_COPY --real --json`，不是恢复原PG Run，也不创建Session或发布Report。输入仅公开开发Brief/公开网页事实，无私有KB或凭据；不触发Search/Fetch。[结果记录](us4-writer-prompt-structure-20261008.json)：2次模型调用，22,533输入/21,089输出tokens，退出3、model_output_invalid，零state_delta。CLI未保存原始模型响应，因此本次无法区分具体引用校验、其他Schema或输出问题；不把旧Run的具体失败原因直接套到本次。
 
 **仍失败，不认定改写有效或真实E2E通过。** 单次新样本与历史失败不是受控A/B或泛化测试，Critic本轮没有真实供应商复验；未追加付费重试、升级Claim状态或放宽Schema。首次新增反例因fixture残留其他章节的Claim引用导致2失败/123通过，修正fixture归属后目标集 **125 passed in 1.93s**；CLI phase/run、活TCP TUI和Clarify确认回归 **31 passed in 62.62s**（真实PG/MinIO、受控外部模型）。Ruff/format/diff检查通过；本批未重跑上一批1156项全量，不把该旧数字冒充当前全量。
+
+## 可选工具级 CLI trace（2026-10-08）
+
+`run --real`、`phase` 新增 `--trace NEW_FILE.jsonl` 和显式 `--trace-content`。本地 trace 记录实际搜索 query、候选与下载 URL、候选选择、持久调用 execute/cache/recover、耗时、安全失败码，以及 phase/unit/章节关联。Schema 失败保留 location/type/message 与尝试序号；完整 prompt/response 只在 content 开关开启时写入。stdout result.events、HTTP SSE、PG 事实/预算和有界修复规则不变；历史未记录的 query 不伪造补回。
+
+验收包含真实 CLI 子进程的 fake plan→research query 导出、异步章节隔离、具体 Writer 拒绝原因、0600/拒绝覆盖/链接保护/脱敏/写入失败，以及真实 PG+MinIO 的首次 execute、跨实例 cache 命中（仍只一次物理调用）。目标集 **104 passed in 41.91s**，涉及 trace、CLI 原文调试、Writer/Critic、CLI phase、工具缓存、phase tools、run driver、search/fetch tools；Ruff 与 diff 检查通过。本批没有新收费模型调用或真实端到端研究验收，也没有宣称解决此前 Writer/coverage 失败。

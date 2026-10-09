@@ -50,6 +50,38 @@ PARSER_VERSION=dr4a-html-v1 uv run python -m cli run --brief frozen-brief.json -
 
 PDF模式用`PARSER_VERSION=dr4a-mineru-4.0.10-standard-v1`，另需已准备的`MINERU_MODELS_DIR`；格式/平台限制同下文research原文探针。CLI结果events包含本进程query/section进度；HTTP只会轮询该Run持久phase/done，不共享CLI瞬态队列。失败后可dump已提交事实；空搜索和 Gap 不是已获得证据。
 
+## Web search 网关
+
+HTTP/TUI 后端、CLI real run 和独立 research phase 默认共用 search-router：
+
+```dotenv
+WEB_SEARCH_PROVIDER=search_router
+SEARCH_ROUTER_URL=http://127.0.0.1:8080
+SEARCH_ROUTER_CONTENT=body
+```
+
+先在 search-router 仓库启动服务；本脚本和 `services.sh` 不管理该网关。URL 是网关 base URL，不含 `/search`；容器内 backend 需要显式配置可达的网关地址，不能使用容器自己的 localhost。供应商 API Key 留在网关配置，不需要复制到 DR4A `.env`。如需旧 adapter，显式设置 `WEB_SEARCH_PROVIDER=bocha`；网关故障不会静默切回 Bocha，也不注册 paper search。
+
+当前网关配置中 `body` 能力选择 Tavily；改变网关能力配置后不能假定仍是 Tavily，实际结果的 `provider` 和 trace 的 `search_router_route` 才是本次路由记录。该事件包含耗时、降级和内部尝试，但不含 Key ID、Key 本体或上游错误正文。网关内部已换 Key/供应商，DR4A 不再额外重试整个网关请求；预算中的 search call 计一次网关操作，内部供应商尝试不伪装成一次物理请求，由 trace 单列。
+
+网关 `contentType=body` 仍作为检索候选内容使用，不绕过 fetch、原文定位和哈希验证；Tavily 分数不是来源等级或 Claim 支持程度。原文下载的 SSRF/TLS 防护不变。`doctor` 的配置检查不再要求未启用的 Bocha Key，但不是网关可用性或真实搜索质量验收。
+
+## 工具级 trace
+
+`run --real` 和 `phase` 可用 `--trace NEW_FILE.jsonl` 导出本次进程的工具诊断，stdout 的结果 JSON 和 SSE 契约不变：
+
+```bash
+uv run python -m cli run --brief frozen-brief.json --real --json --trace run-trace.jsonl
+uv run python -m cli phase research --state research-state.json --real --json --trace research-trace.jsonl
+uv run python -m cli phase write --state write-state.json --real --json --trace writer-trace.jsonl --trace-content
+```
+
+每行带时间、序号、phase、unit、章节关联（适用时）。`tool_requested` 包含实际 search query；检索结果包含候选标题、URL、来源等级；`tool_disposition` 区分持久调用的 execute/cache/recover；`tool_finished/tool_failed` 给出结果摘要、耗时或安全错误码。独立 research 调试另记供应商尝试和实际 fetch URL。`model_validation_failed` 给出校验位置、类型、理由及尝试序号；工具成功不代表 Schema 校验成功，更不代表证据有效或 checkpoint 提交成功。
+
+默认不记录完整 prompt、模型正文和网页正文。`--trace-content` 必须配合 `--trace`，显式启用完整工具参数/返回内容（包括模型 prompt/response），可用于诊断 Writer 输出；可能包含用户研究信息或原文，不宜直接提交或分享。已配置 SecretStr 凭据、常见授权字段和 Bearer 值会脱敏，但不能保证消除所有敏感业务内容。
+
+文件以仅当前用户可读写的权限创建，已有文件/链接拒绝覆盖，不创建父目录。单条上限 2 MiB、总文件上限 64 MiB；写入失败或超限会在 stderr 提示 `trace_incomplete`，不会回滚业务执行。trace 不是持久事实或 SSE 回放；只记录本次启用追踪后发生的调用，无法补回历史 query。旧 fake run 不支持该开关；fake phase 可用，但会明确标记 fake，不能证明真实依赖可用。
+
 ## phase 输入前置
 
 `phase` 要求严格完整 mono PipelineState（schema_version=1），包括全部空输出字段；不接受旧版局部dict。`state.phase` 必须与命令相同，来源/config/Brief hash与事实回链必须有效。五阶段均复用正式 PhaseInput 与 worker。

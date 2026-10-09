@@ -11,6 +11,7 @@ from application.tool_budget import ToolBudgetRequest
 from application.tool_calls import ToolCallService, ToolOutput
 from domain.content import ContentRef
 from domain.ports import AdapterError
+from domain.research.diagnostics import diagnostic_scope
 from domain.research.ids import canonical_hash
 from domain.research.models import Failure
 from domain.research.state import Checkpoint, PipelineState
@@ -250,7 +251,9 @@ async def test_real_pg_minio_success_cache_survives_new_service_and_never_reissu
     value = identity(claimed)
     request = ToolBudgetRequest(tool="search", token_reservation=0, terminal=False)
     first = service(store, claimed, object_cache)
-    assert (await first.invoke(value, request, operation)).content == []
+    trace = []
+    with diagnostic_scope(sink=lambda item, **kwargs: trace.append(item), phase="research"):
+        assert (await first.invoke(value, request, operation)).content == []
     await pool.execute(
         "UPDATE research_runs SET lease_expires_at=clock_timestamp()-interval '1 second'"
     )
@@ -261,7 +264,18 @@ async def test_real_pg_minio_success_cache_survives_new_service_and_never_reissu
     newer = await claim(fresh_store, str(uuid4()))
     assert newer.run.run_id == claimed.run.run_id and newer.run.lease_token == 2
     fresh = service(fresh_store, newer, object_cache)
-    assert (await fresh.invoke(value, request, operation)).content == []
+    with diagnostic_scope(sink=lambda item, **kwargs: trace.append(item), phase="research"):
+        assert (await fresh.invoke(value, request, operation)).content == []
+    assert [item["disposition"] for item in trace if item["event"] == "tool_disposition"] == [
+        "execute",
+        "cache",
+    ]
+    assert len([item for item in trace if item["event"] == "provider_result"]) == 1
+    assert all(
+        item["arguments"]["query"] == "Public fixture 1"
+        for item in trace
+        if item["event"] == "tool_requested"
+    )
     assert calls == 1
     assert await pool.fetchval("SELECT count(*) FROM tool_call_attempts") == 1
     row = await pool.fetchrow(

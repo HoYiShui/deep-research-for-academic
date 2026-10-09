@@ -29,6 +29,56 @@ def _add_common(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--quiet", action="store_true", help="only the final report")
 
 
+def _add_trace(parser):
+    parser.add_argument(
+        "--trace", help="exclusive local JSONL tool trace file (may contain research queries)"
+    )
+    parser.add_argument(
+        "--trace-content",
+        action="store_true",
+        help="include model prompts/responses; requires --trace",
+    )
+
+
+async def execute(args):
+    if getattr(args, "trace_content", False) and not getattr(args, "trace", None):
+        raise output.UsageError("--trace-content requires --trace")
+    if not getattr(args, "trace", None):
+        return await args.handler(args)
+    if args.command == "run" and args.fake:
+        raise output.UsageError("Legacy fake run does not support --trace; use phase or run --real")
+    from pydantic import SecretStr
+
+    from application.settings import Settings
+    from cli.trace import TraceRecorder
+    from domain.research.diagnostics import diagnostic_scope
+
+    settings = Settings.load()
+    secrets = [
+        value.get_secret_value()
+        for name in type(settings).model_fields
+        if isinstance(value := getattr(settings, name), SecretStr)
+    ]
+    recorder = TraceRecorder(args.trace, content=args.trace_content, secrets=secrets)
+    try:
+        with diagnostic_scope(sink=recorder):
+            recorder(
+                {
+                    "event": "trace_started",
+                    "command": args.command,
+                    "content_enabled": args.trace_content,
+                }
+            )
+            code = await args.handler(args)
+            recorder({"event": "trace_finished", "exit_code": code})
+            return code
+    except BaseException as exc:
+        recorder({"event": "trace_failed", "code": getattr(exc, "code", "execution_failed")})
+        raise
+    finally:
+        recorder.close()
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = ArgumentParser(prog="cli", description="deep-research-agent debug CLI")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -59,6 +109,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="use real adapters and persist the debug run",
     )
     p.add_argument("--seed", type=int, help="fake-mode seed")
+    _add_trace(p)
     _add_common(p)
     p.set_defaults(handler=run.run)
 
@@ -72,6 +123,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="use real adapters for this isolated phase (no Session/Report writes)",
     )
     p.add_argument("--seed", type=int, help="fake-mode seed")
+    _add_trace(p)
     _add_common(p)
     p.set_defaults(handler=phase.run)
 
@@ -106,7 +158,7 @@ def main(argv: list[str] | None = None) -> int:
     args = argparse.Namespace(json="--json" in flags)
     try:
         args = parser.parse_args(values)
-        return asyncio.run(args.handler(args))
+        return asyncio.run(execute(args))
     except output.UsageError as exc:
         return output.emit_error(args, output.EXIT_USAGE, "validation_error", str(exc))
     except output.EnvError as exc:

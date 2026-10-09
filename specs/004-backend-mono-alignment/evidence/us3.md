@@ -56,3 +56,13 @@ MINERU_MODELS_DIR=/Users/hoyishui/.cache/dr4a/mineru-4.0.10-20261007 uv run --no
 CLI 失败输出保留最后成功合并的本地 state/delta/events、失败单元 ID、debug 用量和各源安全错误码；不是持久 checkpoint。前置校验和未分类 SDK 异常仍走统一安全错误输出，不泄露异常正文。新增三类故障测试覆盖已完成单元保留、close 先于单一 JSON 输出、输入文件和 Run 元数据不变。
 
 回归：全量 883 项通过（157.92s）；执行期间仅去重等价 whitespace helper，随后定向 CLI/抽取 28 项通过（6.57s）。Ruff check/format、git diff --check 通过。真实 research 失败不由这些受控回归结果替代。
+
+## search-router adapter 接入（2026-10-08）
+
+HTTP、CLI real run、独立 research phase 共用新 web-search composition。默认 `WEB_SEARCH_PROVIDER=search_router`、`SEARCH_ROUTER_URL=http://127.0.0.1:8080`、`SEARCH_ROUTER_CONTENT=body`；当前外部网关配置的 body 能力选择 Tavily，供应商 Key 仍只在网关 config.yaml。Bocha 可显式选择，故障不静默回退，paper adapter 仍不注册。网关摘录映射为候选 snippet，不变成已验证 Evidence，不放宽 fetch 的 SSRF/TLS；来源等级仍 unknown。
+
+网关内部拥有 Key/provider 重试，DR4A 不叠加一次 CompositeSearch 重试。PG budget 计网关操作，内部物理尝试由 `search_router_route` trace 单列；字段包含实际 provider、耗时、降级、尝试安全码，不输出 Key ID、Key 或上游正文。缓存身份区分网关 URL/content 配置，metadata 不参与伪造来源等级或事实支持程度。
+
+首次使用网关仓库现成二进制（构建提交 `9e6eb38`）失败为 502：[失败记录](us3-search-router-real-20261008T135659Z.json)。Tavily 直连随后 200/5 candidates；发现二进制不同于当前源码 `804cec5`，从当前源码构建 `/private/tmp/dr4a-search-router-20261008-adapter`，停止本轮启动的旧进程，使用原 config.yaml 启动临时新进程，未覆盖用户 binary/config/Key 或修改网关源码。
+
+同一 query 经新 adapter + 当前网关成功：[真实候选与 trace](us3-search-router-real-20261008T140050Z.json)。一次网关调用、一次 Tavily 成功尝试、5 candidates、2256ms、无降级。此验收不调用 LLM、不下载原文、不写 PG、不证明整条研究或报告质量通过。配置/adapter/旧搜索协议等目标集 **107 passed in 1.26s**；CLI/worker/driver/搜索/原文调试回归 **65 passed in 49.12s**。TUI 首次回归因执行 PATH 缺 Node 失败，修正测试进程 PATH 后 TUI/CLI 原文/trace/adapter 目标集 **22 passed in 24.93s**，不能把环境失败当作业务缺陷。Ruff check/format 与 diff 检查通过。

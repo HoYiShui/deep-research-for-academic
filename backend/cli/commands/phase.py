@@ -15,6 +15,7 @@ from cli import output
 from cli.phase_state import load_phase_state, read_json, state_delta
 from cli.phase_tools import DebugTools
 from domain.ports import AdapterError
+from domain.research.diagnostics import diagnostic_scope
 from domain.research.phase_contracts import PhaseInput, merge_phase_result
 
 
@@ -72,7 +73,13 @@ async def run(args) -> int:
                     unit=unit,
                 )
                 progress("started")
-                changes = await PhaseExecutor(workers).execute_phase(value, context)
+                with diagnostic_scope(
+                    run_id=str(state.run_id),
+                    phase=state.phase,
+                    unit_id=unit.unit_id,
+                    section_ids=unit.section_ids,
+                ):
+                    changes = await PhaseExecutor(workers).execute_phase(value, context)
                 try:
                     state = merge_phase_result(
                         state,

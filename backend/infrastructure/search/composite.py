@@ -115,6 +115,8 @@ class CompositeSearch:
         return gaps
 
     async def _search_source(self, name, source, query, invoke, retry) -> SearchOutcome:
+        retry = retry and not getattr(source, "handles_retries", False)
+
         async def operation():
             # Deadline applies to one provider operation, not ledger reservation/cache.
             async with self._semaphore:

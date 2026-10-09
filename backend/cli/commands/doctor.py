@@ -13,7 +13,7 @@ _REQUIRED_ENV = ("ANTHROPIC_API_KEY", "BOCHA_API_KEY", "DATABASE_URL", "JWT_SECR
 _LIMITATIONS = [
     "This is a scoped dependency diagnostic, not full service readiness or research E2E.",
     "No paid model/search calls, model downloads, database migrations or object writes occur.",
-    "Debug HTTP and CLI phase currently register plan/research; CLI real run registers plan only.",
+    "Search configuration is checked, not gateway reachability or provider quality.",
     "Model inference, parser execution, full pipeline and report quality remain unverified.",
     "PG checks migration markers/tables; MinIO checks authenticated bucket access, not writes.",
 ]
@@ -72,10 +72,11 @@ def _check_config(settings) -> bool:
     required = [
         "database_url",
         "anthropic_api_key",
-        "bocha_api_key",
         "minio_access_key",
         "minio_secret_key",
     ]
+    if settings.web_search_provider == "bocha":
+        required.append("bocha_api_key")
     if settings.dr4a_auth_required:
         required.append("jwt_secret")
     return not settings.llm_local and all(

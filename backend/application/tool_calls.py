@@ -10,6 +10,7 @@ import json
 from collections.abc import Awaitable, Callable
 from datetime import UTC, datetime
 from hashlib import sha256
+from time import monotonic
 from typing import Literal
 
 from pydantic import JsonValue, model_validator
@@ -20,6 +21,7 @@ from application.records import ClaimedRun
 from application.tool_budget import ToolBudgetRequest
 from domain.content import ContentRef, ResultCachePort
 from domain.ports import AdapterError, ClockPort
+from domain.research.diagnostics import diagnostic, diagnostic_scope, input_summary, result_summary
 from domain.research.models import Failure, Hash, Nonnegative, Record
 from domain.research.tool_calls import ToolCallIdentity
 
@@ -88,7 +90,43 @@ class ToolCallService:
             raise AppError("invalid_state", "Tool cursor cannot change execution authority")
         self.claimed = claimed
 
-    async def invoke(
+    async def invoke(self, identity, request, operation, *, allow_uncertain_replay=False):
+        started = monotonic()
+        with diagnostic_scope(
+            tool=identity.tool, provider=identity.provider, call_id=identity.call_key
+        ):
+            diagnostic(
+                "tool_requested",
+                arguments=input_summary(identity.tool, identity.arguments),
+                content={"arguments": identity.arguments},
+            )
+            try:
+                result = await self._invoke(
+                    identity, request, operation, allow_uncertain_replay=allow_uncertain_replay
+                )
+            except BaseException as exc:
+                diagnostic(
+                    "tool_failed",
+                    code=getattr(
+                        exc,
+                        "code",
+                        "cancelled"
+                        if isinstance(exc, asyncio.CancelledError)
+                        else "execution_failed",
+                    ),
+                    elapsed_s=monotonic() - started,
+                )
+                raise
+            diagnostic(
+                "tool_finished",
+                result=result_summary(identity.tool, result.content),
+                tokens_used=result.tokens_used,
+                elapsed_s=monotonic() - started,
+                content={"result": result.content},
+            )
+            return result
+
+    async def _invoke(
         self,
         identity: ToolCallIdentity,
         request: ToolBudgetRequest,
@@ -107,6 +145,7 @@ class ToolCallService:
                 elapsed_s=self.elapsed_s(),
                 allow_uncertain_replay=allow_uncertain_replay,
             )
+        diagnostic("tool_disposition", disposition=receipt.disposition)
         if receipt.disposition == "uncertain":
             raise AppError(
                 "tool_call_uncertain", "Previous call requires explicit read-only replay"
@@ -151,6 +190,11 @@ class ToolCallService:
                 raise AppError("budget_exhausted", "Execution deadline is exhausted")
             async with asyncio.timeout(min(timeout, remaining)):
                 output = ToolOutput.model_validate(await operation())
+            diagnostic(
+                "provider_result",
+                result=result_summary(identity.tool, output.content),
+                content={"result": output.content},
+            )
             self._validate_usage(identity, output)
             if identity.tool == "llm" and output.tokens_used > request.token_reservation:
                 raise AppError(

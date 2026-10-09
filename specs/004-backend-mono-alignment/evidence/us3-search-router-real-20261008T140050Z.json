@@ -1,0 +1,151 @@
+{
+  "scope": "live_search_router_adapter_only",
+  "gateway_source_commit": "804cec5",
+  "query": "Attention Is All You Need self attention convolution maximum path length original paper",
+  "content_preference": "body",
+  "binding_provider": "search_router",
+  "binding_revision": "search-router-v1-967336aa34133396b0b53f9c41fc0a86fd8e25c7c3b4c7cb8ed8e9a47602d30c",
+  "batch": {
+    "outcomes": [
+      {
+        "source": "search_router",
+        "attempts": 1,
+        "status": "ok",
+        "items": [
+          {
+            "source_id": "https://arxiv.org/html/1706.03762v7",
+            "source_type": "web",
+            "title": "Attention Is All You Need",
+            "snippet": "To improve computational performance for tasks involving very long sequences, self-attention could be restricted to considering only a neighborhood of size rr in the input sequence centered around the respective output position. This would increase the maximum path length to O⁡(n/r)O(n/r). We plan to investigate this approach further in future work. [...] We performed only a small number of experiments to select the dropout, both attention and residual (section 5.4), learning rates and beam size on the Section 22 development set, all other parameters remained unchanged from the English-to-German base translation model. During inference, we increased the maximum output length to input length + 300300. We used a beam size of 2121 and α=0.3\\alpha=0.3 for both WSJ only and the semi-supervised setting. [...] | Layer Type | Complexity per Layer | Sequential | Maximum Path Length |\n ---  --- |\n|  |  | Operations |  |\n| Self-Attention | O⁡(n2⋅d)O(n^{2}\\cdot d) | O⁡(1)O(1) | O⁡(1)O(1) |\n| Recurrent | O⁡(n⋅d2)O(n\\cdot d^{2}) | O⁡(n)O(n) | O⁡(n)O(n) |\n| Convolutional | O⁡(k⋅n⋅d2)O(k\\cdot n\\cdot d^{2}) | O⁡(1)O(1) | O⁡(l​o​gk​(n))O(log\\_{k}(n)) |\n| Self-Attention (restricted) | O⁡(r⋅n⋅d)O(r\\cdot n\\cdot d) | O⁡(1)O(1) | O⁡(n/r)O(n/r) |",
+            "url": "https://arxiv.org/html/1706.03762v7",
+            "authors_or_publisher": [],
+            "published_at": "",
+            "version": "",
+            "provider": "tavily",
+            "source_tier": "unknown",
+            "fulltext_url": null
+          },
+          {
+            "source_id": "https://papers.neurips.cc/paper/7181-attention-is-all-you-need.pdf",
+            "source_type": "web",
+            "title": "Attention is All you Need",
+            "snippet": "such as word-piece  and byte-pair  representations. To improve computational performance for tasks involving very long sequences, self-attention could be restricted to considering only a neighborhood of size r in 6 the input sequence centered around the respective output position. This would increase the maximum path length to O(n/r). We plan to investigate this approach further in future work. [...] For the base models, we used a single model obtained by averaging the last 5 checkpoints, which were written at 10-minute intervals. For the big models, we averaged the last 20 checkpoints. We used beam search with a beam size of 4 and length penalty α = 0.6 . These hyperparameters were chosen after experimentation on the development set. We set the maximum output length during inference to input length + 50, but terminate early when possible . [...] Layer Type Complexity per Layer Sequential Maximum Path Length Operations Self-Attention O(n2 · d) O(1) O(1) Recurrent O(n · d2) O(n) O(n) Convolutional O(k · n · d2) O(1) O(logk(n)) Self-Attention (restricted) O(r · n · d) O(1) O(n/r) bottoms of the encoder and decoder stacks. The positional encodings have the same dimension dmodel as the embeddings, so that the two can be summed. There are many choices of positional encodings, learned and ﬁxed .",
+            "url": "https://papers.neurips.cc/paper/7181-attention-is-all-you-need.pdf",
+            "authors_or_publisher": [],
+            "published_at": "",
+            "version": "",
+            "provider": "tavily",
+            "source_tier": "unknown",
+            "fulltext_url": null
+          },
+          {
+            "source_id": "https://en.wikipedia.org/wiki/Attention_Is_All_You_Need",
+            "source_type": "web",
+            "title": "Attention Is All You Need - Wikipedia",
+            "snippet": "On 2017-06-12, the original (100M-parameter) encoder–decoder transformer model was published in the \"Attention is All you need\" paper. At the time, the focus of the research was on improving seq2seq for machine translation, by removing its recurrence to process all tokens in parallel, but preserving its dot-product attention mechanism to keep its text processing performance. This led to the introduction of a multi-head attention model that was easier to parallelize due to the use of independent [...] \"Attention Is All You Need\" is a 2017 research paper on machine learning authored by eight scientists and engineers working at Google. The paper introduced a new deep learning architecture known as the transformer \"Transformer (deep learning)\"), based on the attention mechanism \"Attention (machine learning)\") proposed in 2014 by Bahdanau et al. The transformer approach it describes has become the main architecture of a wide variety of artificial intelligence systems, including large language [...] (represented as {\\displaystyle d_{k}} and initially set to 64 within the paper) in the manner shown above.",
+            "url": "https://en.wikipedia.org/wiki/Attention_Is_All_You_Need",
+            "authors_or_publisher": [],
+            "published_at": "",
+            "version": "",
+            "provider": "tavily",
+            "source_tier": "unknown",
+            "fulltext_url": null
+          },
+          {
+            "source_id": "https://note.com/ysuie_o/n/na6f2e6583f2e?hl=en",
+            "source_type": "web",
+            "title": "Attention is All You Need｜fendoap",
+            "snippet": "When the sequence length n is smaller than the representation dimensionality d, self-attention layers are faster than recurrent layers. However, for tasks involving very long sequences, computational costs can be improved by restricting self-attention to consider only a neighborhood of size r in the input sequence centered around the respective output position. In this case, the maximum path length becomes O(n/r). [...] both attention and residual (over all layers), learning rates, and beam size to use on the Section 22 development set; all other hyperparameters remained the same as the base English-to-German translation model. During inference, we increased the maximum output length to input length + 300, and used a beam size of 21 [...] For the base model, we use a single model obtained by averaging the last 5 checkpoints, which were written at 10-minute intervals. For the large model, we averaged the last 20 checkpoints. We use beam search with a beam size of 4 and length penalty $${α=0.6}$$. These hyperparameters were chosen after experimentation on the development set. We set the maximum output length during inference to input length + 50, but terminate early where possible. Table 2 summarizes our results and compares",
+            "url": "https://note.com/ysuie_o/n/na6f2e6583f2e?hl=en",
+            "authors_or_publisher": [],
+            "published_at": "",
+            "version": "",
+            "provider": "tavily",
+            "source_tier": "unknown",
+            "fulltext_url": null
+          },
+          {
+            "source_id": "https://www.alphaxiv.org/abs/1706.03762",
+            "source_type": "web",
+            "title": "Attention Is All You Need | alphaXiv",
+            "snippet": "Unrestricted self-attention is the only row with both O(1) sequential operations and O(1) maximum path length between any two positions. That advantage comes at the cost of O(n2d) per-layer arithmetic. Restricted self-attention trades the short path length for lower complexity; convolution is parallel per layer but needs multiple layers to connect distant positions.\n\n## The Benchmark Result and the Test of Heads [...] that restricting each position to attend only within a local neighborhood of size r would reduce that to O(rnd) while lengthening the maximum path to O(n/r).",
+            "url": "https://www.alphaxiv.org/abs/1706.03762",
+            "authors_or_publisher": [],
+            "published_at": "",
+            "version": "",
+            "provider": "tavily",
+            "source_tier": "unknown",
+            "fulltext_url": null
+          }
+        ],
+        "failure": null
+      }
+    ]
+  },
+  "trace": [
+    {
+      "phase": "research",
+      "unit_id": "adapter_acceptance",
+      "tool": "search",
+      "arguments": {
+        "query": "Attention Is All You Need self attention convolution maximum path length original paper"
+      },
+      "event": "tool_requested",
+      "trace_seq": 1,
+      "timestamp": "2026-10-08T14:00:50.326763+00:00"
+    },
+    {
+      "phase": "research",
+      "unit_id": "adapter_acceptance",
+      "provider": "tavily",
+      "took_ms": 2256,
+      "degraded": false,
+      "switched_from": null,
+      "ignored_params": [],
+      "attempts": [
+        {
+          "provider": "tavily",
+          "ok": true,
+          "code": "",
+          "took_ms": 2256
+        }
+      ],
+      "content_types": [
+        "body",
+        "body",
+        "body",
+        "body",
+        "body"
+      ],
+      "scores": [
+        0.7491794,
+        0.72278196,
+        0.71185225,
+        0.6944897,
+        0.6139086
+      ],
+      "event": "search_router_route",
+      "trace_seq": 2,
+      "timestamp": "2026-10-08T14:00:52.603214+00:00"
+    },
+    {
+      "phase": "research",
+      "unit_id": "adapter_acceptance",
+      "tool": "search",
+      "outcomes": [
+        {
+          "source": "search_router",
+          "status": "ok",
+          "attempts": 1
+        }
+      ],
+      "event": "tool_finished",
+      "trace_seq": 3,
+      "timestamp": "2026-10-08T14:00:52.603930+00:00"
+    }
+  ],
+  "quality_accepted": false,
+  "limitations": [
+    "Search candidates only; no original downloads, LLM calls, PG writes or pipeline E2E"
+  ]
+}

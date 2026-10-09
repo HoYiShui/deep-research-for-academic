@@ -1,0 +1,53 @@
+{
+  "scope": "live_search_router_adapter_only",
+  "query": "Attention Is All You Need self attention convolution maximum path length original paper",
+  "content_preference": "body",
+  "binding_provider": "search_router",
+  "binding_revision": "search-router-v1-967336aa34133396b0b53f9c41fc0a86fd8e25c7c3b4c7cb8ed8e9a47602d30c",
+  "batch": {
+    "outcomes": [
+      {
+        "source": "search_router",
+        "attempts": 1,
+        "status": "failed",
+        "items": [],
+        "failure": {
+          "code": "search_http_error",
+          "retryable": true
+        }
+      }
+    ]
+  },
+  "trace": [
+    {
+      "phase": "research",
+      "unit_id": "adapter_acceptance",
+      "tool": "search",
+      "arguments": {
+        "query": "Attention Is All You Need self attention convolution maximum path length original paper"
+      },
+      "event": "tool_requested",
+      "trace_seq": 1,
+      "timestamp": "2026-10-08T13:56:59.203468+00:00"
+    },
+    {
+      "phase": "research",
+      "unit_id": "adapter_acceptance",
+      "tool": "search",
+      "outcomes": [
+        {
+          "source": "search_router",
+          "status": "failed",
+          "attempts": 1
+        }
+      ],
+      "event": "tool_finished",
+      "trace_seq": 2,
+      "timestamp": "2026-10-08T13:57:00.282102+00:00"
+    }
+  ],
+  "quality_accepted": false,
+  "limitations": [
+    "Search candidates only; no original downloads, LLM calls, PG writes or pipeline E2E"
+  ]
+}
