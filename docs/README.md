@@ -7,6 +7,7 @@
 - `specs/` — 功能规格（WHAT，验收标准）
 - `docs/contracts/` — 输入/输出契约参考（详细版，供实现参考）
 - `docs/cases/` — 端到端案例（完整期望输出，作为系统调试的 diff 基准）
+- `docs/debugging/` — 真实运行的调试记录（踩坑、根因、修复与成本实测）
 - `docs/book/` — mdbook 构建产物（静态站点，已 gitignore）
 
 ## contracts/ — 输入/输出契约

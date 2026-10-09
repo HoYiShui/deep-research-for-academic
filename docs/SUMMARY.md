@@ -32,3 +32,6 @@
   - [Case 1：选题构思](cases/case-1-idea-exploration.md)
   - [Case 2：方法差分](cases/case-2-method-differentiation.md)
   - [Case 3：实验与主张验证](cases/case-3-evaluation-design.md)
+
+- [调试记录]()
+  - [第一次真实跑通研究工作流（2026-10-09）](debugging/2026-10-09-first-real-run.md)
