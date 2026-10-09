@@ -103,8 +103,7 @@ def test_table_numbers_cannot_clip_coefficients_uncertainty_or_superscripts(cell
     )
     value = proposal(parsed)
     value["observations"][0].update(raw_value=raw, value=raw)
-    with pytest.raises(ValueError, match="complete original table cell"):
-        facts(value, source, fetched, parsed)
+    assert not facts(value, source, fetched, parsed)["quantitative_observations"]
 
 
 def test_whole_ambiguous_scientific_cell_stays_null_not_coefficient_as_value():
@@ -163,20 +162,17 @@ def test_literal_zero_is_retained_even_if_model_omits_decimal_value():
 
 
 @pytest.mark.parametrize(
-    "change",
+    "change,lost",
     [
-        "quote",
-        "block",
-        "spec",
-        "relation",
-        "value",
-        "uncertainty",
-        "unit",
-        "header",
-        "duplicate_quote",
+        ("quote", {"evidence", "links", "observations"}),
+        ("block", {"evidence", "links", "observations"}),
+        ("spec", {"claims", "links"}),
+        ("relation", {"links"}),
+        ("unit", {"observations"}),
+        ("header", {"observations"}),
     ],
 )
-def test_invalid_model_fact_proposals_rejected(change):
+def test_invalid_model_fact_proposals_are_dropped_item_by_item(change, lost):
     _, fetched, parsed, source = original(table=True)
     value = proposal(parsed)
     if change == "quote":
@@ -187,18 +183,37 @@ def test_invalid_model_fact_proposals_rejected(change):
         value["claims"][0]["spec_ids"] = ["outside-chapter"]
     if change == "relation":
         value["claims"][0]["relations"][0]["evidence_key"] = "invented"
-    if change == "value":
-        value["observations"][0]["value"] = "0.99"
-    if change == "uncertainty":
-        value["observations"][0]["uncertainty"] = "0.1"
     if change == "unit":
         value["observations"][0]["unit"] = "milliseconds"
     if change == "header":
         value["observations"][0]["column_key"] = {"metric": "Precision"}
-    if change == "duplicate_quote":
-        value["evidence"].append(value["evidence"][0])
-    with pytest.raises(ValueError):
-        facts(value, source, fetched, parsed)
+    result = facts(value, source, fetched, parsed)
+    counts = {
+        "evidence": len(result["evidence"]),
+        "claims": len(result["claims"]),
+        "links": len(result["claim_evidence_links"]),
+        "observations": len(result["quantitative_observations"]),
+    }
+    # Only the invalid item and what depends on it disappear; nothing invented.
+    assert {name for name, count in counts.items() if count == 0} == lost
+
+
+@pytest.mark.parametrize("field,typed", [("value", "0.99"), ("uncertainty", "0.1")])
+def test_model_typed_numbers_are_ignored_in_favor_of_the_original(field, typed):
+    _, fetched, parsed, source = original(table=True)
+    value = proposal(parsed)
+    value["observations"][0][field] = typed
+    observation = next(
+        iter(facts(value, source, fetched, parsed)["quantitative_observations"].values())
+    )
+    assert observation.value == "0" and observation.uncertainty is None
+
+
+def test_duplicate_quote_key_keeps_the_first():
+    _, fetched, parsed, source = original(table=True)
+    value = proposal(parsed)
+    value["evidence"].append(value["evidence"][0])
+    assert len(facts(value, source, fetched, parsed)["evidence"]) == 1
 
 
 class Model:

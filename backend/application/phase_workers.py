@@ -3,6 +3,7 @@
 import json
 import re
 from datetime import UTC, datetime
+from itertools import zip_longest
 
 from application.errors import AppError
 from domain.documents import FetchedDocument, ParsedDocument
@@ -14,6 +15,7 @@ from domain.research.agents.data_analyst import assess_requirement
 from domain.research.agents.extraction import extract
 from domain.research.agents.originals import register_original
 from domain.research.agents.writer import draft_chapter
+from domain.research.diagnostics import diagnostic, diagnostic_scope
 from domain.research.ids import canonical_hash
 from domain.research.phase_contracts import PhaseResult
 from domain.research.search import SearchBatch
@@ -112,23 +114,39 @@ async def research_worker(value, context):
     if unit.parameters["kind"] == "query":
         query = unit.parameters["query"]
         batch = SearchBatch.model_validate(await context.invoke("search", {"query": query}))
-        if batch.all_failed:
-            raise AdapterError(
-                "search",
-                "all_search_sources_failed",
-                "All selected search providers failed",
-                True,
-                "research",
-            )
+        # A query whose every provider failed is a recorded gap for this
+        # query, not a failed Run; coverage still reports the missing support.
         for outcome in batch.outcomes:
             if outcome.status == "failed":
                 degraded(outcome.source, outcome.failure.code, "search")
         selected, targets = [], set()
-        for candidate in batch.items:
+        # Interleave providers so one source's long list cannot crowd out
+        # the others (web results previously always filled every slot).
+        ranked = [
+            item
+            for rank in zip_longest(*(outcome.items for outcome in batch.outcomes))
+            for item in rank
+            if item is not None
+        ]
+        for candidate in ranked:
             target = candidate.fulltext_url if candidate.source_type == "paper" else candidate.url
             if target not in targets and len(selected) < 4:
                 selected.append(candidate)
                 targets.add(target)
+        diagnostic(
+            "candidate_selection",
+            returned_count=len(batch.items),
+            selected=[
+                {
+                    "candidate_key": canonical_hash(candidate),
+                    "url": candidate.fulltext_url
+                    if candidate.source_type == "paper"
+                    else candidate.url,
+                }
+                for candidate in selected
+            ],
+            selection_limit=4,
+        )
         if len(selected) < len(
             {candidate.fulltext_url or candidate.url for candidate in batch.items}
         ):
@@ -170,16 +188,24 @@ async def research_worker(value, context):
             if not blocks or not plan.claim_specs:
                 changes["sources"][source.source_id] = source
                 continue
-            facts = await extract(
-                _ContextLLM(context, "research"),
-                source=source,
-                fetched=fetched,
-                parsed=parsed,
-                plan=plan,
-                brief=value.values["research_brief"],
-                block_ids=blocks,
-                timeout_s=context.config.timeouts_s.llm,
-            )
+            try:
+                facts = await extract(
+                    _ContextLLM(context, "research"),
+                    source=source,
+                    fetched=fetched,
+                    parsed=parsed,
+                    plan=plan,
+                    brief=value.values["research_brief"],
+                    block_ids=blocks,
+                    timeout_s=context.config.timeouts_s.llm,
+                )
+            except AdapterError as failure:
+                # One unreadable source is a gap, not a failed Run.
+                if failure.code != "model_output_invalid":
+                    raise
+                degraded(source.source_id, failure.code, "extraction")
+                changes["sources"][source.source_id] = source
+                continue
             for name in ("sources", "evidence", "claims", "quantitative_observations"):
                 for key, fact in facts[name].items():
                     old = changes[name].get(key) or value.values[name].get(key)
@@ -203,9 +229,19 @@ async def research_worker(value, context):
                         and name in {"evidence", "quantitative_observations"}
                         and old != fact
                     ):
-                        raise AppError(
-                            "invalid_state", "Original extraction conflicts with a stable fact"
+                        # Same original location re-read by another query: the
+                        # committed fact is immutable, so the first reading wins.
+                        diagnostic(
+                            "fact_reread_differs",
+                            kind=name,
+                            fact_id=key,
+                            fields=sorted(
+                                field
+                                for field, item in old.model_dump().items()
+                                if fact.model_dump()[field] != item
+                            ),
                         )
+                        fact = old
                     changes[name][key] = fact
             changes["claim_evidence_links"].extend(facts["claim_evidence_links"])
     combined = {
@@ -291,13 +327,14 @@ async def write_worker(value, context):
             continue
         if await context.cancel_check():
             raise AppError("invalid_session_state", "Writing is stopping")
-        section, cited = await draft_chapter(
-            _ContextLLM(context, "write"),
-            plan=plan,
-            values=value.values,
-            version=version,
-            timeout_s=context.config.timeouts_s.llm,
-        )
+        with diagnostic_scope(section_id=plan.section_id):
+            section, cited = await draft_chapter(
+                _ContextLLM(context, "write"),
+                plan=plan,
+                values=value.values,
+                version=version,
+                timeout_s=context.config.timeouts_s.llm,
+            )
         sections[section.section_id] = section
         bindings.extend(cited)
     return PhaseResult(

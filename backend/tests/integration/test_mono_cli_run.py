@@ -46,6 +46,8 @@ async def command(
 import sys
 from infrastructure.search.arxiv import ArxivSearch
 from infrastructure.search.bocha import BochaSearch
+from infrastructure.search.openalex import OpenAlexSearch
+from infrastructure.search.search_router import SearchRouterSearch
 import application.debug_runtime as runtime_module
 from application.phase_workers import plan_worker, research_worker
 # This legacy failure-path test deliberately binds an incomplete executor.
@@ -60,7 +62,8 @@ async def empty_search(self, query):
             snippet="Not evidence", url=f"http://127.0.0.1/{{n}}", provider="bocha") for n in (1, 2)]
     return []
 # Explicit child-only controlled providers, never a production fallback.
-ArxivSearch.search = BochaSearch.search = empty_search
+ArxivSearch.search = BochaSearch.search = OpenAlexSearch.search = empty_search
+SearchRouterSearch.search = empty_search
 sys.exit(main())
 """,
         *arguments,
@@ -141,7 +144,7 @@ async def test_default_five_workers_publish_real_pg_report_with_controlled_exter
     assert all(claim.claim_type == "hypothesis" for claim in state.claims.values())
     assert any(item.operation == "analysis_skipped" for item in state.run_metadata.degraded_sources)
     assert state.final_report.risks and not state.final_report.references
-    assert await pool.fetchval("SELECT count(*) FROM tool_call_attempts") == 12
+    assert await pool.fetchval("SELECT count(*) FROM tool_call_attempts") == 17
     assert "controlled-test-key" not in json.dumps(body) + stderr
     await fake.close()
 
@@ -185,7 +188,7 @@ async def test_mid_query_fetch_budget_contracts_once_without_fake_query_completi
     assert state.phase == "done" and state.review_verdict == "needs_more_work"
     assert state.run_metadata.stop_reason == "budget_exhausted"
     assert state.run_metadata.budget_used.fetch_calls == 1
-    assert state.run_metadata.budget_used.search_calls == 1
+    assert state.run_metadata.budget_used.search_calls == 2  # web + papers
     assert not state.sources and not state.evidence and not state.analysis_artifacts
     assert [entry.phase for entry in state.run_metadata.unit_manifest.values()].count(
         "research"
@@ -227,7 +230,7 @@ async def test_real_run_freezes_without_clarify_commits_plan_and_fails_missing_w
     )
     assert await pool.fetchval("SELECT count(*) FROM research_runs") == 1
     assert await pool.fetchval("SELECT count(*) FROM reports") == 0
-    assert await pool.fetchval("SELECT count(*) FROM tool_call_attempts") == expected_calls + 5
+    assert await pool.fetchval("SELECT count(*) FROM tool_call_attempts") == expected_calls + 10
     assert (
         await pool.fetchval("SELECT sum(tokens_used) FROM tool_call_attempts")
         == 50 * expected_calls
@@ -242,7 +245,7 @@ async def test_real_run_freezes_without_clarify_commits_plan_and_fails_missing_w
     assert "controlled-test-key" not in json.dumps(body) + stderr
     assert len(state["section_coverage"]) == 5 and not state["evidence"]
     assert all(coverage["gaps"] for coverage in state["section_coverage"].values())
-    assert state["run_metadata"]["budget_used"]["search_calls"] == 5
+    assert state["run_metadata"]["budget_used"]["search_calls"] == 10
     assert any(event["event"] == "progress" for event in body["events"])
     process = await command(path, database, object_cache.bucket, url, session=body["session_id"])
     dump_code, snapshot, _ = await collect(process)

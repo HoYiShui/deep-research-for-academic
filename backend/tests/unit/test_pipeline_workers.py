@@ -157,7 +157,7 @@ async def test_oversized_writer_context_refuses_before_model_without_silent_clip
         await draft_chapter(Forbidden(), plan=values["section_plans"][0], values=values, version=1)
 
 
-def test_factual_output_without_original_binding_is_rejected():
+def test_factual_output_without_original_binding_is_downgraded():
     values = PhaseInput.from_state(state()).values
     output = ChapterDraft(
         title="事实",
@@ -173,8 +173,11 @@ def test_factual_output_without_original_binding_is_rejected():
         task_payload=None,
         row_citations=[],
     )
-    with pytest.raises(ValueError, match="original evidence"):
-        materialize_chapter(output, section_id="section_1", version=1, values=values)
+    section, bindings = materialize_chapter(
+        output, section_id="section_1", version=1, values=values
+    )
+    # Unsupported factual prose never reaches the report as fact.
+    assert section.statements[0].kind == "hypothesis" and bindings == []
 
 
 @pytest.mark.parametrize("kind", ["factual", "hypothesis"])
@@ -219,16 +222,12 @@ async def test_structured_prompt_keeps_unverified_originals_out_of_factual_prose
                 }
             )
 
-    if kind == "factual":
-        with pytest.raises(AdapterError, match="violates its schema"):
-            await draft_chapter(Model(), plan=initial.section_plans[0], values=values, version=1)
-        assert len(prompts) == 2  # A single bounded repair, never a fact upgrade.
-    else:
-        chapter, bindings = await draft_chapter(
-            Model(), plan=initial.section_plans[0], values=values, version=1
-        )
-        assert len(prompts) == 1 and chapter.statements[0].kind == "hypothesis"
-        assert bindings[0].claim_ids == ["c1"] and bindings[0].cited_evidence_ids == ["e1"]
+    chapter, bindings = await draft_chapter(
+        Model(), plan=initial.section_plans[0], values=values, version=1
+    )
+    # An unverified claim is downgraded by code, never upgraded or retried.
+    assert len(prompts) == 1 and chapter.statements[0].kind == "hypothesis"
+    assert bindings[0].claim_ids == ["c1"] and bindings[0].cited_evidence_ids == ["e1"]
     assert initial.model_dump_json() == before
 
 

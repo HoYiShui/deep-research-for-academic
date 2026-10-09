@@ -248,10 +248,14 @@ def test_spec_with_no_claim_still_has_gap():
     assert coverage.gaps[0].claim_id is None
 
 
-@pytest.mark.parametrize("missing", ["link", "tier", "conditions"])
-def test_model_supported_status_cannot_bypass_requirements(missing):
+@pytest.mark.parametrize(
+    "missing,status",
+    [("link", "insufficient"), ("tier", "limited"), ("conditions", "supported")],
+)
+def test_model_supported_status_cannot_bypass_requirements(missing, status):
     plan, claim, evidence, source, link = coverage_inputs()
     if missing == "conditions":
+        # Prose scope conditions bound writing/review; they are not claim keys.
         claim = claim.model_copy(update={"conditions": {}})
     if missing != "tier":
         source = source.model_copy(update={"source_tier": "primary"})
@@ -262,8 +266,9 @@ def test_model_supported_status_cannot_bypass_requirements(missing):
         {source.source_id: source},
         [] if missing == "link" else [link],
     )
-    assert updates[claim.claim_id].status == "insufficient"
-    assert not coverage.covered_claim_ids and coverage.gaps
+    assert updates[claim.claim_id].status == status
+    # Only fully qualified support covers a spec; lower tiers stay visible gaps.
+    assert bool(coverage.covered_claim_ids) == (status == "supported")
 
 
 def test_support_refutation_conflict_remains_limited():

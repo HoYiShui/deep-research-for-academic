@@ -80,17 +80,16 @@ def section_coverage(
             if spec_id not in global_specs:
                 raise ValueError("Claim references an unknown ClaimSpec")
             spec = global_specs[spec_id]
-            conditions_present = all(
-                field in claim.conditions and claim.conditions[field] not in (None, "", [])
-                for field in spec.required_conditions
-            )
+            # required_conditions are prose boundaries for writing and review
+            # (planners phrase them as sentences); they cannot be matched as
+            # claim attribute keys, so only the source tier gates support here.
             tier_allowed = any(
                 not spec.required_source_tiers
                 or sources[evidence[link.evidence_id].source_id].source_tier
                 in spec.required_source_tiers
                 for link in supports
             )
-            if conditions_present and tier_allowed:
+            if tier_allowed:
                 qualified.add(spec_id)
         if supports and (refutes or limits):
             status, reason = (
@@ -99,16 +98,18 @@ def section_coverage(
             )
         elif refutes:
             status, reason = "refuted", "Evidence refutes this claim; support is absent"
-        elif qualified == required:
+        elif supports and qualified == required:
             status, reason = (
                 "supported",
-                "Support meets all relevant source-tier and condition requirements",
+                "Original-text support meets the required source tiers",
+            )
+        elif supports:
+            status, reason = (
+                "limited",
+                "Original-text support comes only from a lower or unverified source tier",
             )
         else:
-            status, reason = (
-                "insufficient",
-                "Missing support, required source tier, or explicit conditions",
-            )
+            status, reason = "insufficient", "No original-text support"
         updates[claim_id] = claim.model_copy(update={"status": status, "status_reason": reason})
         if status == "supported":
             covered.add(claim_id)

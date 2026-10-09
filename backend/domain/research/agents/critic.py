@@ -10,6 +10,7 @@ from domain.research.agents.prompts import (
     REVIEW_PROMPT_TEMPLATE,
 )
 from domain.research.agents.structured import complete
+from domain.research.agents.writer import coverage_summary
 from domain.research.facts import CriticFeedback
 from domain.research.ids import stable_id
 from domain.research.models import Record, ReviewVerdict, Text
@@ -33,6 +34,20 @@ IssueDraft = create_model(
         }
     },
 )
+
+
+class _Issue(IssueDraft):
+    # fillable only routes missing_source rework; code owns it elsewhere.
+    fillable: bool = False
+
+    @model_validator(mode="after")
+    def fillable_scope(self):
+        if self.issue_type != "missing_source" and self.fillable:
+            object.__setattr__(self, "fillable", False)
+        return self
+
+
+IssueDraft = _Issue
 
 
 class Resolution(Record):
@@ -110,30 +125,45 @@ async def review_draft(llm, *, values, timeout_s=60):
                 raise ValueError("Only missing_source has a fillable flag")
             return self
 
-    context = {
-        name: {key: item.model_dump(mode="json") for key, item in values[name].items()}
-        for name in (
-            "draft_sections",
-            "claims",
-            "evidence",
-            "sources",
-            "comparable_metrics",
-            "comparison_sets",
-            "analysis_artifacts",
-            "section_coverage",
-        )
+    # The Critic judges the actual draft and the facts it cites. Uncited facts
+    # stay in state; per-spec coverage summaries expose what remains unproven.
+    bindings = values["draft_claim_bindings"]
+    claim_ids = {key for item in bindings for key in item.claim_ids}
+    claim_ids |= {
+        issue.target_id
+        for issue in old.values()
+        if issue.target_type == "claim" and issue.target_id in values["claims"]
     }
-    context.update(
-        {
-            "brief": values["research_brief"].model_dump(mode="json"),
-            "draft_version": values["draft_version"],
-            "bindings": [item.model_dump(mode="json") for item in values["draft_claim_bindings"]],
-            "claim_evidence_links": [
-                item.model_dump(mode="json") for item in values["claim_evidence_links"]
-            ],
-            "previous_issues": [item.model_dump(mode="json") for item in old.values()],
-        }
-    )
+    evidence_ids = {key for item in bindings for key in item.cited_evidence_ids}
+    artifact_ids = {key for item in bindings for key in item.artifact_ids}
+    links = [
+        item
+        for item in values["claim_evidence_links"]
+        if item.claim_id in claim_ids and item.evidence_id in evidence_ids
+    ]
+    source_ids = {values["evidence"][key].source_id for key in evidence_ids}
+
+    def subset(name, keys):
+        return {key: values[name][key].model_dump(mode="json") for key in sorted(keys)}
+
+    context = {
+        "draft_sections": subset("draft_sections", values["draft_sections"].keys()),
+        "claims": subset("claims", claim_ids),
+        "evidence": subset("evidence", evidence_ids),
+        "sources": subset("sources", source_ids),
+        "analysis_artifacts": subset("analysis_artifacts", artifact_ids),
+        "comparison_sets": subset("comparison_sets", values["comparison_sets"].keys()),
+        "comparable_metrics": subset("comparable_metrics", values["comparable_metrics"].keys()),
+        "section_coverage": {
+            key: coverage_summary(item, values["claims"])
+            for key, item in values["section_coverage"].items()
+        },
+        "brief": values["research_brief"].model_dump(mode="json"),
+        "draft_version": values["draft_version"],
+        "bindings": [item.model_dump(mode="json") for item in bindings],
+        "claim_evidence_links": [item.model_dump(mode="json") for item in links],
+        "previous_issues": [item.model_dump(mode="json") for item in old.values()],
+    }
     prompt = REVIEW_PROMPT_TEMPLATE.format(
         examples=REVIEW_FEW_SHOTS,
         schema=json.dumps(ScopedReview.model_json_schema(), ensure_ascii=False),

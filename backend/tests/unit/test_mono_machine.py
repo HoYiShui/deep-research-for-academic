@@ -117,6 +117,12 @@ def test_rework_limit_selects_only_one_terminal_contraction_not_approval():
     assert decision.next_phase == "write" and decision.stop_reason == "rework_limit"
     assert decision.rework_count == 3 and not decision.deliver
     data["run_metadata"]["stop_reason"] = "rework_limit"
+    # A disclosed overclaim on non-factual prose may ship as needs_more_work.
+    assert decide_pipeline(PipelineState.model_validate(data)).deliver
+    # The same issue behind a factual assertion can never be delivered.
+    statement = data["draft_sections"]["section_1"]["statements"][0]
+    statement["kind"] = "factual"
+    data["critic_feedback"][0]["target_id"] = statement["statement_id"]
     with pytest.raises(ValueError, match="unsafe"):
         decide_pipeline(PipelineState.model_validate(data))
 

@@ -299,14 +299,24 @@ def decide_pipeline(state: PipelineState) -> PipelineDecision:
     if metadata.stop_reason in TERMINAL_REASONS:
         # A known source gap can remain in an explicitly limited auxiliary draft,
         # but never as an unsupported factual statement or an approved verdict.
-        safe = state.review_verdict == "needs_more_work" and all(
-            issue.issue_type == "missing_source"
-            and not issue.fillable
-            and not any(
+        # Deliverable as needs_more_work only if no unresolved issue can sit
+        # behind a factual assertion: the report lists every one as a risk.
+        kinds = {
+            statement.statement_id: statement.kind
+            for section in state.draft_sections.values()
+            for statement in section.statements
+        }
+
+        def disclosed(issue):
+            if issue.target_type == "statement" and issue.target_id in kinds:
+                return kinds[issue.target_id] != "factual"
+            return not any(
                 statement.kind == "factual"
                 for statement in state.draft_sections[issue.section_id].statements
             )
-            for issue in issues
+
+        safe = state.review_verdict == "needs_more_work" and all(
+            disclosed(issue) for issue in issues
         )
         if safe:
             return PipelineDecision(next_phase=None, **(base | {"deliver": True}))

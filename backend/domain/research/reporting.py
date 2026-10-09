@@ -353,29 +353,27 @@ def validate_delivery(state: PipelineState):
 
 def report_risks(state):
     risks = {}
+    # One risk per open ClaimSpec, not per (claim, spec) gap row: research may
+    # extract hundreds of candidate claims, and the reader decides per spec.
+    specs = {spec.spec_id: spec for plan in state.section_plans for spec in plan.claim_specs}
+    by_spec = {}
     for section in state.section_coverage.values():
         for gap in section.gaps:
-            key = stable_id("risk", "gap", gap.gap_id)
-            risks[key] = RiskItem(
-                risk_id=key,
-                description=gap.reason,
-                evidence_status="证据缺口",
-                impact="相关论断尚未闭环",
-                verification_action=gap.verification_action,
-                claim_ids=[gap.claim_id] if gap.claim_id else [],
-                issue_ids=[],
-            )
-        for text in section.unresolved_items:
-            key = stable_id("risk", section.section_id, text)
-            risks[key] = RiskItem(
-                risk_id=key,
-                description=text,
-                evidence_status="未解决",
-                impact="章节覆盖不完整",
-                verification_action="补充对应原文并重新审核",
-                claim_ids=[],
-                issue_ids=[],
-            )
+            by_spec.setdefault(gap.claim_spec_id, []).append(gap)
+    for spec_id, gaps in sorted(by_spec.items(), key=lambda item: item[0] or ""):
+        key = stable_id("risk", "spec", spec_id or gaps[0].section_id)
+        reasons = sorted({gap.reason for gap in gaps})
+        claim_ids = sorted({gap.claim_id for gap in gaps if gap.claim_id})
+        risks[key] = RiskItem(
+            risk_id=key,
+            description=(specs[spec_id].text if spec_id in specs else gaps[0].reason)
+            + f"（{len(claim_ids)} 条候选论断未闭环：" + "；".join(reasons) + "）",
+            evidence_status="证据缺口",
+            impact="相关论断尚未闭环",
+            verification_action=gaps[0].verification_action,
+            claim_ids=claim_ids[:20],
+            issue_ids=[],
+        )
     for issue in state.critic_feedback:
         if not issue.resolved:
             key = stable_id("risk", "issue", issue.issue_id)
@@ -388,8 +386,9 @@ def report_risks(state):
                 claim_ids=[issue.target_id] if issue.target_type == "claim" else [],
                 issue_ids=[issue.issue_id],
             )
+    cited = {key for binding in state.draft_claim_bindings for key in binding.claim_ids}
     for claim in state.claims.values():
-        if claim.status in {"limited", "insufficient", "open"}:
+        if claim.claim_id in cited and claim.status in {"limited", "insufficient", "open"}:
             key = stable_id("risk", "claim", claim.claim_id)
             risks[key] = RiskItem(
                 risk_id=key,
