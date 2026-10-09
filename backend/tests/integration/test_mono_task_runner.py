@@ -22,6 +22,74 @@ def runner(store, execute, **options):
     )
 
 
+async def test_bounded_maintenance_does_not_block_run_scan_and_is_cancelled_on_close(pg_database):
+    _, store, user = await setup_store(pg_database)
+    commit = await ready(store, user.user_id)
+    entered, stopped = asyncio.Event(), asyncio.Event()
+    calls = 0
+
+    async def maintenance():
+        nonlocal calls
+        calls += 1
+        entered.set()
+        try:
+            await asyncio.Event().wait()
+        finally:
+            stopped.set()
+
+    worker = runner(store, None, claim_ready=False, maintenance=maintenance)
+    try:
+        await worker.tick()
+        await asyncio.wait_for(entered.wait(), timeout=1)
+        await asyncio.wait_for(worker.tick(), timeout=1)
+        assert calls == 1
+        assert (await store.research.get_run(user.user_id, commit.run.run_id)).status == "ready"
+    finally:
+        await worker.aclose()
+    assert stopped.is_set() and worker._maintenance_task is None
+
+
+async def test_maintenance_failure_is_observed_and_retried_only_at_next_tick(pg_database, caplog):
+    _, store, _ = await setup_store(pg_database)
+    calls = 0
+
+    async def maintenance():
+        nonlocal calls
+        calls += 1
+        raise RuntimeError("private diagnostic")
+
+    worker = runner(store, None, claim_ready=False, maintenance=maintenance)
+    try:
+        await worker.tick()
+        await asyncio.sleep(0)
+        await asyncio.sleep(0)
+        assert calls == 1 and worker._maintenance_task is None
+        assert "maintenance_task_failed" in caplog.text and "private diagnostic" not in caplog.text
+        await worker.tick()
+        await asyncio.sleep(0)
+        await asyncio.sleep(0)
+        assert calls == 2
+    finally:
+        await worker.aclose()
+
+
+async def test_global_maintenance_is_rejected_for_scoped_cli_runner(pg_database):
+    _, store, user = await setup_store(pg_database)
+
+    async def maintenance():
+        raise AssertionError("Global scan must not run in a scoped CLI worker")
+
+    with pytest.raises(ValueError, match="Global maintenance"):
+        runner(
+            store,
+            None,
+            claim_ready=False,
+            maintenance=maintenance,
+            owner=user.user_id,
+            run_id=uuid4(),
+        )
+
+
 async def wait_for_status(store, owner, run_id, status):
     async with asyncio.timeout(5):
         while True:

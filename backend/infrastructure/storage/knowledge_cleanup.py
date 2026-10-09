@@ -7,6 +7,40 @@ CURSORS = ("wait_jobs", "index", "objects", "metadata")
 
 
 class KnowledgeCleanup:
+    async def scan_creating(self, tx, *, limit=20):
+        from infrastructure.storage.research_postgres import decode
+
+        if type(limit) is not int or not 1 <= limit <= 100:
+            raise ValueError("Invalid creation scan limit")
+        rows = await self.store.connection(tx).fetch(
+            "SELECT * FROM knowledge_bases WHERE status='creating' "
+            "AND (lease_expires_at IS NULL OR lease_expires_at<=clock_timestamp()) "
+            "ORDER BY updated_at,kb_id LIMIT $1",
+            limit,
+        )
+        return [decode(KnowledgeBase, row, {"failure"}) for row in rows]
+
+    async def record_creation_failure(self, owner, kb_id, token, failure, tx):
+        from domain.research.models import Failure
+
+        if type(token) is not int or token < 1:
+            raise ValueError("Invalid creation fence")
+        failure = Failure.model_validate(failure)
+        kb = await self.get_kb(owner, kb_id, tx, for_update=True)
+        if kb is None:
+            raise AppError("knowledge_base_not_found", "Knowledge base not found")
+        row = await self.store.connection(tx).fetchrow(
+            "UPDATE knowledge_bases SET failure=$4::jsonb,revision=revision+1,updated_at=clock_timestamp() "
+            "WHERE owner_id=$1 AND kb_id=$2 AND lease_token=$3 AND status='creating' "
+            "AND lease_owner IS NOT NULL AND lease_expires_at>clock_timestamp() RETURNING kb_id",
+            owner,
+            kb_id,
+            token,
+            failure.model_dump_json(),
+        )
+        if row is None:
+            raise AppError("stale_resource", "Creation failure lease is not current")
+
     async def scan_lifecycle(self, tx, *, limit=100):
         """Trusted worker inventory; no ownership or lease is granted by scanning."""
         if type(limit) is not int or not 1 <= limit <= 100:

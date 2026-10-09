@@ -27,7 +27,7 @@ def test_protected_route_rejects_missing_token_when_authentication_is_enabled(mo
     ):
         client = TestClient(app)
         assert client.get("/research/s1").status_code == 401
-        assert client.get("/knowledge-base/documents").status_code == 401
+        assert client.get("/knowledge-bases").status_code == 401
 
 
 def test_protected_route_rejects_invalid_token_when_authentication_is_enabled(monkeypatch) -> None:

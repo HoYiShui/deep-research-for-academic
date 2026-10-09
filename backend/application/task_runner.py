@@ -1,7 +1,8 @@
 """One local worker; PostgreSQL is the cross-process ownership/capacity truth.
 
 Execution requires an explicit executor. Maintenance-only mode scans durable
-cancellation/expired leases/timeouts but never claims ready Runs or calls tools.
+cancellation/expired leases/timeouts and optionally restores KB partitions, but
+never claims ready Runs or calls paid research/model tools.
 This module does not fabricate phase results or silently fall back to a fake.
 """
 
@@ -32,6 +33,7 @@ class TaskRunner:
         worker_id=None,
         owner=None,
         run_id=None,
+        maintenance: Callable[[], Awaitable[None]] | None = None,
     ):
         if type(claim_ready) is not bool:
             raise TypeError("Run claiming mode must be an explicit bool")
@@ -46,10 +48,14 @@ class TaskRunner:
         if owner is not None and (not isinstance(owner, UUID) or not isinstance(run_id, UUID)):
             raise TypeError("CLI execution scope requires UUID identities")
         self.scope = {"owner": owner, "run_id": run_id} if owner is not None else {}
+        if maintenance is not None and (not callable(maintenance) or self.scope):
+            raise ValueError("Global maintenance cannot be attached to a scoped CLI runner")
+        self.maintenance = maintenance
         self.worker_id = worker_id or str(uuid4())
         self._stop, self._wake = asyncio.Event(), asyncio.Event()
         self._loop_task = None
         self._active = None
+        self._maintenance_task = None
         self.closed = False
         self._tick_lock = asyncio.Lock()
 
@@ -86,6 +92,13 @@ class TaskRunner:
                 await self.store.research.scan_interrupted(
                     tx, queue_timeout_s=self.settings.queue_timeout_s, **self.scope
                 )
+            # Slow native index I/O must not block scanning/heartbeat of Runs.
+            # This is a held, observed task; PG inventory/leases remain the truth.
+            if self.maintenance is not None and self._maintenance_task is None:
+                self._maintenance_task = asyncio.create_task(
+                    self.maintenance(), name="dr4a-maintenance"
+                )
+                self._maintenance_task.add_done_callback(self._maintenance_observed)
             if not self.claim_ready or self.active is not None:
                 return
             async with self.store.transaction() as tx:
@@ -109,6 +122,13 @@ class TaskRunner:
         if self._active is task:
             self._active = None
         self.wake()
+
+    def _maintenance_observed(self, task):
+        if not task.cancelled() and task.exception() is not None:
+            logger.warning("maintenance_task_failed")
+        if self._maintenance_task is task:
+            self._maintenance_task = None
+        # Deliberately wait for the next scan interval, not a tight retry loop.
 
     async def _heartbeat(self, claimed):
         while True:
@@ -224,6 +244,18 @@ class TaskRunner:
                 self._loop_task.cancel()
                 await asyncio.gather(self._loop_task, return_exceptions=True)
         active = self._active
+        maintenance = self._maintenance_task
+        if maintenance:
+            maintenance.cancel()
+            try:
+                await asyncio.wait_for(
+                    asyncio.gather(maintenance, return_exceptions=True),
+                    timeout=self.settings.shutdown_s,
+                )
+            except TimeoutError:
+                logger.warning("maintenance_shutdown_timed_out")
+            finally:
+                self._maintenance_task = None
         if active:
             try:
                 await asyncio.wait_for(asyncio.shield(active), timeout=self.settings.shutdown_s)

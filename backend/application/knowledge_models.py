@@ -57,6 +57,25 @@ class KnowledgeBasePatch(Record):
         return self
 
 
+class KnowledgeBaseCreate(Record):
+    name: Annotated[Text, Field(max_length=100)]
+    description: Annotated[StrictStr, Field(max_length=2000)] | None = None
+    data_classification: Classification = "private"
+
+
+class KnowledgeBaseView(Record):
+    kb_id: UUID
+    name: Annotated[Text, Field(max_length=100)]
+    description: Annotated[StrictStr, Field(max_length=2000)] | None
+    data_classification: Classification
+    status: Literal["creating", "active", "deleting", "deleted"]
+    revision: Positive
+    index_version: Text
+    failure: dict | None
+    created_at: UTC
+    updated_at: UTC
+
+
 class Document(LeasedRecord):
     document_id: UUID
     kb_id: UUID

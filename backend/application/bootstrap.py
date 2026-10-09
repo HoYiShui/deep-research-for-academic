@@ -16,6 +16,7 @@ from application.auth_service import AuthService
 from application.document_ingestion import DocumentIngestionService
 from application.errors import AppError
 from application.identity import ensure_development_identity
+from application.knowledge_base_management import KnowledgeBaseManagementService
 from application.knowledge_base_service import KnowledgeBaseService
 from application.orchestrator import Orchestrator
 from application.research_artifacts import ResearchArtifacts
@@ -41,7 +42,7 @@ from infrastructure.storage.memory import InMemoryCancel, InMemoryDocumentStore,
 from infrastructure.storage.migrations import run_migrations
 from infrastructure.storage.postgres import PostgresStateStore
 from infrastructure.storage.research_postgres import PostgresResearchStore
-from infrastructure.vector.milvus import MilvusStore
+from infrastructure.vector.milvus import MilvusIndex, MilvusStore
 
 
 class Container:
@@ -181,6 +182,7 @@ class HttpRuntime:
             settings.minio_bucket,
             secure=settings.minio_secure,
         )
+        self.knowledge_index = MilvusIndex(settings.milvus_uri, timeout_s=settings.vector_timeout_s)
         self.backup_dir = (
             Path(backup_dir)
             if backup_dir is not None
@@ -238,6 +240,17 @@ class HttpRuntime:
         self.ingestion = DocumentIngestionService(
             store, store.knowledge, store.requests, self.knowledge_content
         )
+        self.knowledge_management = KnowledgeBaseManagementService(
+            store,
+            store.knowledge,
+            store.requests,
+            self.knowledge_index,
+            self.clock,
+            index_version=self.settings.index_version,
+            ingestion=self.ingestion,
+            lease_s=self.settings.lease_s,
+            heartbeat_s=self.settings.heartbeat_s,
+        )
         self.run_event_bus = RunEventBus(queue_size=self.settings.sse_queue_size)
         self.run_events = RunEventStream(
             self.research_queries,
@@ -262,6 +275,7 @@ class HttpRuntime:
             execute=self.run_executor_factory(self) if self.run_executor_factory else None,
             settings=self.settings,
             claim_ready=self.run_executor_factory is not None,
+            maintenance=self.knowledge_management.recover_creating,
         )
         self.research.wake = self.runner.wake
         await self.runner.start()
@@ -294,7 +308,10 @@ class HttpRuntime:
                 try:
                     await self.artifact_store.close()
                 finally:
-                    await self.knowledge_content.close()
+                    try:
+                        await self.knowledge_content.close()
+                    finally:
+                        await self.knowledge_index.close()
             finally:
                 if self.pool is not None:
                     pool, self.pool = self.pool, None

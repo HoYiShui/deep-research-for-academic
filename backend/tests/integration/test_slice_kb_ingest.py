@@ -59,8 +59,9 @@ async def test_ingest_parses_chunks_embeds_stores() -> None:
 
 @pytest.mark.asyncio
 async def test_ingest_failure_persists_failed_status() -> None:
-    svc = KnowledgeBaseService(_FailingParser(), _FakeEmbedding(), _RecordingVector(),
-                               InMemoryDocumentStore())
+    svc = KnowledgeBaseService(
+        _FailingParser(), _FakeEmbedding(), _RecordingVector(), InMemoryDocumentStore()
+    )
     result = await svc.ingest("d2", "/tmp/bad.pdf")
     assert result["status"] == "failed"
     assert (await svc.get_document("d2"))["status"] == "failed"
@@ -77,7 +78,7 @@ async def test_recover_stale_marks_processing_as_failed() -> None:
     assert (await docs.load("d4"))["status"] == "done"
 
 
-def test_list_documents_endpoint() -> None:
+def test_legacy_document_registry_endpoint_is_retired() -> None:
     import jwt
     from fastapi.testclient import TestClient
 
@@ -102,9 +103,7 @@ def test_list_documents_endpoint() -> None:
         patch("interface.deps.get_container", return_value=container),
     ):
         client = TestClient(app)
-        resp = client.get(
-            "/knowledge-base/documents", headers={"Authorization": f"Bearer {token}"}
-        )
+        resp = client.get("/knowledge-base/documents", headers={"Authorization": f"Bearer {token}"})
 
-    assert resp.status_code == 200
-    assert resp.json()["documents"][0]["document_id"] == "d1"
+    assert resp.status_code == 404
+    assert resp.json()["error"]["code"] == "not_found"

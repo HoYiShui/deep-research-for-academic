@@ -95,3 +95,29 @@ T040/T041/T049/T055仍未完成：未组合Management/TaskRunner，不接受没�
 为继续代码验证，用本机已有PG16镜像启动本轮独立 `dr4a-test-pg-cleanup-*`，PGDATA在512MiB tmpfs，无用户volume挂载，127.0.0.1动态端口；仅命令环境覆写DATABASE_URL，不改.env。临时实例设置max/min WAL为64/32MiB、checkpoint_timeout=30s避免tmpfs写满，测试仍按原fixture新建/删除dr4a_test_*数据库。上述目标集在临时真实PG及真实MinIO重新 **103 passed in 12.99s**。这不证明用户调试库已恢复；该库仍须另行数据恢复。
 
 临时实例全量最终 **1094 passed, 5 failed in 177.46s**；5项均在TUI子进程启动时 `FileNotFoundError: node`，没有进入业务断言。确认已安装fnm Node v24.13.1，显式将其installation/bin加到本轮命令PATH，并保持同一临时PG。原5项不改代码/断言补跑：`pytest -q tests/integration/test_tui_live_http.py tests/integration/test_tui_terminal.py --tb=short`，**5 passed in 24.15s**。这是全量加失败项补跑的组合证据，不能记成一次1099项全量通过。3个改动Python文件Ruff/format与git diff --check通过。临时PG仅作本goal隔离验证实例，未将.env或用户Runtime默认连接改向它；原恢复库仍不可用。
+
+## 2026-10-09：管理 HTTP、分页与创建恢复
+
+基线 `9fb0bfc`，本批仅推进外围知识库应用层，不运行真实 Research/付费模型，不改 Agent Prompt。设计来源 API §4.1、MODEL KB/Document/Version、FLOW 创建流程与 OPS 生命周期租约。仍使用现有 Compose PG/Standalone；不新开容器、不重启服务、不改用户数据库或救援卷。
+
+实现落点：`application/knowledge_base_management.py`、typed create/view/Repository Port、`storage/knowledge_management.py`/`knowledge_cleanup.py` 与 `interface/router/knowledge_base.py`，由 `HttpRuntime` 组合。正式管理 HTTP 使用复数 `/knowledge-bases`；旧单数 HTTP 上传/搜索/内存注册表入口已退役为404，不能再提交未受追踪的上传 Task 或把删除内存记录当物理删除。旧CLI仍待T051，未声称所有legacy代码已移除。
+
+创建流程：短PG事务保存creating KB与幂等resource_id绑定 → 共用KB生命周期lease/token → 事务外真实ensure_schema/partition（SDK有界、heartbeat保持lease）→ 同事务active revision+1与原201缓存提交。模型无需参与。异常只返回安全index_not_ready+kb_id，并持久化Failure、不标active；释放请求执行租约但保留resource_id/hash，下一次同key/body沿用原KB。绑定不可换ID、不可被普通release抹除；新key同名409、改body同key409、活请求409+Retry-After。成功重放不调用Milvus，保留原响应即使后续实体更新。
+
+GET/PATCH/list按owner和父子ID授权，description省略/显式null区分，revision CAS与幂等缓存同事务提交，分类不可修改。列表使用(created_at,UUID) keyset与多取一行；cursor为有界base64严格Schema，绑定owner/类别/KB/Document/status，不是授权凭证，不接受SQL表达式；跨scope、非法cursor和limit=0/101均422。KB默认不列deleted，墓碑可按ID/状态读取。Document详情最多100版本并使用现有Job公开视图，不暴露leases/storage keys/Failure.details。查询staging元数据不等同于检索公开staging正文。
+
+TaskRunner新增可选维护回调：仅持一条有强引用、完成异常观察、关闭取消的维护Task，扫描PGcreating身份，不建立第二套可写队列。外部索引I/O不阻塞Run扫描或heartbeat；失败等待下一扫描间隔，不立即热循环。owner/Run-scoped CLI Runner禁止挂全局维护，HttpRuntime.prepare(start_runner=False)不启动扫描。恢复成功只提交KB状态，原HTTP请求下一次重试才缓存201。
+
+真实验收：`tests/integration/test_mono_kb_http.py` 使用独立PG库和现有Standalone的本轮UUID partitions；创建验证真实has_partition。MinIO只用于邻接Job/源验证及隔离fixture，本批不宣称文档上传/解析/正文检索闭环。另加3项TaskRunner维护观察/不阻塞/关闭与CLI拒绝测试。直接HTTP覆盖归属、输入校验、失败持久绑定/恢复、创建和属性幂等、同时间分页、Document/Version/Job安全视图、墓碑只读政策及未接删除不假接受。
+
+独立TCP测试用标准HttpRuntime、真实PG/Milvus和NoModel（任何模型调用会失败）。真实ensure_partition后子进程输出精确断点marker并SIGSTOP，父测试SIGKILL（-9），没有child finally。此时PG仍creating，真实分区已存在、原请求绑定持久。只把该隔离库的两条lease时间推进为过期以免等待120秒，再启动新独立后端，TaskRunner扫描接管→active/token2；同key POST201仍原KB，PATCH/GET/list/documents一致，tool_calls/sessions均0。该测试证明真实崩溃后的creating恢复，不证明删除断点或一般跨存储exactly-once。首轮109项目标集中1项失败：Uvicorn access log先进入stdout，断点marker断言未到；test-only KB server关闭access log后原测试1项通过，没有改业务断言。
+
+邻接验证（新增输入/墓碑/CLI准备7项前）：`uv run --no-sync pytest -q tests/integration/test_mono_kb_http.py tests/integration/test_mono_task_runner.py tests/integration/test_mono_knowledge_management.py tests/integration/test_mono_knowledge_cleanup.py tests/integration/test_mono_ingestion_http.py tests/integration/test_auth_guard.py tests/integration/test_mono_http_errors.py tests/integration/test_slice_kb_search.py tests/integration/test_slice_kb_ingest.py tests/integration/test_mono_transactions.py`，**123 passed in 29.95s**。Ruff与git diff --check通过。继续全量回归后在下方记录最终结果，不能把上述邻接结果当全部任务完成。
+
+边界：T042/T049/T055不勾选；完整上传Worker、BGE/Parser、检索Service、删除对象/向量/旧Job协调、最后墓碑事务和deleted迟到外部写入巡检仍缺。公共DELETE在校验归属后明确503、不改变原active状态；不能凭已有PG删除屏障提前202。未实现的上传/检索没有启用legacy回退。测试只删除隔离数据库、fixture bucket和本轮已确认UUID partitions，未删现有内容/报告/数据卷；分区复核仅_default。
+
+提交独立性复核：只导出本批暂存树 `f92f0f141f550d8ae818da59a7dc22d46f218f82` 到本轮临时快照，复用已安装venv，真实配置只经进程环境传入而不复制.env；上述目标集连同最终7项新增用例 **130 passed in 32.91s**。未包含工作区未提交的search-router/trace实现，证明本批提交不是依赖未提交代码才通过。导出前曾发现按零上下文选择bootstrap hunks会错放插入行、快照SyntaxError；已仅修正暂存文件并检查AST，没有覆盖工作区既有改动。最终只有KB相关bootstrap hunks暂存，之前search-router改动仍原样留在工作区。
+
+首次最终工作区全量 **1207 passed, 1 failed in 297.37s**。失败是已有 `test_mono_run_tcp.py::test_probe_cli_creates_answers_then_requires_explicit_approval` 子进程20秒观察超时，没有完整终态诊断，不能断言确切根因。原文件2项单独补跑 **2 passed in 25.91s**，没有放宽deadline或改业务/Prompt。此时仍不是一次完整全绿，继续独立重跑全量并记录结果。全量期间除一个旧测试文件的纯格式化外，未改受测行为。
+
+第二次完整工作区回归 **1206 passed, 2 failed in 302.73s**，此次CLI probe通过，另两项分别在活HTTP SSE 15秒观察与TUI等待query_completed 10秒超时：`test_confirm_live_driver_report_and_reconnect_after_process_restart`、`test_actual_tui_renders_live_progress_and_controlled_report`。原文件组合再跑 `pytest -q tests/integration/test_mono_run_tcp.py tests/integration/test_tui_terminal.py --tb=short`，**4 passed in 38.59s**，仍未改任何deadline/业务/Prompt。Docker五个原Compose服务healthy、Milvus复核仅_default；没有遗留本轮测试容器/分区。**全量不记为通过，根因尚未确认**；本批提交基于独立暂存快照130项与目标真实依赖证据，不能用补跑绿色消除这两次完整回归的失败留痕。临时提交快照已删除，原工作区及未提交trace/search-router均保留。Ruff/format和暂存diff检查通过。

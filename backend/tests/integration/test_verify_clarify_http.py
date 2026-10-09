@@ -27,6 +27,7 @@ async def server(
     rework=False,
     with_process=False,
     canonical=False,
+    kb_bucket=None,
 ):
     settings = Settings.load()
     parts = urlsplit(settings.database_url.get_secret_value())
@@ -41,6 +42,11 @@ async def server(
         "DR4A_TEST_HTTP_MODE": "controlled",
     }
     target = "interface.main:app" if real else "tests.support.mono_http_server:create_test_app"
+    if kb_bucket is not None:
+        if real or run_bucket is not None:
+            raise ValueError("KB controlled runtime cannot be combined with other modes")
+        env.update(MINIO_BUCKET=kb_bucket, DR4A_TEST_PAUSE=pause or "", DR4A_DEBUG_RUNNER="false")
+        target = "tests.support.kb_http_server:create_test_app"
     if run_bucket is not None:
         if real:
             raise ValueError("Controlled Run server cannot be labeled real")
@@ -60,11 +66,13 @@ async def server(
     args = [sys.executable, "-m", "uvicorn", target, "--host", "127.0.0.1", "--port", str(port)]
     if not real:
         args.append("--factory")
+    if kb_bucket is not None:
+        args.append("--no-access-log")
     process = await asyncio.create_subprocess_exec(
         *args,
         env=env,
         cwd=Path(__file__).resolve().parents[2],
-        stdout=asyncio.subprocess.DEVNULL,
+        stdout=asyncio.subprocess.PIPE if kb_bucket is not None else asyncio.subprocess.DEVNULL,
         stderr=asyncio.subprocess.DEVNULL,
     )
     url = f"http://127.0.0.1:{port}"

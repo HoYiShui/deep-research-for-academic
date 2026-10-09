@@ -484,6 +484,12 @@ class _Requests:
     async def complete(self, reservation, response_status, response_body, tx, *, resource_id=None):
         if type(response_status) is int and response_status >= 500:
             raise ValueError("Transient server failure must release reservation, not complete it")
+        if reservation.resource_id is not None:
+            if resource_id is not None and resource_id != reservation.resource_id:
+                raise AppError(
+                    "request_in_progress", "Request resource binding changed", retryable=True
+                )
+            resource_id = reservation.resource_id
         completed = IdempotencyRecord.model_validate(
             reservation.model_dump()
             | {
@@ -508,10 +514,46 @@ class _Requests:
             )
         return decode(IdempotencyRecord, row, {"response_body"})
 
-    async def release(self, reservation, tx):
+    async def bind_resource(self, reservation, resource_id, tx):
+        from uuid import UUID
+
+        if not isinstance(resource_id, UUID):
+            raise TypeError("Resource binding requires UUID")
+        row = await self.store.connection(tx).fetchrow(
+            "UPDATE idempotency_requests SET resource_id=$6,updated_at=clock_timestamp() "
+            "WHERE owner_id=$1 AND operation=$2 AND key=$3 AND request_hash=$4 "
+            "AND lease_expires_at=$5 AND state='in_progress' "
+            "AND lease_expires_at>clock_timestamp() "
+            "AND (resource_id IS NULL OR resource_id=$6) RETURNING *",
+            *self._identity(reservation),
+            resource_id,
+        )
+        if row is None:
+            raise AppError(
+                "request_in_progress", "Request resource binding changed", retryable=True
+            )
+        return decode(IdempotencyRecord, row, {"response_body"})
+
+    async def release(self, reservation, tx, *, preserve_resource=False):
+        if type(preserve_resource) is not bool:
+            raise TypeError("Resource preservation must be explicit")
+        if preserve_resource:
+            result = await self.store.connection(tx).fetchrow(
+                "UPDATE idempotency_requests SET lease_expires_at=clock_timestamp(),"
+                "updated_at=clock_timestamp() WHERE owner_id=$1 AND operation=$2 AND key=$3 "
+                "AND request_hash=$4 AND lease_expires_at=$5 AND state='in_progress' "
+                "AND lease_expires_at>clock_timestamp() AND resource_id IS NOT NULL RETURNING owner_id",
+                *self._identity(reservation),
+            )
+            if result is None:
+                raise AppError(
+                    "request_in_progress", "Request reservation is no longer owned", retryable=True
+                )
+            return
         result = await self.store.connection(tx).fetchrow(
             "DELETE FROM idempotency_requests WHERE owner_id=$1 AND operation=$2 AND key=$3 AND request_hash=$4 "
-            "AND lease_expires_at=$5 AND state='in_progress' AND lease_expires_at>clock_timestamp() RETURNING owner_id",
+            "AND lease_expires_at=$5 AND state='in_progress' AND lease_expires_at>clock_timestamp() "
+            "AND resource_id IS NULL RETURNING owner_id",
             *self._identity(reservation),
         )
         if result is None:

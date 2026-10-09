@@ -11,7 +11,15 @@ from contextlib import AbstractAsyncContextManager
 from typing import Protocol
 from uuid import UUID
 
-from application.knowledge_models import IngestionJob, IngestionJobContext, VectorHit
+from application.knowledge_models import (
+    Document,
+    DocumentVersion,
+    IngestionJob,
+    IngestionJobContext,
+    KnowledgeBase,
+    KnowledgeBasePatch,
+    VectorHit,
+)
 from application.records import (
     ClaimedRun,
     DevelopmentUser,
@@ -142,6 +150,103 @@ class IngestionJobRepositoryPort(Protocol):
     async def retry_job(
         self, owner: UUID, job_id: UUID, tx: TransactionPort, *, source_verified: bool = False
     ) -> IngestionJob: ...
+
+
+class KnowledgeManagementRepositoryPort(Protocol):
+    async def scan_creating(
+        self, tx: TransactionPort, *, limit: int = 20
+    ) -> list[KnowledgeBase]: ...
+
+    async def record_creation_failure(
+        self, owner: UUID, kb_id: UUID, token: int, failure: Failure, tx: TransactionPort
+    ) -> None: ...
+
+    async def create_kb(self, kb: KnowledgeBase, tx: TransactionPort) -> None: ...
+
+    async def get_kb(
+        self,
+        owner: UUID,
+        kb_id: UUID,
+        tx: TransactionPort | None = None,
+        *,
+        for_update: bool = False,
+    ) -> KnowledgeBase | None: ...
+
+    async def update_kb(
+        self, owner: UUID, kb_id: UUID, patch: KnowledgeBasePatch, tx: TransactionPort
+    ) -> KnowledgeBase: ...
+
+    async def list_kbs(
+        self, owner: UUID, tx: TransactionPort, *, limit: int, after=None, status=None
+    ) -> list[KnowledgeBase]: ...
+
+    async def get_document(
+        self, owner: UUID, kb_id: UUID, document_id: UUID, tx: TransactionPort
+    ) -> Document | None: ...
+
+    async def list_documents(
+        self, owner: UUID, kb_id: UUID, tx: TransactionPort, *, limit: int, after=None
+    ) -> list[Document]: ...
+
+    async def list_versions(
+        self,
+        owner: UUID,
+        kb_id: UUID,
+        document_id: UUID,
+        tx: TransactionPort,
+        *,
+        limit: int,
+        after=None,
+    ) -> list[DocumentVersion]: ...
+
+    async def latest_job_id(
+        self, owner: UUID, kb_id: UUID, document_id: UUID, tx: TransactionPort
+    ) -> UUID | None: ...
+
+    async def claim_lifecycle(
+        self,
+        owner: UUID,
+        kb_id: UUID,
+        worker: str,
+        tx: TransactionPort,
+        *,
+        document_id: UUID | None = None,
+        lease_s: int = 90,
+    ) -> KnowledgeBase | Document: ...
+
+    async def renew_lifecycle(
+        self,
+        owner: UUID,
+        kb_id: UUID,
+        worker: str,
+        token: int,
+        tx: TransactionPort,
+        *,
+        document_id: UUID | None = None,
+        lease_s: int = 90,
+    ) -> KnowledgeBase | Document: ...
+
+    async def release_lifecycle(
+        self,
+        owner: UUID,
+        kb_id: UUID,
+        worker: str,
+        token: int,
+        tx: TransactionPort,
+        *,
+        document_id: UUID | None = None,
+    ) -> KnowledgeBase | Document: ...
+
+    async def finish_kb_creation(
+        self,
+        owner: UUID,
+        kb_id: UUID,
+        token: int,
+        revision: int,
+        tx: TransactionPort,
+        *,
+        partition_verified: bool = False,
+    ) -> KnowledgeBase: ...
 
 
 class UserRepositoryPort(Protocol):
@@ -327,7 +432,17 @@ class RequestStorePort(Protocol):
         resource_id: UUID | None = None,
     ) -> IdempotencyRecord: ...
 
-    async def release(self, reservation: IdempotencyRecord, tx: TransactionPort) -> None: ...
+    async def bind_resource(
+        self, reservation: IdempotencyRecord, resource_id: UUID, tx: TransactionPort
+    ) -> IdempotencyRecord: ...
+
+    async def release(
+        self,
+        reservation: IdempotencyRecord,
+        tx: TransactionPort,
+        *,
+        preserve_resource: bool = False,
+    ) -> None: ...
 
 
 class SessionServicePort(Protocol):

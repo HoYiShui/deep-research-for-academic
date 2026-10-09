@@ -83,7 +83,7 @@ async def test_orchestrator_emits_milvus_unavailable_and_completes() -> None:
     assert any(e.status == "completed" for e in done)
 
 
-def test_kb_search_endpoint() -> None:
+def test_legacy_kb_search_endpoint_is_retired() -> None:
     import jwt
     from fastapi.testclient import TestClient
 
@@ -114,5 +114,5 @@ def test_kb_search_endpoint() -> None:
             headers={"Authorization": f"Bearer {token}"},
         )
 
-    assert resp.status_code == 200
-    assert resp.json()["chunks"][0]["chunk_id"] == "c1"
+    assert resp.status_code == 404
+    assert resp.json()["error"]["code"] == "not_found"

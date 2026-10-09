@@ -1,6 +1,6 @@
 # Tasks：后端对齐 mono-v1
 
-> 状态：实施中，更新至2026-10-08。这是用户要求的直接任务拆解，不是新增设计规范。任务只在实际验证后勾选并附证据，不继承旧 tasks 的完成标记。
+> 状态：实施中，更新至2026-10-09。这是用户要求的直接任务拆解，不是新增设计规范。任务只在实际验证后勾选并附证据，不继承旧 tasks 的完成标记。
 
 > 范围追加（2026-10-05）：用户要求本轮同时实现 Web 前端，参考 ChatGPT 的聊天布局，消费事件级 SSE。追加任务 T063–T066；在后端闭环后、最终回归前完成，不以“剩余 token”作为省略验收的理由。
 
@@ -185,6 +185,7 @@
 - [ ] T041 [US5] 扩展state或新增 `backend/application/knowledge_models.py`：KB/Document/Version/Job/Attempt/Chunk/Progress/RetrievalResult完整Schema；新增 `backend/infrastructure/storage/migrations/0005_mono_knowledge.sql` 和PG Repository，实现归属/内容去重/活动版本约束/清理租约/原子activate+Job完成；真实PG测试父子归属/竞争。依赖T005迁移体系。0003/0004已用于工具调用迁移，使用下一追加序号，不重编号已应用迁移。
   - 2026-10-08：完整实体/检索typed记录、五表/复合FK/内容与活动身份约束、owner查询、submit/claim/activate/fail及同事务发布已补；新的KB内容使用owner/KB/version/hash独立命名空间。模型/真实PG/MinIO目标集62项、最终全量1043项通过；清理租约、完整Job控制/恢复与应用组合仍未完成，保持未勾选。证据：[知识库事务底座](evidence/t040-t041-knowledge-base.md)。
 - [ ] T042 [US5] 将 `backend/application/knowledge_base_service.py` 拆分为Management/Ingestion/Retrieval三个Service（建议同目录 `knowledge_base_management.py`、`document_ingestion.py`、`knowledge_retrieval.py`），更新组合根与ports；不维护新旧两个可写事实源，移除生产内存Document/Job状态。
+  - 2026-10-09：PG ManagementService、typed Port、公有视图及正式 `/knowledge-bases` 创建/读取/分页/属性更新已接 HttpRuntime；旧 singular HTTP 与内存注册表入口退役。创建先持久绑定幂等身份、真实建 Milvus 分区后才201；失败保留creating/同身份重试，TaskRunner扫描恢复。Retrieval、完整上传/删除及旧CLI替代未完成，仍不勾选。证据：[管理HTTP与创建恢复](evidence/t040-t041-knowledge-base.md#2026-10-09管理-http分页与创建恢复)。
   - 2026-10-08：DocumentIngestionService的持久Job查询/真实源验证重试已接Runtime及HTTP，新增typed Job上下文/Port与私有ContentStore生命周期；公开JobView不含lease/key。Management/Retrieval、上传/清理Worker与旧CLI链路替换尚未完成，保持未勾选。证据：[Job应用层与HTTP](evidence/t040-t041-knowledge-base.md#2026-10-08job-应用层与-http-首批)。
 - [ ] T043 [US5] 完成 `backend/infrastructure/parser/pdf.py` 与T026内容Adapter：真实MinerU结构化text/table/formula、页码/标题/脚注、完整原子块、流式50MiB/500页/10000chunks限制；补 `backend/tests/contract/test_parser.py`、真实公开PDF解析测试，空内容失败不完成。
   - 已核对MinerU 4.0.10实际wheel的Content List V1 renderer，并新增纯输出归一化边界与11项契约测试：原始page_idx转1-based页码、整表/公式与标题/脚注保留、空内容/图片-only原子块/非法或乱序页码/超限拒绝。Parser可选依赖已固定；本地权重准备、隔离实际推理、正式PDF Adapter及真实论文验收仍待完成，不勾选。纯输出测试不代表MinerU真实运行。
@@ -198,6 +199,7 @@
   - 2026-10-08：PG内核已补heartbeat/单调进度、取消清理租约与token接管、显式源/清理验证门、同Job/Version重试与尝试上限、过期processing失败记录/删除屏障转清理；本批14项真实PG测试、邻接目标61项与全量1057项通过。尚未组合Service/TaskRunner/HTTP及真实MinIO/Milvus清理，不勾选；证据：[Job控制与恢复](evidence/t040-t041-knowledge-base.md#2026-10-08job-控制与过期恢复的-pg-内核)。
 - [ ] T048 [US5] 完成KnowledgeRetrievalService与 `backend/infrastructure/retrieval/local.py`：PG可见版本/授权→双路召回→PG验证→MinIO正文→重排→删除屏障再检；typed filter/top_k/trace与显式rerank降级，依赖错误503不返回空。扩展 `backend/tests/integration/test_slice_kb_search.py` 的真实回链与错误测试。
 - [ ] T049 [US5] 完成ManagementService/router：分页/CRUD/revision、数据分类不可放宽、KB/Document删除屏障与清理cursor、creating/deleting同租约、停止旧任务/清迟到外部写入、保留墓碑；用T040检查重启继续清理、completed历史版本退役仍合法。
+  - 2026-10-09：创建/读取/更新、owner与过滤绑定分页、Document/Version/Job公有查询及creating恢复已实现；真实PG/Standalone与独立TCP中断验证通过。DELETE仍在授权后明确503且不改变状态，不提前接受缺少清理Worker的请求；完整外部删除/迟到写入巡检仍缺，保持未完成。证据：[管理HTTP与创建恢复](evidence/t040-t041-knowledge-base.md#2026-10-09管理-http分页与创建恢复)。
   - 2026-10-08：新增严格属性Patch与真实PG CAS更新、KB/Document删除屏障及清理起点，重复删除不重复递增revision，保持归属/父子锁顺序；删除后正文不可见、迟到发布拒绝、元数据/Job历史保留。17项新增真实PG/Schema测试、邻接目标89项通过。HTTP管理/分页、完整清理租约与外部删除恢复仍缺，不勾选；证据：[管理事务与删除屏障](evidence/t040-t041-knowledge-base.md#2026-10-08管理事务与删除屏障)。
   - 2026-10-08续批：creating/deleting共用KB租约，Document清理独立租约；领取/续租/释放、fencing token、revision+顺序cursor提交、SQL时钟拒绝过期及可信扫描已补。真实SIGKILL证明已提交cursor保留且新Worker接管后旧token失效；新增14项与邻接103项通过。Service/TaskRunner、真实MinIO/Milvus清理及deleted墓碑迟到写入核查未完成，仍不勾选。证据：[清理租约与进程中断](evidence/t040-t041-knowledge-base.md#2026-10-08清理租约与进程中断)。
 - [ ] T050 [US5] 在 `backend/application/retrieval_bridge.py`（新）实现Research只读Port到KB Service桥，确认事务冻结VersionReference；更新scout将DocumentVersion登记Source再建Evidence。验证新版本不能偷偷替换冻结来源、删除写Gap、private-only研究不向外LLM/搜索发送资料。
@@ -215,6 +217,7 @@
 - [ ] T053 [US6] 更新 `backend/application/auth_service.py`、`interface/router/auth.py`、`dto/auth.py`、`deps.py`、UserRepository与依赖锁：PG用户、Argon2id、JWT固定算法/iss/aud/sub/exp、Bearer/cookie冲突、login cookie/logout语义/CSRF/CORS；扩展 `backend/tests/integration/test_auth_guard.py` 和 `test_mono_auth.py`，含128 Unicode密码与开发用户不可登录。
 - [ ] T054 [US6] 在 `backend/application/settings.py`、Research/KB服务、Fetch/LLM Adapter落实隐私边界/速率限流/日志脱敏/prompt隔离；新增 `backend/tests/integration/test_mono_privacy.py`、`test_mono_security.py`：private摘录及派生query不外发、无本地LLM提前409、SSRF/DNS重绑定防护、跨owner检索/附件拒绝、生产匿名配置启动失败。
 - [ ] T055 [US6] 扩展 `backend/application/task_runner.py` 与PG/清理Service：SIGKILL后扫描、Run过期failed显式resume、Job有界自动恢复、creating/deleting恢复、孤儿TTL/引用校验；扩大 `backend/tests/integration/test_mono_process_recovery.py` 到运行/入库/清理各断点及heartbeat失租，不把graceful测试代替崩溃测试。
+  - 2026-10-09：创建生命周期接入同一TaskRunner的有界、强引用/观察/关闭维护任务，不阻塞Run扫描，也禁止挂到owner/Run局部CLI Runner。活HTTP真实分区写入后SIGKILL，新进程扫描接管为active且原幂等请求仍同身份；只证明creating分支，不代替deleting/Job/孤儿恢复。证据：[管理HTTP与创建恢复](evidence/t040-t041-knowledge-base.md#2026-10-09管理-http分页与创建恢复)。
   - 2026-10-08：新增独立Python Worker真实SIGKILL测试，证明清理lease/cursor提交后中断、租约过期扫描与递增token接管，旧token拒绝；仅PG清理内核边界，尚非TaskRunner或外部清理恢复验收，保持未勾选。证据：[清理租约与进程中断](evidence/t040-t041-knowledge-base.md#2026-10-08清理租约与进程中断)。
 - [ ] T056 [US6] 更新 `backend/interface/main.py`、CLI doctor、结构化日志与指标：liveness/readiness区分、真实schema/内容/索引/模型/Parser/执行器能力、可选源degraded/必需功能503、queue/phase/query/预算/取消延迟；补 `backend/tests/integration/test_mono_readiness.py`，诊断不得收费调用或泄露凭据。
   - 2026-10-07最低调试诊断：doctor改用Settings，新增scope=research与debug-db；只读核对当前迁移集合/Run表、认证访问MinIO bucket，拒绝空配置/未准备Hub模型/空权重目录，明确未验证能力且不收费/写入。实测独立debug库通过、恢复旧库仅Schema失败；真实隔离PG/MinIO及CLI定向21项通过。完整HTTP readiness/模型Parser执行/索引/指标仍暂缓，不勾选。证据：[doctor边界](evidence/t002-settings.md#2026-10-07最低研究调试诊断t056部分)。

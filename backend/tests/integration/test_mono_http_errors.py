@@ -192,7 +192,7 @@ def test_request_id_is_server_generated_for_success_and_failure(client):
             "/auth/login",
             {"email": "test@example.org", "password": "secret-password", "unknown_field": True},
         ),
-        ("/knowledge-base/search", {"query": "question", "unknown_field": "secret-value"}),
+        ("/knowledge-bases", {"name": "reference", "unknown_field": "secret-value"}),
     ],
 )
 def test_actual_app_rejects_unknown_request_fields(monkeypatch, path, body):
