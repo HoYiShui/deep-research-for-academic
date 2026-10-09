@@ -82,7 +82,9 @@ console.log(JSON.stringify(current.view));
     assert result["status"] == "completed"
     assert await pool.fetchval("SELECT count(*) FROM reports") == 1
     assert await pool.fetchval("SELECT count(*) FROM research_runs") == 1
-    assert await pool.fetchval("SELECT count(*) FROM tool_call_attempts") == 12
+    assert (
+        await pool.fetchval("SELECT count(*) FROM tool_call_attempts") == 17
+    )  # 5 queries x (web + papers) + 7 LLM
 
 
 async def test_tui_cancels_live_owned_execution_and_observes_durable_terminal(

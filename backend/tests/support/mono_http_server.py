@@ -49,7 +49,10 @@ def create_canonical_test_app():
     """Actual registered workers and driver; only external model/search controlled."""
     from cli.phase_tools import DebugTools
     from domain.model_completion import ModelCompletion
+    from infrastructure.search.arxiv import ArxivSearch
     from infrastructure.search.bocha import BochaSearch
+    from infrastructure.search.openalex import OpenAlexSearch
+    from infrastructure.search.search_router import SearchRouterSearch
     from tests.unit.test_state import initial_state
 
     settings = Settings.load()
@@ -64,7 +67,8 @@ def create_canonical_test_app():
     async def empty_search(self, query):
         return []
 
-    BochaSearch.search = empty_search
+    ArxivSearch.search = BochaSearch.search = OpenAlexSearch.search = empty_search
+    SearchRouterSearch.search = empty_search
 
     class Model(ControlledModel):
         async def complete_metered(self, prompt):

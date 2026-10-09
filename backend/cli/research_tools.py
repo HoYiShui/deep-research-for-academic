@@ -2,21 +2,22 @@
 
 import hashlib
 from datetime import UTC, datetime
+from time import monotonic
 from uuid import uuid4
 
 from application.errors import AppError
+from application.web_search import web_search_binding
 from cli import output
 from domain.documents import FetchedDocument, ParserConfig
 from domain.ports import AdapterError
 from domain.research.agents.originals import register_original
+from domain.research.diagnostics import diagnostic, diagnostic_scope, result_summary
 from domain.research.ids import canonical_hash
 from domain.research.search import SearchBatch, SearchOutcome
 from infrastructure.fetch.document import HTTPDocumentFetch
-from infrastructure.parser.html import HTML_PARSER_VERSION, HTMLDocumentParser
+from infrastructure.parser.html import PARSER_VERSIONS, HTMLDocumentParser
 from infrastructure.parser.mineru_output import MINERU_PARSER_VERSION
 from infrastructure.parser.pdf import MinerUDocumentParser
-from infrastructure.search.bocha import BochaSearch
-from infrastructure.search.composite import CompositeSearch
 from infrastructure.storage.content import MinioContentStore, content_key
 
 
@@ -28,22 +29,12 @@ class ResearchDebugTools:
         self.unit, self.candidates, self.results = None, {}, {}
         if fake:
             return
-        if config.versions.parser_version not in {HTML_PARSER_VERSION, MINERU_PARSER_VERSION}:
+        if config.versions.parser_version not in {*PARSER_VERSIONS, MINERU_PARSER_VERSION}:
             raise output.EnvError("Research debug parser version is not configured")
         self.scope = uuid4()  # Never write content under the input snapshot's Run ID.
         self.usage["artifact_scope"] = str(self.scope)
         timeout = max(0.1, config.timeouts_s.search - 1)
-        self.search = CompositeSearch(
-            [
-                (
-                    "bocha",
-                    BochaSearch(
-                        api_key=settings.bocha_api_key.get_secret_value(), timeout_s=timeout
-                    ),
-                ),
-            ],
-            timeout_s=timeout,
-        )
+        self.search = web_search_binding(settings, timeout_s=timeout).adapter
         self.store = MinioContentStore(
             settings.minio_endpoint,
             settings.minio_access_key.get_secret_value(),
@@ -53,7 +44,7 @@ class ResearchDebugTools:
         )
         self.parser = (
             HTMLDocumentParser(self.store)
-            if config.versions.parser_version == HTML_PARSER_VERSION
+            if config.versions.parser_version in PARSER_VERSIONS
             else MinerUDocumentParser(
                 self.store, settings.mineru_models_dir, timeout_s=config.timeouts_s.parser
             )
@@ -93,7 +84,26 @@ class ResearchDebugTools:
                 if self.usage["search_calls"] >= self.config.limits.search_calls:
                     raise AppError("budget_exhausted", "Debug search budget is exhausted")
                 self.usage["search_calls"] += 1
-                return await operation()
+                started = monotonic()
+                with diagnostic_scope(provider=_name, attempt=_ordinal):
+                    diagnostic("provider_requested", arguments={"query": _query})
+                    try:
+                        results = await operation()
+                    except BaseException as exc:
+                        diagnostic(
+                            "provider_failed",
+                            code=getattr(exc, "code", "search_unavailable"),
+                            elapsed_s=monotonic() - started,
+                        )
+                        raise
+                    diagnostic(
+                        "provider_result",
+                        result=result_summary(
+                            "search", [item.model_dump(mode="json") for item in results]
+                        ),
+                        elapsed_s=monotonic() - started,
+                    )
+                    return results
 
             batch = await self.search.search_batch(
                 payload["query"], categories=categories, invoke=attempt
@@ -127,6 +137,12 @@ class ResearchDebugTools:
             )
         target = candidate.fulltext_url if candidate.source_type == "paper" else candidate.url
         key = (candidate.source_type, target)
+        diagnostic(
+            "fetch_target",
+            url=target,
+            candidate_key=payload["candidate_key"],
+            disposition="cache" if key in self.results else "execute",
+        )
         if key not in self.results:
             if self.usage["fetch_calls"] >= self.config.limits.fetch_calls:
                 raise AppError("budget_exhausted", "Debug Fetch budget is exhausted")

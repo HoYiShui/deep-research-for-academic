@@ -19,6 +19,10 @@ from domain.ports import AdapterError
 from domain.research.facts import Location
 
 HTML_PARSER_VERSION = "dr4a-html-v1"
+# HTML/text plus the PDF text layer (per-page paragraphs, no table/formula
+# structure). A light local alternative to MinerU for public paper research.
+LIGHT_PARSER_VERSION = "dr4a-light-v1"
+PARSER_VERSIONS = frozenset({HTML_PARSER_VERSION, LIGHT_PARSER_VERSION})
 _BREAK = {
     "p",
     "li",
@@ -200,15 +204,81 @@ class _HTML(HTMLParser):
         return self.blocks
 
 
+def _media_types(config):
+    if config.parser_version == LIGHT_PARSER_VERSION:
+        return {"text/html", "text/plain", "application/pdf"}
+    return {"text/html", "text/plain"}
+
+
+def _pdf_blocks(body, config):
+    import pypdfium2
+
+    try:
+        document = pypdfium2.PdfDocument(body)
+    except pypdfium2.PdfiumError as exc:
+        raise parse_error("invalid_document") from exc
+    try:
+        if len(document) > config.max_pages:
+            raise parse_error("resource_limit")
+        blocks = []
+        for index in range(len(document)):
+            page = document[index]
+            try:
+                text = page.get_textpage().get_text_range()
+            finally:
+                page.close()
+            for paragraph in _paragraphs(text):
+                if len(blocks) >= config.max_blocks:
+                    raise parse_error("resource_limit")
+                blocks.append(
+                    ParsedBlock(
+                        type="text",
+                        content=paragraph,
+                        location=Location(page_start=index + 1, page_end=index + 1),
+                    )
+                )
+    finally:
+        document.close()
+    if not blocks:
+        raise parse_error("parse_empty")  # Scanned PDFs have no text layer.
+    return blocks
+
+
+def _paragraphs(text):
+    """Join PDF layout lines into paragraphs at blank lines or sentence ends."""
+    # pdfium marks soft hyphens with U+FFFE; they are layout, not content.
+    text = text.replace("\ufffe", "").replace("\u00ad", "")
+    lines = [line.strip() for line in text.replace("\r\n", "\n").replace("\r", "\n").split("\n")]
+    paragraph, result = [], []
+    for line in [*lines, ""]:
+        if line:
+            if paragraph and paragraph[-1].endswith("-") and line[:1].islower():
+                paragraph[-1] = paragraph[-1][:-1] + line
+            else:
+                paragraph.append(line)
+        if paragraph and (not line or (len(" ".join(paragraph)) > 400 and line.endswith("."))):
+            result.append(" ".join(paragraph))
+            paragraph = []
+    return [item for item in result if len(item) >= 20 or any(c.isdigit() for c in item)]
+
+
 def normalize(body, reference, config):
-    if config.parser_version != HTML_PARSER_VERSION:
+    if config.parser_version not in PARSER_VERSIONS:
         raise parse_error("parser_version_mismatch")
-    if reference.media_type not in {"text/html", "text/plain"}:
+    if reference.media_type not in _media_types(config):
         raise parse_error("parser_not_configured")
     if len(body) != reference.size or hashlib.sha256(body).hexdigest() != reference.sha256:
         raise parse_error("content_hash_mismatch")
     if len(body) > config.max_content_bytes:
         raise parse_error("resource_limit")
+    if reference.media_type == "application/pdf":
+        if not body.startswith(b"%PDF-"):
+            raise parse_error("invalid_document")
+        return ParsedDocument(
+            blocks=_pdf_blocks(body, config),
+            input_hash=reference.sha256,
+            parser_version=config.parser_version,
+        )
     try:
         text = body.decode("utf-8-sig")
         if "\x00" in text or body.startswith(b"%PDF-"):
@@ -247,9 +317,9 @@ class HTMLDocumentParser:
     async def parse(self, reference: ContentRef, config: ParserConfig) -> ParsedDocument:
         reference = ContentRef.model_validate(reference)
         config = ParserConfig.model_validate(config)
-        if config.parser_version != HTML_PARSER_VERSION:
+        if config.parser_version not in PARSER_VERSIONS:
             raise parse_error("parser_version_mismatch")
-        if reference.media_type not in {"text/html", "text/plain"}:
+        if reference.media_type not in _media_types(config):
             raise parse_error("parser_not_configured")
         if reference.size > config.max_content_bytes:
             raise parse_error("resource_limit")

@@ -11,14 +11,12 @@ from application.phase_workers import public_workers
 from application.report_serializer import ReportPublisher
 from application.run_driver import RunDriver
 from application.run_sse import RunEventStream
-from application.search_tools import SearchBinding, SearchProvider
+from application.web_search import web_search_binding
 from domain.research.agents import prompt_versions
 from infrastructure.fetch.document import HTTPDocumentFetch
-from infrastructure.parser.html import HTML_PARSER_VERSION, HTMLDocumentParser
+from infrastructure.parser.html import PARSER_VERSIONS, HTMLDocumentParser
 from infrastructure.parser.mineru_output import MINERU_PARSER_VERSION
 from infrastructure.parser.pdf import MinerUDocumentParser
-from infrastructure.search.bocha import BochaSearch
-from infrastructure.search.composite import CompositeSearch
 from infrastructure.storage.content import MinioContentStore
 from infrastructure.storage.content_cache import MinioResultCache
 
@@ -31,7 +29,7 @@ class PublicResearchExecution:
                 "service_not_ready", "Public executor requires a configured remote model"
             )
         version = config.parser_version
-        if version not in {HTML_PARSER_VERSION, MINERU_PARSER_VERSION}:
+        if version not in {*PARSER_VERSIONS, MINERU_PARSER_VERSION}:
             raise AppError("service_not_ready", "Explicit HTML/PDF parser version is required")
         if (
             version == MINERU_PARSER_VERSION
@@ -46,22 +44,11 @@ class PublicResearchExecution:
             "secure": config.minio_secure,
         }
         self.cache, self.content = MinioResultCache(**options), MinioContentStore(**options)
-        # The arXiv adapter remains independently tested, but is deliberately
-        # not registered in the current executable research profile.
-        self.search = CompositeSearch(
-            [
-                (
-                    "bocha",
-                    BochaSearch(
-                        config.bocha_api_key.get_secret_value(), timeout_s=config.search_timeout_s
-                    ),
-                ),
-            ],
-            timeout_s=config.search_timeout_s,
-        )
+        web_search = web_search_binding(config)
+        self.search = web_search.adapter
         self.parser = (
             HTMLDocumentParser(self.content)
-            if version == HTML_PARSER_VERSION
+            if version in PARSER_VERSIONS
             else MinerUDocumentParser(
                 self.content, config.mineru_models_dir, timeout_s=config.parser_timeout_s
             )
@@ -99,7 +86,7 @@ class PublicResearchExecution:
                 # durable budget lock protects the terminal reserve; using
                 # the nonterminal ceiling here also denies reserved spend.
                 config.run_tokens,
-                output_token_limit=16384,
+                output_token_limit=48000,
             ),
             model_slots=asyncio.Semaphore(config.llm_concurrency),
             clock=runtime.clock,
@@ -108,10 +95,7 @@ class PublicResearchExecution:
             phase_committed=committed if committed is not None else projected,
             finished=lambda run: None,
             diagnostic=diagnostic if diagnostic is not None else runtime.run_event_bus.emit,
-            search=SearchBinding(
-                self.search,
-                (SearchProvider(name="bocha", category="web", revision="bocha-v1"),),
-            ),
+            search=web_search,
             fetch=FetchBinding(fetch),
         )
 

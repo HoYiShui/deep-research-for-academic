@@ -6,13 +6,14 @@ from pydantic import ValidationError
 from application.debug_runtime import DebugExecution, PublicResearchExecution
 from application.errors import AppError
 from application.settings import Settings
+from application.web_search import web_search_binding
 from cli.research_tools import ResearchDebugTools
-from domain.ports import AdapterError
 from domain.research.models import RunConfig
 from infrastructure.clock import SystemClock
 from infrastructure.parser.html import HTML_PARSER_VERSION
 from infrastructure.search.arxiv import ArxivSearch
-from infrastructure.search.bocha import BochaSearch
+from infrastructure.search.openalex import OpenAlexSearch
+from infrastructure.search.search_router import SearchRouterSearch
 from scripts.debug_backend import debug_settings
 
 
@@ -53,18 +54,18 @@ def test_http_debug_wrapper_still_rejects_production_before_adapter_construction
         DebugExecution(runtime)
 
 
-async def test_public_runtime_registers_only_web_without_constructing_arxiv(monkeypatch):
-    def forbidden(*args, **kwargs):
-        raise AssertionError("Dormant paper adapter must not be constructed")
-
+async def test_public_runtime_registers_web_and_papers_by_category(monkeypatch):
     calls = []
 
-    async def search(self, query):
-        calls.append(query)
-        return []
+    def recorder(name):
+        async def search(self, query):
+            calls.append((name, query))
+            return []
 
-    monkeypatch.setattr(ArxivSearch, "__init__", forbidden)
-    monkeypatch.setattr(BochaSearch, "search", search)
+        return search
+
+    monkeypatch.setattr(OpenAlexSearch, "search", recorder("openalex"))
+    monkeypatch.setattr(SearchRouterSearch, "search", recorder("search_router"))
     runtime = SimpleNamespace(
         settings=Settings(parser_version=HTML_PARSER_VERSION),
         repository_store=SimpleNamespace(),
@@ -74,39 +75,51 @@ async def test_public_runtime_registers_only_web_without_constructing_arxiv(monk
     )
     execution = PublicResearchExecution(runtime)
     try:
-        assert [provider.name for provider in execution.driver.search.providers] == ["bocha"]
+        assert [provider.name for provider in execution.driver.search.providers] == [
+            "search_router",
+            "openalex",
+        ]
         batch = await execution.search.search_batch(
             "academic research", categories=frozenset({"papers", "web"})
         )
-        assert [outcome.source for outcome in batch.outcomes] == ["bocha"]
-        assert calls == ["academic research"]
-        with pytest.raises(AdapterError, match="No authorized search source"):
-            await execution.search.search_batch("paper-only", categories=frozenset({"papers"}))
-        assert calls == ["academic research"]  # No substitution of web for papers-only.
+        assert sorted(outcome.source for outcome in batch.outcomes) == ["openalex", "search_router"]
+        calls.clear()
+        await execution.search.search_batch("paper-only", categories=frozenset({"papers"}))
+        assert calls == [("openalex", "paper-only")]  # No substitution of web for papers-only.
     finally:
         await execution.aclose()
 
 
-async def test_independent_phase_tools_also_leave_paper_adapter_dormant(monkeypatch):
+async def test_paper_search_can_be_disabled(monkeypatch):
     def forbidden(*args, **kwargs):
-        raise AssertionError("Dormant paper adapter must not be constructed")
+        raise AssertionError("Disabled paper adapter must not be constructed")
 
+    monkeypatch.setattr(ArxivSearch, "__init__", forbidden)
+    monkeypatch.setattr(OpenAlexSearch, "__init__", forbidden)
+    binding = web_search_binding(
+        Settings(parser_version=HTML_PARSER_VERSION, paper_search_provider="none")
+    )
+    try:
+        assert [provider.name for provider in binding.providers] == ["search_router"]
+    finally:
+        await binding.adapter.aclose()
+
+
+async def test_independent_phase_tools_search_web_and_papers(monkeypatch):
     async def search(self, query):
         return []
 
-    monkeypatch.setattr(ArxivSearch, "__init__", forbidden)
-    monkeypatch.setattr(BochaSearch, "search", search)
+    monkeypatch.setattr(OpenAlexSearch, "search", search)
+    monkeypatch.setattr(SearchRouterSearch, "search", search)
     settings = Settings(parser_version=HTML_PARSER_VERSION)
     config = RunConfig.model_validate(settings.run_config_snapshot())
     tools = ResearchDebugTools(settings, config, {"search_calls": 0}, fake=False)
     try:
         tools.for_unit(
-            SimpleNamespace(
-                unit_id="query-test", parameters={"kind": "query", "query": "test"}
-            )
+            SimpleNamespace(unit_id="query-test", parameters={"kind": "query", "query": "test"})
         )
         result = await tools.invoke("search", {"query": "test"})
-        assert [item["source"] for item in result["outcomes"]] == ["bocha"]
-        assert tools.usage["search_calls"] == 1
+        assert sorted(item["source"] for item in result["outcomes"]) == ["openalex", "search_router"]
+        assert tools.usage["search_calls"] == 2
     finally:
         await tools.close()
