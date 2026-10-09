@@ -13,9 +13,10 @@ class ResearchQueries:
         self.uow, self.research = uow, research
 
     async def session_view(self, owner: UUID, session_id: UUID) -> dict:
-        # Run transitions commit the parent Session too: briefly lock the parent.
-        async with self.uow.transaction() as tx:
-            session = await self.research.get_session(owner, session_id, tx, for_update=True)
+        # A committed MVCC snapshot preserves Session/Run/Checkpoint consistency
+        # without making a ready Session disappear from SKIP LOCKED claims.
+        async with self.uow.snapshot() as tx:
+            session = await self.research.get_session(owner, session_id, tx)
             if session is None:
                 raise AppError("session_not_found", "Session not found")
             run = await self.research.get_run(owner, session.run_id, tx) if session.run_id else None
@@ -95,8 +96,8 @@ class ResearchQueries:
 
     async def checkpoint_view(self, owner: UUID, session_id: UUID) -> dict:
         """Trusted CLI projection of current seq, including a reworked phase."""
-        async with self.uow.transaction() as tx:
-            session = await self.research.get_session(owner, session_id, tx, for_update=True)
+        async with self.uow.snapshot() as tx:
+            session = await self.research.get_session(owner, session_id, tx)
             if session is None:
                 raise AppError("session_not_found", "Session not found")
             if session.run_id is None:
@@ -127,8 +128,8 @@ class ResearchQueries:
             }
 
     async def report_view(self, owner: UUID, session_id: UUID) -> dict:
-        async with self.uow.transaction() as tx:
-            session = await self.research.get_session(owner, session_id, tx, for_update=True)
+        async with self.uow.snapshot() as tx:
+            session = await self.research.get_session(owner, session_id, tx)
             if session is None:
                 raise AppError("session_not_found", "Session not found")
             if session.status != "completed" or session.run_id is None:

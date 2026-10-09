@@ -91,6 +91,7 @@
   - 正式`RunUnitCoordinator`已实现范围校验合并、结果ContentRef/manifest、完整单元seq提交、恢复对照前后快照验证后跳过；14项真实PG/MinIO+受控模型反例通过。MODEL同步细化结果引用，缺失对象不重跑，投影失败不影响事实。单元规划/Machine/完整Driver仍待组合，不勾选。证据：[单元提交与恢复](evidence/t017-phase-dispatch.md)。
   - 稳定单元规划、typed Machine、独立阶段提交与`RunDriver`五阶段/返工循环已组合；显式TaskRunner连接、取消竞争、完整发布事实检查、同Run预算/计时、单元/阶段间独立SIGKILL恢复已验证。32项真实PG/MinIO+受控业务输出目标集通过；生产质量门/真实业务workers及默认HTTP组合仍待实施，不勾选。证据：[Driver与进程恢复](evidence/t017-phase-dispatch.md)。
 - [ ] T018 [US2] 更新 `backend/application/sse.py`、`backend/domain/research/events.py`：每订阅独立有界队列、bootstrap竞态、心跳、slow consumer、JWT过期、phase/progress/rework/error/done统一帧；为CLI持租Run轮询PG当前投影，不假装共享跨进程内存队列。
+  - 2026-10-09：真实PG反例确认GET的Session行锁使SKIP LOCKED遗漏ready领取；三个读投影改为短只读REPEATABLE READ快照，保持并发状态一致且不挡领取。原HTTP/TUI/PTY目标8项通过，不延长deadline或改Prompt；JWT/完整事件与生产能力仍缺，保持未完成。证据：[读取与领取竞争](evidence/t018-sse-core.md#2026-10-09读取快照与-run-领取竞争)。
   - 2026-10-07外围调试：正式RunDriver补协调器生成的query_started/query_completed/section_completed；完成帧在Checkpoint提交后，开发DebugExecution接实际EventBus。受控worker+真实PG/MinIO/独立TCP证明事件回查seq，失败单元无完成、已提交单元resume不重复执行/投影；不改变Agent/API Schema。JWT及其它完整事件仍未完成，不勾选。证据：[逐query进度](evidence/t018-sse-core.md#2026-10-07开发run逐query进度)。
   - 默认HTTP已使用`run_sse.py`/`run_events.py`严格事件、每订阅队列与PG bootstrap/poll；全量361通过。旧CLI事件隔离，实时Orchestrator发布/JWT截止传递/独立TCP尚待接入，不勾选。证据：[SSE核心](evidence/t018-sse-core.md)。
 - [ ] T019 [US2] 更新 `backend/application/research_service.py` 与 `backend/interface/router/research.py` 的status/report/events/cancel/resume：所有权、前置、最新seq、失败恢复资格、报告未就绪409；PG不可用只诊断error，不能发已完成持久失败的假done。

@@ -143,6 +143,10 @@ class TransactionPort(Protocol):
 class UnitOfWorkPort(Protocol):
     def transaction(self) -> AbstractAsyncContextManager[TransactionPort]: ...
 
+    def snapshot(self) -> AbstractAsyncContextManager[TransactionPort]:
+        """One read-only committed snapshot across repositories, without row locks."""
+        ...
+
 
 class IngestionJobRepositoryPort(Protocol):
     async def job_context(

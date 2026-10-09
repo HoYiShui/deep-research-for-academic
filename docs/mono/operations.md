@@ -69,6 +69,8 @@ HTTP每owner默认创建10次/分钟、messages/confirm 30次/分钟、KB搜索6
 
 确认事务锁Session、所选KB/Document版本范围，校验expected revision和brief_version，写冻结Brief、Run、初始Checkpoint、状态和幂等响应。Unique(session_id)防第二Run。最终交付同事务写Report、done Checkpoint、Run/Session.completed。任何事务失败回滚全部PG变更。
 
+GET SessionView、最新Checkpoint与Report投影使用同一短只读REPEATABLE READ快照核对Session/Run/Brief/Checkpoint/Report的一致关系，不对Session取FOR UPDATE锁。读请求不能使SKIP LOCKED领取遗漏ready任务，也不能通过分次READ COMMITTED读拼出半个并发状态；快照内禁止写入，后续GET获得新的已提交快照。写事务的父子锁顺序、revision/token校验和原子提交保持不变，SSE持久轮询复用同一只读投影。
+
 ### 3.2 工具调用与“重复为0”的边界
 
 call_key = hash(run_id,tool/provider/prompt或template版本,规范参数,输入内容hash,source/知识版本范围)，不含随机attempt/timestamp。持久reserve预算和调用身份；成功结果先存不可变对象，再写ToolCallRecord.succeeded；合并State后Checkpoint记录unit_manifest。

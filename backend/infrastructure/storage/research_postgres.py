@@ -88,10 +88,22 @@ class PostgresResearchStore:
 
     @asynccontextmanager
     async def transaction(self):
+        async with self._transaction(read_only=False) as tx:
+            yield tx
+
+    @asynccontextmanager
+    async def snapshot(self):
+        async with self._transaction(read_only=True) as tx:
+            yield tx
+
+    @asynccontextmanager
+    async def _transaction(self, *, read_only):
         async with self.pool.acquire() as conn:
             tx = _Transaction(uuid4(), self, conn)
             try:
-                async with conn.transaction():
+                async with conn.transaction(
+                    isolation="repeatable_read" if read_only else None, readonly=read_only
+                ):
                     yield tx
             except asyncpg.UniqueViolationError as exc:
                 codes = {

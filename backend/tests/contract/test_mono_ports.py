@@ -116,6 +116,42 @@ async def test_foreign_and_closed_transaction_handles_are_rejected():
         await db.research.commit_session_change(0, session_change(owner.user_id), tx)
 
 
+async def test_fake_read_snapshot_is_stable_and_cannot_publish_writes():
+    db = FakeResearchDatabase()
+    owner = await create_owner(db)
+    change = session_change(owner.user_id)
+    async with db.transaction() as tx:
+        await db.research.commit_session_change(0, change, tx)
+    async with db.snapshot() as snapshot:
+        first = await db.research.get_session(owner.user_id, change.session.session_id, snapshot)
+        updated = SessionChange.model_validate(
+            change.model_dump()
+            | {
+                "session": change.session.model_dump()
+                | {"revision": 2, "brief_version": 2, "clarification_round": 1},
+                "brief": change.brief.model_dump() | {"version": 2},
+            }
+        )
+        async with db.transaction() as mutation:
+            await db.research.commit_session_change(1, updated, mutation)
+        assert (
+            await db.research.get_session(owner.user_id, change.session.session_id, snapshot)
+            == first
+        )
+        with pytest.raises(ValueError, match="read-only"):
+            await db.research.commit_session_change(1, updated, snapshot)
+    assert (await db.research.get_session(owner.user_id, change.session.session_id)).revision == 2
+    with pytest.raises(ValueError, match="closed"):
+        await db.research.get_session(owner.user_id, change.session.session_id, snapshot)
+
+
+async def test_snapshot_handle_cannot_be_reused_in_another_fake_store():
+    db, other = FakeResearchDatabase(), FakeResearchDatabase()
+    async with db.snapshot() as tx:
+        with pytest.raises(ValueError, match="foreign"):
+            await other.users.get_by_id(uuid4(), tx)
+
+
 def test_clock_has_independent_wall_and_monotonic_domains():
     clock = FakeClock(datetime(2026, 10, 5, tzinfo=UTC))
     port: ClockPort = clock

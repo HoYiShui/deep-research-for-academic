@@ -91,3 +91,19 @@ TUI `npm test` **22 passed**、typecheck通过（初次测试将assert.fail直�
 本轮完整当前工作区 `PATH=<已有fnm Node v24.13.1>/bin:$PATH UV_CACHE_DIR=/private/tmp/dr4a-uv-cache uv run --no-sync pytest -q --tb=short`，**1211 passed in 304.29s**。包含真实Compose PG/MinIO/Standalone及既有受控模型HTTP/TUI，不是Research业务报告质量验收。本次没有复现原超时，因此根因未确认；之前两次失败证据仍见[管理HTTP留痕](t040-t041-knowledge-base.md#2026-10-09管理-http分页与创建恢复)，不以这次green抹除。全量是当前工作区结果，包含之前未提交trace/search-router；本次仅提交诊断与留痕，不夹带那些改动，不宣称从本次clean commit单独重跑过全量。
 
 没有新增/重启Docker容器或改数据卷；只清fixture自有库/bucket/子进程，保留docs/implementation。T056/T061与其他未完成任务不勾选，完整目标保持；Research真实工作流/Prompt仍暂缓，接下来推进T049物理删除/恢复闭环。
+
+## 2026-10-09：读取快照与 Run 领取竞争
+
+基线c162068。上批完整回归1231通过、2项HTTP/TUI超时；补跑仍出现SSE超时。只读诊断显示一例Run一直ready/attempt=0，另一例最终completed/seq=20但首次领取比创建晚约10秒。这些是失败现场，不足以单凭时间证明每次超时的同一根因。
+
+代码核对发现SessionView、CLI checkpoint dump和Report投影在写事务中对Session执行FOR UPDATE；ready Run领取使用FOR UPDATE OF s SKIP LOCKED。新增真实隔离PG竞争测试：读取Session后暂停、另一个连接领取ready Run。旧实现两个投影均使claim返回None；解除读锁后才可领取。这证明了一个实际竞争路径，不能把GET称为不会干扰调度。
+
+新增UnitOfWork.snapshot，由PG强制read-only REPEATABLE READ，三个投影在同一短快照里读取Session/Run/Brief/Checkpoint/Report，去掉读接口FOR UPDATE。写事务隔离、父子锁、租约token/revision和原子发布不变；SSE bootstrap/poll与CLI dump复用原投影，无轮询间隔或15/20/25秒验收deadline修改。Fake也保持独立只读数据快照，不把读快照提交成覆盖并发写入的新事实。
+
+真实PG测试核对事务隔离/read-only、快照内SQL写入拒绝、并发领取成功、同一快照保留旧一致状态、后续GET看到新running/revision。Fake契约检查同快照不受并发提交影响、禁止写入、跨store/关闭后句柄拒绝。新增fake测试首轮因fixture未递增brief_version且修改不可变query失败；修正为合法Clarify版本演进，未放宽产品校验。
+
+修改后首批投影/SSE/dump目标31项通过（10.98秒）；原HTTP/TUI/PTY目标8项通过（46.23秒），fake及PG快照单独14项通过（1.00秒）。完整工作区回归与独立暂存快照结果待下方补充；不以目标通过宣称所有历史延迟均已消失、T018 JWT/事件缺口或T056生产readiness已完成。没有收费Research或Prompt调整，没有重启Compose或接触用户历史数据。
+
+完整当前工作区首轮 **1238 passed, 1 failed in 284.64s**，唯一失败为上述修正前的fake fixture；该进程在修正前已加载测试，不能把单测补跑称为同一轮全绿。独立暂存提交通过checkout-index导出，不包含未提交search-router/trace；首次目标集因缺tsx出现6失败/35通过，补已有node_modules后因用例固定调用backend/.venv出现1失败/40通过。两者均是验证目录依赖准备缺失，未改应用或放宽测试。为快照链接原本已安装的Python/Node依赖及backend/.env（不复制凭据），最终八文件目标集 **41 passed in 54.21s**，包含真实PG竞争、SessionView/SSE/CLI dump、独立TCP及真实pi-tui PTY；测试源码与应用源码均来自暂存快照。TUI自身 **22 passed**、typecheck通过。
+
+最终完整当前工作区 `PATH=<已有fnm Node v24.13.1>/bin:$PATH UV_CACHE_DIR=/private/tmp/dr4a-uv-cache uv run --no-sync pytest -q --tb=short`：**1239 passed in 278.08s**。这是包含先前未提交trace/search-router的当前工作区全量结果，不声称clean commit单独全量；clean暂存源码的独立门禁为上文41项。Ruff/format及diff检查通过；Compose仍为原五个healthy服务，没有新增/重启容器或改卷。验证目录移到本机Trash，可恢复，不删除用户文件。T016/T018/T056剩余验收与Research真实质量仍各自保留，不能用此次green勾选。

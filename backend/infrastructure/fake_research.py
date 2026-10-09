@@ -75,6 +75,7 @@ class _Tx:
     owner: FakeResearchDatabase
     data: _Data
     active: bool = True
+    read_only: bool = False
 
 
 class FakeResearchDatabase:
@@ -96,6 +97,15 @@ class FakeResearchDatabase:
             finally:
                 tx.active = False
 
+    @asynccontextmanager
+    async def snapshot(self):
+        async with self._lock:
+            tx = _Tx(uuid4(), self, copy.deepcopy(self._data), read_only=True)
+        try:
+            yield tx
+        finally:
+            tx.active = False
+
     def data(self, tx=None) -> _Data:
         if tx is None:
             return self._data
@@ -108,7 +118,10 @@ class FakeResearchDatabase:
     def write_data(self, tx) -> _Data:
         if tx is None:
             raise ValueError("A live transaction is required for writes")
-        return self.data(tx)
+        data = self.data(tx)
+        if tx.read_only:
+            raise ValueError("A read-only snapshot cannot write")
+        return data
 
 
 class _Users:
