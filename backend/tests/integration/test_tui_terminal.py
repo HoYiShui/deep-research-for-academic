@@ -10,6 +10,7 @@ from pathlib import Path
 import pytest
 
 from tests.integration.test_verify_clarify_http import server
+from tests.support.run_diagnostics import diagnose_on_failure
 
 pty = pytest.importorskip("pty", reason="Terminal integration requires POSIX PTY")
 fcntl = pytest.importorskip("fcntl")
@@ -113,6 +114,7 @@ async def test_actual_tui_renders_live_progress_and_controlled_report(pg_databas
     async with (
         server(database, run_bucket=object_cache.bucket, pause="progress") as url,
         terminal(url) as (process, send, visible, text),
+        diagnose_on_failure(pool),
     ):
         await visible("DR4A")
         send("Design a public evaluation\r")

@@ -9,6 +9,7 @@ import httpx
 from scripts.verify_clarify_http import verify
 from scripts.verify_run_http import verify as verify_run
 from tests.integration.test_verify_clarify_http import server
+from tests.support.run_diagnostics import diagnose_on_failure
 
 
 async def probe(url, *arguments):
@@ -38,7 +39,7 @@ async def test_probe_cli_creates_answers_then_requires_explicit_approval(
     pg_database, object_cache, tmp_path
 ):
     pool, database = pg_database
-    async with server(database, run_bucket=object_cache.bucket) as url:
+    async with server(database, run_bucket=object_cache.bucket) as url, diagnose_on_failure(pool):
         asked = await probe(url, "--query", "Public controlled question")
         assert asked["status"] == "ask"
         assert await pool.fetchval("SELECT count(*) FROM research_runs") == 0
@@ -73,6 +74,7 @@ async def test_confirm_live_driver_report_and_reconnect_after_process_restart(
     async with (
         server(database, run_bucket=object_cache.bucket, pause="progress") as url,
         httpx.AsyncClient(base_url=url, timeout=15) as http,
+        diagnose_on_failure(pool),
     ):
         result = await verify(http, query="Design a public controlled evaluation")
         session = result["view"]["session_id"]

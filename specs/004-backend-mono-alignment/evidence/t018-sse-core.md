@@ -79,3 +79,15 @@ ResearchSession集中读取采用acceptStatus：仅同Session合法身份，保�
 6项显式受控Promise/事件单测：两个refresh的返回顺序逆序；observer bootstrap等待时手动refresh先得到seq5；旧Brief/null Run；done seq2后旧GET seq1不能擦掉seq或伪造完成，下一GET确立completed；错误Session/Run身份；Session切换时等待中的resume无POST。观察中只GET/订阅，不发新建/确认/自动恢复。此竞态证据是客户端受控测试，非真实网络延迟或研究质量验收。
 
 TUI `npm test` **22 passed**、typecheck通过（初次测试将assert.fail直接作为unknown回调导致类型不兼容，改显式回调，未放宽产品类型）；backend活TCP/PG/MinIO、真实PTY回归 `uv run --no-sync pytest -q tests/integration/test_tui_live_http.py tests/integration/test_tui_terminal.py`：**5 passed in 27.18s**。diff检查通过。本批未跑全后端，未修改Agent/契约/.env/用户历史库或docs/implementation，未推送。
+
+## HTTP/TUI 超时诊断（2026-10-09）
+
+基线c205094。上一批两次完整回归分别在CLI probe 20秒、HTTP SSE 15秒、TUI query_completed 10秒观察窗口超时，而原文件补跑通过；失败缺少PG推进状态，尚不能区分执行慢、租约问题或事件观察停滞。不改Prompt/Schema/业务/验收deadline，不将未知原因叫作已修复。
+
+新增test-only `tests/support/run_diagnostics.py`，只在原用例失败时、子后端尚未关闭且fixture PG尚未删除前读持久状态：Session/Run ID/status/revision、phase/checkpoint_seq/attempt/lease到期、checkpoint提交时间、ToolAttempt分组与PG连接等待类型。整体诊断最多2秒、最多20个资源/100个checkpoint；拒绝非本轮 `dr4a_test_<uuid>` 库，不读用户历史库。查询不选Brief/query/state/正文/config/object key/凭据/SQL文本或任意Failure文字；依赖故障仅记异常类型。原异常继续抛出，不以诊断结果代替门禁，不扩展运行允许时间。这个辅助诊断不是CLI公开trace、生产监控或完整readiness实现。
+
+3项新测试使用真实隔离PG核对状态/seq、正文canary不输出、查询不改变checkpoint；确认诊断原样抛原异常、非测试库提前拒绝及敏感依赖异常文本不输出。与原活HTTP/真实PTY文件一起 `pytest -q tests/integration/test_run_diagnostics.py tests/integration/test_mono_run_tcp.py tests/integration/test_tui_terminal.py --tb=short`，**7 passed in 34.31s**。4个Python文件Ruff/format、git diff --check通过。
+
+本轮完整当前工作区 `PATH=<已有fnm Node v24.13.1>/bin:$PATH UV_CACHE_DIR=/private/tmp/dr4a-uv-cache uv run --no-sync pytest -q --tb=short`，**1211 passed in 304.29s**。包含真实Compose PG/MinIO/Standalone及既有受控模型HTTP/TUI，不是Research业务报告质量验收。本次没有复现原超时，因此根因未确认；之前两次失败证据仍见[管理HTTP留痕](t040-t041-knowledge-base.md#2026-10-09管理-http分页与创建恢复)，不以这次green抹除。全量是当前工作区结果，包含之前未提交trace/search-router；本次仅提交诊断与留痕，不夹带那些改动，不宣称从本次clean commit单独重跑过全量。
+
+没有新增/重启Docker容器或改数据卷；只清fixture自有库/bucket/子进程，保留docs/implementation。T056/T061与其他未完成任务不勾选，完整目标保持；Research真实工作流/Prompt仍暂缓，接下来推进T049物理删除/恢复闭环。
