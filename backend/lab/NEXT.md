@@ -13,7 +13,7 @@
   - 结果 `needs_more_work`，32 分钟，62 次 LLM 调用，约 1.6M tokens。
   - 基线报告存在 `backend/lab/baselines/case1-20261009-report.md`。
   - 对应的完整 state 在本机 `backend/.local/lab/1009-163616-case1/`（git-ignored，可能已不在）。
-- 上一阶段修过的坑见 commit `6b1bcd9`、`8a83cdb`、`1ed5dba`、`19383aa` 的说明。总原则：**结构错误才失败，语义违规用代码降级并记 trace**。不要把它们改回硬门。
+- 上一阶段踩坑的完整记录见 `docs/debugging/2026-10-09-first-real-run.md`；修复见 commit `6b1bcd9`、`8a83cdb`、`1ed5dba`、`19383aa` 的说明。总原则：**结构错误才失败，语义违规用代码降级并记 trace**。不要把它们改回硬门。
 
 ## 运行环境
 
