@@ -1,0 +1,203 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "DR4A API 契约上下文与传播路径",
+    "locale": "zh-CN",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/HoYiShui/deep-research-for-academic",
+      "provider": "github",
+      "link_mode": "web",
+      "revision": "30a61b1a38e2fcf2f36266dbca1f358abbbd33d4"
+    },
+    "views": [
+      {
+        "id": "canonical-context",
+        "label": "权威契约",
+        "focus": ["research_api", "brief_contract", "report_contract"],
+        "note": "外部传输规则引用稳定的数据对象语义，不重复定义同一事实。"
+      },
+      {
+        "id": "consumer-path",
+        "label": "客户端消费",
+        "focus": ["research_api", "tui_contract", "tui_runtime"],
+        "note": "TUI 只通过 HTTP/SSE 消费正式 Research API。"
+      },
+      {
+        "id": "implementation-path",
+        "label": "后端落实",
+        "focus": ["research_api", "dto_router", "session_pipeline", "contract_tests"],
+        "note": "契约必须穿透 DTO、路由、状态转换和可执行验收。"
+      }
+    ]
+  },
+  "components": [
+    {
+      "id": "brief_contract",
+      "type": "backend",
+      "label": "ResearchBrief 契约",
+      "sublabel": "10 字段语义与冻结条件",
+      "pos": [50, 80],
+      "size": [190, 74],
+      "sources": [{"path": "docs/contracts/researchbrief.md", "line": 1, "label": "数据对象语义"}]
+    },
+    {
+      "id": "research_api",
+      "type": "security",
+      "label": "Research API 契约",
+      "sublabel": "HTTP / SSE 唯一权威来源",
+      "tag": "canonical",
+      "pos": [350, 210],
+      "size": [210, 82],
+      "sources": [{"path": "docs/contracts/research-api.md", "line": 1, "label": "外部接口契约"}]
+    },
+    {
+      "id": "report_contract",
+      "type": "backend",
+      "label": "报告骨架契约",
+      "sublabel": "最终交付结构与任务特化",
+      "pos": [50, 350],
+      "size": [190, 74],
+      "sources": [{"path": "docs/contracts/report-skeleton.md", "line": 1, "label": "输出对象语义"}]
+    },
+    {
+      "id": "historical_api",
+      "type": "external",
+      "label": "历史 API 入口",
+      "sublabel": "specs/001/.../api.md",
+      "tag": "deprecated on conflict",
+      "pos": [350, 50],
+      "size": [210, 70],
+      "sources": [{"path": "specs/001-deep-research-agent/contracts/api.md", "line": 1, "label": "历史入口"}]
+    },
+    {
+      "id": "tui_contract",
+      "type": "frontend",
+      "label": "TUI 客户端边界",
+      "sublabel": "如何消费正式 API",
+      "pos": [680, 80],
+      "size": [190, 74],
+      "sources": [{"path": "specs/003-textual-tui/contracts/tui-client.md", "line": 1, "label": "客户端消费规则"}]
+    },
+    {
+      "id": "tui_runtime",
+      "type": "frontend",
+      "label": "TUI Runtime",
+      "sublabel": "api-client.ts + app.ts",
+      "pos": [970, 80],
+      "size": [180, 74],
+      "sources": [
+        {"path": "tui/src/api-client.ts", "line": 1, "label": "HTTP/SSE 适配"},
+        {"path": "tui/src/app.ts", "line": 1, "label": "交互状态投影"}
+      ]
+    },
+    {
+      "id": "dto_router",
+      "type": "backend",
+      "label": "HTTP 实现边界",
+      "sublabel": "DTO + FastAPI Router",
+      "pos": [680, 260],
+      "size": [190, 74],
+      "sources": [
+        {"path": "backend/interface/dto/research.py", "line": 1, "label": "传输模型"},
+        {"path": "backend/interface/router/research.py", "line": 1, "label": "路由实现"}
+      ]
+    },
+    {
+      "id": "session_pipeline",
+      "type": "backend",
+      "label": "业务状态与副作用",
+      "sublabel": "SessionService + Pipeline",
+      "pos": [970, 260],
+      "size": [180, 74],
+      "sources": [
+        {"path": "backend/application/session_service.py", "line": 1, "label": "Clarify 状态"},
+        {"path": "backend/application/research_service.py", "line": 1, "label": "Pipeline 启动"}
+      ]
+    },
+    {
+      "id": "contract_tests",
+      "type": "database",
+      "label": "可执行契约",
+      "sublabel": "HTTP / SSE / 状态转换测试",
+      "tag": "缺失的传播闸门",
+      "pos": [680, 440],
+      "size": [190, 78],
+      "sources": [
+        {"path": "backend/tests/integration/test_quickstart.py", "line": 1, "label": "后端旧流程"},
+        {"path": "tui/test/api-client.test.ts", "line": 1, "label": "TUI mock 测试"}
+      ]
+    },
+    {
+      "id": "cli_contract",
+      "type": "external",
+      "label": "CLI 命令契约",
+      "sublabel": "Agent / 开发者调试接口",
+      "pos": [50, 500],
+      "size": [190, 74],
+      "sources": [{"path": "specs/002-cli/contracts/cli.md", "line": 1, "label": "命令与输出契约"}]
+    },
+    {
+      "id": "missing_public_api",
+      "type": "external",
+      "label": "未纳入权威文档的 API",
+      "sublabel": "/health + /knowledge-base/*",
+      "tag": "contract gap",
+      "pos": [350, 500],
+      "size": [210, 78],
+      "sources": [
+        {"path": "backend/interface/main.py", "line": 1, "label": "Health 实现"},
+        {"path": "backend/interface/router/knowledge_base.py", "line": 1, "label": "KB 实现"},
+        {"path": "docs/architecture/dataflow.md", "line": 180, "label": "KB 目标数据流"}
+      ]
+    },
+    {
+      "id": "internal_ports",
+      "type": "backend",
+      "label": "内部 Port 契约",
+      "sublabel": "进程内 Python Protocol",
+      "pos": [970, 440],
+      "size": [180, 78],
+      "sources": [
+        {"path": "backend/application/ports.py", "line": 1, "label": "应用 Ports"},
+        {"path": "backend/domain/ports.py", "line": 1, "label": "领域 Ports"}
+      ]
+    }
+  ],
+  "connections": [
+    {"id": "brief-to-api", "from": "brief_contract", "to": "research_api", "label": "定义请求中的 Brief 语义", "variant": "emphasis"},
+    {"id": "report-to-api", "from": "report_contract", "to": "research_api", "label": "定义报告响应语义", "variant": "emphasis"},
+    {"id": "historical-to-api", "from": "historical_api", "to": "research_api", "label": "冲突时让位", "variant": "dashed", "labelAt": [455, 134]},
+    {"id": "api-to-tui-contract", "from": "research_api", "to": "tui_contract", "label": "派生客户端消费规则", "variant": "emphasis"},
+    {"id": "tui-contract-to-runtime", "from": "tui_contract", "to": "tui_runtime", "label": "约束请求与状态投影"},
+    {"id": "api-to-router", "from": "research_api", "to": "dto_router", "label": "约束路径、状态码、载荷", "labelAt": [740, 235]},
+    {"id": "router-to-service", "from": "dto_router", "to": "session_pipeline", "label": "触发状态转换与副作用", "labelAt": [920, 348]},
+    {"id": "api-to-tests", "from": "research_api", "to": "contract_tests", "label": "生成验收场景", "variant": "emphasis", "labelAt": [620, 380]},
+    {"id": "tests-to-router", "from": "contract_tests", "to": "dto_router", "label": "验证外部行为"},
+    {"id": "service-to-ports", "from": "session_pipeline", "to": "internal_ports", "label": "依赖抽象接口", "labelAt": [1060, 380]},
+    {"id": "missing-to-api", "from": "missing_public_api", "to": "research_api", "label": "需决定是否并入统一外部契约", "variant": "dashed"}
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "契约层次",
+      "items": [
+        "Research API 定义跨进程 HTTP/SSE 事实",
+        "ResearchBrief 与报告骨架定义稳定对象语义",
+        "TUI 合同只描述客户端如何消费，不另创服务端协议",
+        "CLI 和内部 Ports 是不同边界，不属于 HTTP API"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "当前漂移",
+      "items": [
+        "正式契约已更新，后端仍实现 clarify → ready",
+        "TUI 按 ask → confirm → ready 消费",
+        "知识库与 health 已实现但缺少统一外部契约",
+        "缺少跨后端与 TUI 的可执行契约闸门"
+      ]
+    }
+  ]
+}

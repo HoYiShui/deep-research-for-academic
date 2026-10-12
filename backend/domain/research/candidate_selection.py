@@ -6,7 +6,14 @@ from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 from domain.research.search import SearchBatch, SearchResult
 
 _LOW_VALUE_HOSTS = frozenset(
-    {"emergentmind.com", "papertik.app", "quora.com", "reddit.com", "stackexchange.com"}
+    {
+        "emergentmind.com",
+        "papertik.app",
+        "quora.com",
+        "reddit.com",
+        "scribd.com",
+        "stackexchange.com",
+    }
 )
 _TRACKING_KEYS = frozenset({"fbclid", "gclid", "ref", "source"})
 _DOI = re.compile(r"10\.\d{4,9}/[^\s?#]+", re.IGNORECASE)
@@ -66,6 +73,8 @@ def _low_value(candidate: SearchResult) -> bool:
         and path.startswith("/network/publication")
         or host == "semanticscholar.org"
         and path.startswith("/paper/")
+        or host == "researchr.org"
+        and "/references" in path
     )
 
 

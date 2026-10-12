@@ -64,6 +64,26 @@ def _source_id(url: str, content_hash: str) -> str:
     return stable_id("src", url, content_hash)
 
 
+def _source_tier(candidate: SearchResult, url: str) -> str:
+    """Recognize a few first-party hosts that generic web search cannot type."""
+    parts = urlsplit(url)
+    host = (parts.hostname or "").lower().removeprefix("www.")
+    path = parts.path.lower()
+    if host in {"arxiv.org", "export.arxiv.org"}:
+        return "primary"
+    if host == "kilthub.cmu.edu" or host == "sei.cmu.edu" and path.startswith("/library/"):
+        return "official"
+    if host == "ieee-dataport.org" and path.startswith("/documents/"):
+        return "official"
+    if host == "fvv.um.si" and path.startswith("/rv/arhiv/"):
+        return "peer_reviewed"
+    if host == "ieee-security.org" and path.startswith("/tc/spw"):
+        return "peer_reviewed"
+    if host == "aaai.org" and path.startswith("/papers/"):
+        return "peer_reviewed"
+    return candidate.source_tier
+
+
 def register_original(
     candidate: SearchResult,
     fetched: FetchedDocument,
@@ -76,7 +96,6 @@ def register_original(
         raise ValueError("Paper original must be a PDF, not an abstract page")
     canonical_url = _canonical_url(fetched.final_url)
     source_id = _source_id(canonical_url, fetched.hash)
-    arxiv = urlsplit(canonical_url).hostname in {"arxiv.org", "www.arxiv.org", "export.arxiv.org"}
     return SourceRecord(
         source_id=source_id,
         source_type=candidate.source_type,
@@ -94,7 +113,7 @@ def register_original(
                 upstream_source_id=None,
             )
         ],
-        source_tier="primary" if arxiv else candidate.source_tier,
+        source_tier=_source_tier(candidate, canonical_url),
         content_object_key=fetched.content_ref.key,
         content_hash=fetched.hash,
         data_classification="public",

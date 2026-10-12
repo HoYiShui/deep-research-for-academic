@@ -8,7 +8,7 @@ import pytest
 
 from domain.documents import FetchedDocument, ParsedDocument
 from domain.research.agents.coverage import section_coverage
-from domain.research.agents.originals import evidence_from_original, register_original
+from domain.research.agents.originals import _source_tier, evidence_from_original, register_original
 from domain.research.facts import Claim, ClaimEvidenceLink, SectionPlan
 from domain.research.search import SearchResult
 
@@ -71,6 +71,29 @@ def original(*, table=False, pdf=False, location=None):
     )
     source = register_original(candidate, fetched, parsed, retrieved_at=datetime.now(UTC))
     return candidate, fetched, parsed, source
+
+
+@pytest.mark.parametrize(
+    "url,expected",
+    [
+        ("https://www.fvv.um.si/rv/arhiv/2026/review.pdf", "peer_reviewed"),
+        ("https://www.ieee-security.org/TC/SPW2013/paper.pdf", "peer_reviewed"),
+        ("https://www.sei.cmu.edu/library/insider-threat-test-dataset/", "official"),
+        ("https://ieee-dataport.org/documents/trace-it", "official"),
+        ("https://scribd.com/document/1234", "unknown"),
+        ("https://fvv.um.si.evil.example/rv/arhiv/review.pdf", "unknown"),
+    ],
+)
+def test_source_tier_uses_exact_first_party_host_and_path(url, expected):
+    candidate = SearchResult(
+        source_id=url,
+        source_type="web",
+        title="A cited document",
+        snippet="",
+        url=url,
+        source_tier="unknown",
+    )
+    assert _source_tier(candidate, url) == expected
 
 
 def extract(fetched, parsed, source, **kwargs):

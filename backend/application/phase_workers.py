@@ -296,6 +296,16 @@ async def research_worker(value, context):
                 degraded(source.source_id, failure.code, "extraction")
                 changes["sources"][source.source_id] = source
                 continue
+            linked_claim_ids = {link.claim_id for link in facts["claim_evidence_links"]}
+            unlinked_claim_ids = set(facts["claims"]) - linked_claim_ids
+            if unlinked_claim_ids:
+                diagnostic(
+                    "extraction_unlinked_claims_dropped",
+                    source_id=source.source_id,
+                    count=len(unlinked_claim_ids),
+                )
+                for claim_id in unlinked_claim_ids:
+                    del facts["claims"][claim_id]
             if (
                 not facts["evidence"]
                 and not facts["claims"]

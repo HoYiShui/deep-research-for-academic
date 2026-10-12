@@ -65,6 +65,24 @@ def test_doi_mirrors_deduplicate_and_official_source_outranks_aggregation():
     assert rejected == 1
 
 
+def test_bibliography_directory_and_document_mirror_are_not_originals():
+    bibliography = candidate(
+        "https://researchr.org/publication/LiuWZJXM19/references", "Log2vec references"
+    )
+    mirror = candidate("https://www.scribd.com/document/1234/Log2vec", "Log2vec PDF")
+    original = candidate("https://arxiv.org/pdf/1907.11112", "Log2vec original")
+    batch = SearchBatch(
+        outcomes=[
+            SearchOutcome(
+                source="web", attempts=1, status="ok", items=[bibliography, mirror, original]
+            )
+        ]
+    )
+    selected, rejected = select_candidates(batch, "Log2vec")
+    assert selected == [original]
+    assert rejected == 2
+
+
 def test_seen_original_and_provider_cap_do_not_block_other_provider():
     prior = candidate("https://example.org/paper?utm_source=a", "Known paper")
     web = [prior, candidate("https://example.org/other", "Other document")]
