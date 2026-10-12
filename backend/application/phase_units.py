@@ -1,5 +1,6 @@
 """Trusted unit scopes and immutable completion envelopes; not model controls."""
 
+import re
 from typing import Literal
 
 from pydantic import Field, JsonValue, StrictBool, model_validator
@@ -115,13 +116,54 @@ def plan_units(state: PipelineState) -> list[UnitScope]:
             # Questions describe the research obligation; anchors are the plan's
             # explicit retrieval expressions. Advice-only sections do not acquire
             # search authority merely by carrying background anchors.
-            expressions = []
-            if plan.sub_questions:
-                expressions = plan.retrieval_anchors or plan.sub_questions
-            questions = dict.fromkeys(question.strip() for question in expressions)
+            rework = [
+                target
+                for target in state.run_metadata.rework_targets
+                if target.action == "re_research" and plan.section_id in target.section_ids
+            ]
+            if rework:
+                target_claims = {claim_id for target in rework for claim_id in target.claim_ids}
+                target_specs = {
+                    spec_id
+                    for claim_id in target_claims
+                    if claim_id in state.claims
+                    for spec_id in state.claims[claim_id].spec_ids
+                }
+                coverage = state.section_coverage.get(plan.section_id)
+                if not target_specs and coverage:
+                    target_specs.update(
+                        gap.claim_spec_id
+                        for gap in coverage.gaps
+                        if gap.claim_spec_id and gap.fillable
+                    )
+                if not target_specs:
+                    target_specs = {spec.spec_id for spec in plan.claim_specs}
+                questions = {}
+                for spec in plan.claim_specs:
+                    if spec.spec_id not in target_specs:
+                        continue
+                    parts = [spec.text, *spec.required_conditions]
+                    query = re.sub(r"\s+", " ", " ".join(parts)).strip()[:400]
+                    if query:
+                        questions[query] = spec.spec_id
+                    if len(
+                        questions
+                    ) >= state.run_metadata.config.limits.gap_queries_per_spec * len(target_specs):
+                        break
+            else:
+                expressions = []
+                if plan.sub_questions:
+                    expressions = plan.retrieval_anchors or plan.sub_questions
+                questions = dict.fromkeys(
+                    re.sub(r"'([^']{4,})'", r'"\1"', question.strip()) for question in expressions
+                )
             units.extend(
-                unit([plan.section_id], {"kind": "query", "query": question})
-                for question in questions
+                unit(
+                    [plan.section_id],
+                    {"kind": "query", "query": question}
+                    | ({"claim_spec_id": spec_id} if spec_id else {}),
+                )
+                for question, spec_id in questions.items()
             )
             units.append(unit([plan.section_id], {"kind": "coverage"}))
     else:

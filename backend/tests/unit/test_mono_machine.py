@@ -157,6 +157,52 @@ def test_query_units_are_checkpointable_and_ids_survive_outputs_budget_changes()
     )
 
 
+def test_re_research_queries_target_the_reviewed_claim_spec_instead_of_old_anchors():
+    data = writing_state().model_dump(mode="json")
+    data["phase"] = "research"
+    data["section_plans"][0]["retrieval_anchors"] = ["old broad anchor"]
+    # Another fillable gap in this section must not broaden a claim-specific rework.
+    data["section_coverage"]["section_1"]["gaps"][0]["fillable"] = True
+    data["section_plans"][0]["claim_specs"].append(
+        {
+            "spec_id": "spec-target",
+            "text": "Yuan 2019 hierarchical temporal point process CERT evaluation",
+            "required_conditions": ["original paper"],
+            "required_source_tiers": [],
+        }
+    )
+    data["claims"]["c-target"] = {
+        "claim_id": "c-target",
+        "spec_ids": ["spec-target"],
+        "text": "Temporal point process was not evaluated on CERT",
+        "claim_type": "factual",
+        "conditions": {},
+        "status": "open",
+        "status_reason": "Needs original paper",
+    }
+    data["run_metadata"]["rework_targets"] = [
+        {
+            "issue_ids": ["issue-1"],
+            "section_ids": ["section_1"],
+            "claim_ids": ["c-target"],
+            "action": "re_research",
+            "reason": "Check the overlooked original study",
+        }
+    ]
+    queries = [
+        unit.parameters
+        for unit in plan_units(PipelineState.model_validate(data))
+        if unit.parameters["kind"] == "query"
+    ]
+    assert queries == [
+        {
+            "kind": "query",
+            "query": "Yuan 2019 hierarchical temporal point process CERT evaluation original paper",
+            "claim_spec_id": "spec-target",
+        }
+    ]
+
+
 def test_write_unit_identity_survives_draft_version_change():
     state = writing_state()
     first = plan_units(state)

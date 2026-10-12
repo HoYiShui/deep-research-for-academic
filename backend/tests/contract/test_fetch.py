@@ -166,6 +166,24 @@ async def test_pinned_connection_original_host_and_tls_no_ambient_proxy(monkeypa
 
 
 @pytest.mark.asyncio
+async def test_connect_failure_rechecks_dns_before_one_safe_retry():
+    class FlakyNetwork(Network):
+        async def connect_tcp(self, host, port, **kwargs):
+            self.connected.append((host, port))
+            if len(self.connected) == 1:
+                raise httpcore.ConnectError("Controlled TLS connection failure")
+            return Stream(self.responses.pop(0), self)
+
+    net, dns = FlakyNetwork([response()]), DNS()
+    adapter = RestrictedDownloader(network=PublicNetwork(resolver=dns, backend=net))
+    found = await adapter.download("https://example.com/original")
+    assert found.body == b"original"
+    assert dns.calls == [("example.com", 443), ("example.com", 443)]
+    assert net.connected == [("93.184.216.34", 443)] * 2
+    assert net.tls == ["example.com"]
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     "addresses", [["127.0.0.1"], ["93.184.216.34", "10.0.0.1"], ["::ffff:169.254.169.254"]]
 )

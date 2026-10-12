@@ -52,6 +52,24 @@ def test_research_units_prefer_deduplicated_anchors_but_preserve_question_obliga
     assert units == plan_units(PipelineState.model_validate_json(state.model_dump_json()))
 
 
+def test_research_anchor_normalizes_single_quoted_exact_title():
+    from application.phase_units import plan_units
+
+    data = initial_state().model_dump(mode="json") | {"phase": "research", "section_plans": plans()}
+    data["section_plans"][0]["retrieval_anchors"] = [
+        "Yuan 2019 'Insider Threat Detection via Hierarchical Neural Temporal Point Processes'"
+    ]
+    state = PipelineState.model_validate(data)
+    query = next(
+        unit.parameters["query"]
+        for unit in plan_units(state)
+        if unit.section_ids == ["section_1"] and unit.parameters["kind"] == "query"
+    )
+    assert query == (
+        'Yuan 2019 "Insider Threat Detection via Hierarchical Neural Temporal Point Processes"'
+    )
+
+
 def result(state, changes, **extra):
     value = PhaseInput.from_state(state)
     return PhaseResult(

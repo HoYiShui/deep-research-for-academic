@@ -187,6 +187,15 @@ async def test_arxiv_exact_request_single_attempt():
     assert dict(calls[0].url.params) == {"search_query": "all:transformer", "max_results": "10"}
 
 
+def test_arxiv_named_title_uses_title_field_instead_of_unrelated_author_terms():
+    assert _query_params(
+        'Yuan 2019 "Insider Threat Detection via Hierarchical Neural Temporal Point Processes"'
+    ) == {
+        "search_query": 'ti:"Insider Threat Detection via Hierarchical Neural Temporal Point Processes"',
+        "max_results": 10,
+    }
+
+
 @pytest.mark.parametrize(
     "query,identifier",
     [

@@ -28,15 +28,16 @@ def web_search_binding(settings, *, timeout_s=None):
     categories = {name: "web"}
     providers = [SearchProvider(name=name, category="web", revision=revision)]
     paper = settings.paper_search_provider
-    if paper == "openalex":
+    if paper in {"openalex", "both"}:
         sources.append(("openalex", OpenAlexSearch(timeout_s=timeout)))
         providers.append(
             SearchProvider(name="openalex", category="papers", revision="openalex-works-oa-pdf-v1")
         )
-    elif paper == "arxiv":
+    if paper in {"arxiv", "both"}:
         sources.append(("arxiv", ArxivSearch(timeout_s=timeout)))
         providers.append(SearchProvider(name="arxiv", category="papers", revision="arxiv-atom-v1"))
-    if paper != "none":
-        categories[paper] = "papers"
+    for source in ("openalex", "arxiv"):
+        if any(name == source for name, _ in sources):
+            categories[source] = "papers"
     composite = CompositeSearch(sources, timeout_s=timeout, source_categories=categories)
     return SearchBinding(composite, tuple(providers))

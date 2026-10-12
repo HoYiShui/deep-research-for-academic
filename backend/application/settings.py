@@ -36,7 +36,7 @@ class Settings(BaseModel):
     anthropic_api_key: SecretStr = SecretStr("")
     bocha_api_key: SecretStr = SecretStr("")
     web_search_provider: Literal["search_router", "bocha"] = "search_router"
-    paper_search_provider: Literal["openalex", "arxiv", "none"] = "openalex"
+    paper_search_provider: Literal["openalex", "arxiv", "both", "none"] = "openalex"
     search_router_url: str = "http://127.0.0.1:8080"
     search_router_content: Literal["any", "body"] = "body"
     minio_access_key: SecretStr = SecretStr("")

@@ -105,6 +105,35 @@ async def test_paper_search_can_be_disabled(monkeypatch):
         await binding.adapter.aclose()
 
 
+async def test_both_paper_providers_are_explicit_and_independently_meterable(monkeypatch):
+    calls = []
+
+    def recorder(name):
+        async def search(self, query):
+            calls.append((name, query))
+            return []
+
+        return search
+
+    monkeypatch.setattr(OpenAlexSearch, "search", recorder("openalex"))
+    monkeypatch.setattr(ArxivSearch, "search", recorder("arxiv"))
+    monkeypatch.setattr(SearchRouterSearch, "search", recorder("search_router"))
+    binding = web_search_binding(
+        Settings(parser_version=HTML_PARSER_VERSION, paper_search_provider="both")
+    )
+    try:
+        assert [provider.name for provider in binding.providers] == [
+            "search_router",
+            "openalex",
+            "arxiv",
+        ]
+        batch = await binding.adapter.search_batch("named paper", categories=frozenset({"papers"}))
+        assert [item.source for item in batch.outcomes] == ["openalex", "arxiv"]
+        assert calls == [("openalex", "named paper"), ("arxiv", "named paper")]
+    finally:
+        await binding.adapter.aclose()
+
+
 async def test_independent_phase_tools_search_web_and_papers(monkeypatch):
     async def search(self, query):
         return []
@@ -119,7 +148,10 @@ async def test_independent_phase_tools_search_web_and_papers(monkeypatch):
             SimpleNamespace(unit_id="query-test", parameters={"kind": "query", "query": "test"})
         )
         result = await tools.invoke("search", {"query": "test"})
-        assert sorted(item["source"] for item in result["outcomes"]) == ["openalex", "search_router"]
+        assert sorted(item["source"] for item in result["outcomes"]) == [
+            "openalex",
+            "search_router",
+        ]
         assert tools.usage["search_calls"] == 2
     finally:
         await tools.close()

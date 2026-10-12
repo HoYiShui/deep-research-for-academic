@@ -3,7 +3,7 @@
 import json
 import re
 from datetime import UTC, datetime
-from itertools import zip_longest
+from urllib.parse import urlsplit
 
 from application.errors import AppError
 from domain.documents import FetchedDocument, ParsedDocument
@@ -15,6 +15,12 @@ from domain.research.agents.data_analyst import assess_requirement
 from domain.research.agents.extraction import extract
 from domain.research.agents.originals import register_original
 from domain.research.agents.writer import draft_chapter
+from domain.research.candidate_selection import (
+    candidate_identity,
+    normalized_url,
+    select_candidates,
+    title_identity,
+)
 from domain.research.diagnostics import diagnostic, diagnostic_scope
 from domain.research.ids import canonical_hash
 from domain.research.phase_contracts import PhaseResult
@@ -80,6 +86,57 @@ def _blocks(parsed, plan, query):
     return sorted(selected)
 
 
+def _preview_only(candidate, fetched, parsed):
+    if fetched.media_type != "text/html":
+        return False
+    text = " ".join(block.content for block in parsed.blocks)
+    host = (urlsplit(candidate.url).hostname or "").casefold()
+    publisher = any(
+        name in host
+        for name in ("sciencedirect.com", "ieee.org", "springer.com", "wiley.com", "dl.acm.org")
+    )
+    if not publisher:
+        return False
+    return len(text) < 600 or (
+        len(text) < 1800
+        and any(
+            phrase in text.casefold()
+            for phrase in ("purchase", "institutional access", "get access", "buy this article")
+        )
+    )
+
+
+def _oa_alternative(candidate, batch, attempted):
+    identity = candidate_identity(candidate)
+    title = re.sub(r"\W+", "", candidate.title.casefold())
+    for item in batch.items:
+        if item.provider != "openalex" or not item.fulltext_url:
+            continue
+        if canonical_hash(item) in attempted:
+            continue
+        if candidate_identity(item) == identity or (
+            title and re.sub(r"\W+", "", item.title.casefold()) == title
+        ):
+            return item
+    return None
+
+
+def _same_work_original(candidate, batch, attempted):
+    identity = candidate_identity(candidate)
+    target = candidate.fulltext_url or candidate.url
+    for item in batch.items:
+        other_target = item.fulltext_url or item.url
+        path = urlsplit(other_target).path.casefold()
+        if (
+            canonical_hash(item) not in attempted
+            and other_target != target
+            and candidate_identity(item) == identity
+            and (item.fulltext_url or path.endswith(".pdf") or path.startswith("/pdf/"))
+        ):
+            return item
+    return None
+
+
 async def research_worker(value, context):
     unit = context.unit
     if (
@@ -119,20 +176,18 @@ async def research_worker(value, context):
         for outcome in batch.outcomes:
             if outcome.status == "failed":
                 degraded(outcome.source, outcome.failure.code, "search")
-        selected, targets = [], set()
-        # Interleave providers so one source's long list cannot crowd out
-        # the others (web results previously always filled every slot).
-        ranked = [
-            item
-            for rank in zip_longest(*(outcome.items for outcome in batch.outcomes))
-            for item in rank
-            if item is not None
-        ]
-        for candidate in ranked:
-            target = candidate.fulltext_url if candidate.source_type == "paper" else candidate.url
-            if target not in targets and len(selected) < 4:
-                selected.append(candidate)
-                targets.add(target)
+        # A source may need a fresh extraction for another chapter's ClaimSpecs.
+        # Within this chapter, however, repeat queries should not re-fetch an
+        # original that already yielded evidence.
+        prior_coverage = value.values["section_coverage"].get(plan.section_id)
+        seen, seen_titles = set(), set()
+        for key in prior_coverage.evidence_ids if prior_coverage else []:
+            evidence = value.values["evidence"].get(key)
+            source = value.values["sources"].get(evidence.source_id) if evidence else None
+            if source and source.canonical_url:
+                seen.add(normalized_url(source.canonical_url))
+                seen_titles.add(title_identity(source.title))
+        selected, rejected = select_candidates(batch, query, seen=seen, seen_titles=seen_titles)
         diagnostic(
             "candidate_selection",
             returned_count=len(batch.items),
@@ -145,17 +200,20 @@ async def research_worker(value, context):
                 }
                 for candidate in selected
             ],
-            selection_limit=4,
+            selection_limit=6,
+            rejected_low_value_or_duplicate=rejected,
         )
-        if len(selected) < len(
-            {candidate.fulltext_url or candidate.url for candidate in batch.items}
-        ):
+        if len(selected) + rejected < len(batch.items):
             degraded(
                 "research",
                 "Additional candidates remain unexamined beyond the bounded selection",
                 "candidate_selection",
             )
-        for candidate in selected:
+        pending = list(selected)
+        attempted = set()
+        while pending:
+            candidate = pending.pop(0)
+            attempted.add(canonical_hash(candidate))
             if await context.cancel_check():
                 raise AppError("invalid_session_state", "Research execution is stopping")
             try:
@@ -172,11 +230,43 @@ async def research_worker(value, context):
                 }:
                     raise
                 degraded(candidate.source_id, failure.code, "fetch")
+                if failure.retryable:
+                    alternative = _same_work_original(candidate, batch, attempted)
+                    if alternative is not None:
+                        diagnostic(
+                            "original_fallback",
+                            failed_url=candidate.fulltext_url or candidate.url,
+                            alternative_url=alternative.fulltext_url or alternative.url,
+                            code=failure.code,
+                        )
+                        pending = [
+                            item
+                            for item in pending
+                            if canonical_hash(item) != canonical_hash(alternative)
+                        ]
+                        pending.insert(0, alternative)
                 continue
             fetched, parsed = (
                 FetchedDocument.model_validate(original["fetched"]),
                 ParsedDocument.model_validate(original["parsed"]),
             )
+            if _preview_only(candidate, fetched, parsed):
+                degraded(candidate.source_id, "original_preview_too_short", "fetch")
+                alternative = _oa_alternative(candidate, batch, attempted)
+                diagnostic(
+                    "oa_fallback",
+                    original_url=candidate.url,
+                    found=alternative is not None,
+                    oa_url=alternative.fulltext_url if alternative else None,
+                )
+                if alternative is not None:
+                    pending = [
+                        item
+                        for item in pending
+                        if canonical_hash(item) != canonical_hash(alternative)
+                    ]
+                    pending.insert(0, alternative)
+                continue
             source = register_original(candidate, fetched, parsed, retrieved_at=datetime.now(UTC))
             blocks = _blocks(parsed, plan, query)
             if len(blocks) < len(parsed.blocks):
@@ -205,6 +295,13 @@ async def research_worker(value, context):
                     raise
                 degraded(source.source_id, failure.code, "extraction")
                 changes["sources"][source.source_id] = source
+                continue
+            if (
+                not facts["evidence"]
+                and not facts["claims"]
+                and not facts["quantitative_observations"]
+            ):
+                degraded(source.source_id, "original_not_relevant_to_claim_specs", "extraction")
                 continue
             for name in ("sources", "evidence", "claims", "quantitative_observations"):
                 for key, fact in facts[name].items():

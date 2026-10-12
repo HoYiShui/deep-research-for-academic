@@ -20,6 +20,7 @@ from urllib.parse import quote, urljoin, urlsplit, urlunsplit
 import httpcore
 
 from domain.ports import AdapterError
+from domain.research.diagnostics import diagnostic
 
 MAX_DOWNLOAD_BYTES = 50 * 1024 * 1024
 Resolver = Callable[[str, int], Awaitable[list[str]]]
@@ -174,7 +175,16 @@ class RestrictedDownloader:
         url = external_url(url)
         try:
             async with asyncio.timeout(self._timeout_s):
-                return await self._download(url)
+                for attempt in range(2):
+                    try:
+                        return await self._download(url)
+                    except httpcore.ConnectError:
+                        if attempt:
+                            raise
+                        # A connect/TLS failure occurs before a request reaches
+                        # its target. Re-resolve and recheck every address.
+                        diagnostic("fetch_connect_retry", host=urlsplit(url).hostname)
+                raise AssertionError("Unreachable fetch retry state")
         except (TimeoutError, httpcore.TimeoutException) as exc:
             raise failure("fetch_timeout", True) from exc
         except (httpcore.NetworkError, httpcore.ProtocolError) as exc:
@@ -187,7 +197,7 @@ class RestrictedDownloader:
             if url in visited:
                 raise failure("fetch_redirect_limit")
             visited.append(url)
-            # No proxy/environment credentials/cookies, retries or pool reuse.
+            # No proxy/environment credentials/cookies or pool reuse.
             async with (
                 httpcore.AsyncConnectionPool(
                     network_backend=self._network,

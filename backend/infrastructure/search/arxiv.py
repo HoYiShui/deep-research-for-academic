@@ -28,10 +28,14 @@ def _query_params(query):
     if len(identifiers) > 10:
         raise error("arxiv", "search_query_invalid")
     # Exact identifiers are metadata lookup, not terms in a prose all: query.
+    title = re.search(r'"([^"\n]{4,})"', query)
     return (
         {"id_list": ",".join(identifiers), "max_results": 10}
         if identifiers
-        else {"search_query": f"all:{query}", "max_results": 10}
+        else {
+            "search_query": f'ti:"{title.group(1)}"' if title else f"all:{query}",
+            "max_results": 10,
+        }
     )
 
 

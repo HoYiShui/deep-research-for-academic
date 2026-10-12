@@ -153,6 +153,24 @@ define the coverage obligations. Pure advice/risk sections may reuse an identica
 section and need not invent searches. The whole plan requires at least one ClaimSpec and one retrieval
 question. IDs must be stable descriptive identifiers; shared spec IDs mean the same spec.
 
+For EACH section with research sub_questions, cover three source roles across its anchors:
+(1) foundational or representative original work, using author + year + a QUOTED exact title
+or distinctive method name so web search does not match generic words in unrelated pages;
+(2) official or first-party dataset, code or standards documentation;
+(3) a systematic review or field survey. Choose anchors that directly test whether a proposed
+"gap" was already studied. If the brief is about CERT insider-threat data, useful KNOWN search
+anchors include `Glasser Lindauer 2013 "Bridging the Gap: A Pragmatic Approach to Generating
+Insider Threat Data"`, `Tuor 2017 "Deep Learning for Unsupervised Insider Threat Detection in
+Structured Cybersecurity Data Streams"`, `Liu 2019 "Log2vec" CCS`, `Yuan 2019 "Insider Threat
+Detection via Hierarchical Neural Temporal Point Processes"`, `Le Zincir-Heywood "Analyzing
+Data Granularity Levels for Insider Threat Detection"`, `site:kilthub.cmu.edu
+"Insider Threat Test Dataset" 12841247`, and `"Cert Dataset Decade" Jurišić Tomičić systematic
+review`. These are retrieval targets, not
+verified claims or guaranteed full text. For other topics, use their own known names and
+identifiers; never import CERT examples as evidence for an unrelated brief.
+For an official site, prefer a `site:<official-domain>` anchor over an ambiguous organization
+abbreviation; for CERT, plain `SEI` can match unrelated companies.
+
 analysis_requirements are ONLY numerical analysis over quantitative observations extracted from real
 original evidence. Prose comparison tables, source inventories, protocol-controls-conclusion mappings
 and failure-mode registers are NOT numerical analysis requirements: they are Writer task_payload/report
